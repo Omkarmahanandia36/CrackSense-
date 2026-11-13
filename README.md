@@ -1,64 +1,65 @@
+# CrackSense AI – Concrete Crack Detection System
 
-# CrackSense AI – Dam Crack Detection System
+An AI-powered concrete crack detection system using deep learning and computer vision to identify, localise, and visualise cracks in concrete surfaces.
 
-An AI-powered concrete crack detection system designed to identify, localise, and visualise cracks on dam concrete surfaces using deep learning and computer vision.
+CrackSense AI aims to simplify concrete surface inspection through automated image analysis. Users will be able to upload concrete images, analyse them using trained AI models, visualise detected cracks, and maintain inspection records through a desktop application.
 
-CrackSense AI aims to provide a desktop-based inspection tool where users can upload concrete surface images, analyse them using trained AI models, review detection results, and maintain inspection records.
-
-The project is currently in the initial development stage. Its architecture, AI models, and application features will be developed progressively.
+**Project Status:** Initial Development
 
 ---
 
 ## Table of Contents
 
-- [Project Overview](#project-overview)
-- [Objectives](#objectives)
+- [Overview](#overview)
+- [Project Objectives](#project-objectives)
 - [Key Features](#key-features)
 - [Technology Stack](#technology-stack)
 - [System Architecture](#system-architecture)
-- [AI Development Approach](#ai-development-approach)
+- [AI Models and Approach](#ai-models-and-approach)
 - [Dataset](#dataset)
 - [Project Structure](#project-structure)
 - [Installation](#installation)
 - [Configuration](#configuration)
 - [Running the Application](#running-the-application)
-- [Development Roadmap](#development-roadmap)
 - [Expected Workflow](#expected-workflow)
+- [Model Evaluation](#model-evaluation)
+- [Development Roadmap](#development-roadmap)
 - [Limitations](#limitations)
+- [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
 - [License](#license)
-- [Project Status](#project-status)
 
 ---
 
-## Project Overview
+## Overview
 
-Concrete cracks are an important visual indicator that may require further inspection during dam maintenance and assessment. Identifying these cracks manually across large concrete surfaces can be time-consuming.
+Concrete cracks can develop in buildings, bridges, roads, pavements, walls, floors, and other concrete structures. Identifying and documenting these cracks is an important part of infrastructure inspection and maintenance.
 
-CrackSense AI is being developed to assist this inspection process through computer vision and deep learning.
+Traditional visual inspection can be time-consuming, particularly when large concrete surfaces need to be examined.
 
-The system will analyse uploaded concrete surface images and provide:
+CrackSense AI is being developed to assist this process using artificial intelligence, deep learning, and image processing.
+
+The proposed system will analyse uploaded concrete images and provide:
 
 - Crack and non-crack classification.
-- Visual localisation of detected cracks.
+- Visual localisation of cracks.
 - Pixel-level crack segmentation.
-- Prediction confidence scores.
-- Inspection history and image records.
-- Downloadable inspection reports.
+- AI prediction confidence scores.
+- Original and analysed image comparison.
+- Inspection history and records.
+- Inspection report generation.
 
-The primary focus is **visual crack detection in concrete dam surfaces**. The system is not intended to replace structural engineers or official dam safety inspection procedures.
+The primary focus is automated visual crack detection in concrete surfaces.
 
-## Objectives
+## Project Objectives
 
-1. Develop an AI-based concrete crack detection system.
-2. Train deep learning models to distinguish cracked and non-cracked surfaces.
-3. Identify and localise visible cracks in uploaded images.
-4. Explore pixel-level segmentation for precise crack visualisation.
-5. Build a desktop application for image-based inspection.
-6. Maintain organised inspection records and generate reports.
-7. Evaluate model performance on dam-specific concrete images.
-
----
+1. Develop an AI-based system for concrete crack detection.
+2. Train deep learning models to classify cracked and non-cracked concrete images.
+3. Identify and localise visible cracks within images.
+4. Explore pixel-level segmentation for accurate crack visualisation.
+5. Develop a desktop application for image-based inspection.
+6. Maintain organised inspection records.
+7. Evaluate model performance on different concrete surface conditions.
 
 ## Key Features
 
@@ -66,72 +67,66 @@ The following features are planned for development.
 
 | Feature | Description | Status |
 |---|---|---|
-| Image Upload | Upload concrete surface images | Planned |
-| Crack Classification | Classify images as cracked or non-cracked | Planned |
-| Crack Localisation | Identify crack locations using bounding boxes | Planned |
-| Crack Segmentation | Highlight crack pixels | Planned |
-| Confidence Score | Display model prediction confidence | Planned |
-| Image Processing | Prepare and process images using OpenCV | Planned |
-| Inspection History | Maintain previous inspection records | Planned |
-| Result Visualisation | Compare original and analysed images | Planned |
-| PDF Reports | Generate inspection reports | Planned |
-| Model Management | Manage trained AI model versions | Planned |
-
----
+| Image Upload | Upload concrete surface images | not started |
+| Crack Classification | Identify cracked and non-cracked images | not started |
+| Crack Localisation | Locate cracks using bounding boxes | not started |
+| Crack Segmentation | Highlight crack pixels | not started |
+| Confidence Score | Display AI prediction confidence | not started |
+| Image Processing | Preprocess images using OpenCV | not started |
+| Result Visualisation | Compare original and analysed images | not started |
+| Inspection History | Store previous analysis records | not started |
+| PDF Reports | Generate inspection reports | not started |
+| Model Management | Manage trained AI models | not started |
 
 ## Technology Stack
-
-The project will use the following technologies.
 
 | Component | Technology | Purpose |
 |---|---|---|
 | Desktop Framework | Electron | Desktop application |
 | Frontend | React | User interface |
-| Programming Language | TypeScript | Frontend development |
-| Backend | Python, FastAPI | API and application logic |
-| Deep Learning | PyTorch | Model development and inference |
-| Classification | ResNet | Crack / non-crack classification |
+| Frontend Language | TypeScript | Application development |
+| Backend | Python, FastAPI | Backend services and APIs |
+| Deep Learning | PyTorch | AI model development |
+| Classification | ResNet | Crack classification |
 | Object Detection | YOLO | Crack localisation |
-| Segmentation | U-Net | Pixel-level crack segmentation |
-| Image Processing | OpenCV | Image preprocessing and analysis |
-| Database | PostgreSQL | Inspection and user records |
+| Segmentation | U-Net | Pixel-level segmentation |
+| Image Processing | OpenCV | Image preprocessing |
+| Database | PostgreSQL | Application data storage |
 | Model Training | Google Colab | GPU-based model training |
-| Development Environment | Visual Studio Code | Development and debugging |
-
----
+| Development Environment | Visual Studio Code | Development |
 
 ## System Architecture
 
-CrackSense AI will follow a modular architecture consisting of four major components.
+CrackSense AI will follow a modular architecture with four primary components.
 
 ### 1. Desktop Application
 
-Built with Electron, React, and TypeScript.
+**Technologies:** Electron, React, TypeScript
 
 Responsibilities:
 - User authentication.
 - Image upload.
 - Inspection dashboard.
-- AI analysis results.
-- Crack visualisation.
+- AI analysis interface.
+- Crack detection visualisation.
 - Inspection history.
 - Report management.
 
 ### 2. Backend API
 
-Built using Python and FastAPI.
+**Technology:** Python + FastAPI
 
 Responsibilities:
 - Handle frontend requests.
 - Validate uploaded images.
-- Manage inspection records.
 - Execute AI inference.
+- Manage inspection records.
 - Store prediction results.
 - Communicate with the database.
 
 ### 3. AI Processing Engine
 
-Built using PyTorch and OpenCV.
+**Technologies:** PyTorch + OpenCV
 
 Responsibilities:
 - Image preprocessing.
@@ -143,11 +138,12 @@ Responsibilities:
 
 ### 4. Database
 
-PostgreSQL will store application data, including:
+**Technology:** PostgreSQL
 
+Planned data storage:
 - User information.
-- Inspection details.
-- Image references.
+- Inspection records.
+- Uploaded image references.
 - AI prediction results.
 - Model information.
 - Report records.
@@ -155,59 +151,60 @@ PostgreSQL will store application data, including:
 ### Architecture Diagram
 
 ```text
-          USER
-            |
-            v
-    ELECTRON DESKTOP APP
-       React + TypeScript
-            |
-            v
-       FASTAPI BACKEND
-            |
-      +-----+------+
-      |            |
-      v            v
-  AI ENGINE     POSTGRESQL
-  PyTorch       Database
-  OpenCV           |
-      |            |
-      v            |
-  CRACK ANALYSIS   |
-      |            |
-      +-----+------+
-            |
-            v
-     ANALYSIS RESULTS
-            |
-            v
-    DESKTOP DASHBOARD
+                 USER
+                   |
+                   v
+          ELECTRON DESKTOP APP
+             React + TypeScript
+                   |
+                   v
+              FASTAPI
+              BACKEND
+                   |
+          +--------+--------+
+          |                 |
+          v                 v
+      AI ENGINE          DATABASE
+      PyTorch           PostgreSQL
+      OpenCV                |
+          |                 |
+          v                 |
+    CRACK ANALYSIS           |
+          |                 |
+          +--------+--------+
+                   |
+                   v
+            ANALYSIS RESULTS
+                   |
+                   v
+           DESKTOP DASHBOARD
 ```
 
----
+## AI Models and Approach
 
-## AI Development Approach
-
-The AI component will be developed in three stages.
+The AI development will be divided into three major stages.
 
 ### Stage 1: Crack Classification
 
 **Proposed Model:** ResNet
 
-The initial model will classify concrete surface images into two categories:
+The initial model will classify concrete images into two categories:
 
-- Positive: Cracked concrete.
-- Negative: Non-cracked concrete.
+- Positive: Concrete surface contains a crack.
+- Negative: Concrete surface does not contain a crack.
 
-The model will provide a predicted class and confidence score.
+Expected output:
+- Predicted class.
+- Confidence score.
+- Classification result.
 
 ### Stage 2: Crack Localisation
 
 **Proposed Model:** YOLO
 
-The object detection model will identify visible cracks and locate them using bounding boxes.
+The object detection model will identify and locate visible cracks within concrete images.
 
-Expected outputs:
-
+Expected output:
 - Crack location.
 - Bounding box coordinates.
 - Detection confidence.
@@ -221,24 +218,21 @@ This stage requires images with bounding-box annotations.
 
 The segmentation model will identify the pixel-level boundaries of cracks.
 
-Expected outputs:
-
-- Crack segmentation mask.
+Expected output:
+- Segmentation mask.
 - Highlighted crack regions.
 - Segmented image.
 - Pixel-level evaluation metrics.
 
 This stage requires pixel-level annotated images.
 
-**Note:** ResNet, YOLO, and U-Net are proposed models. They have not yet been implemented or trained in this project.
-
----
+**Note:** ResNet, YOLO, and U-Net are proposed models. They have not yet been implemented or trained.
 
 ## Dataset
 
 ### Initial Dataset
 
-The initial classification phase will use a concrete crack image dataset containing:
+The initial classification phase will use a concrete crack image dataset with the following specifications:
 
 | Property | Details |
 |---|---|
@@ -246,20 +240,20 @@ The initial classification phase will use a concrete crack image dataset contain
 | Positive Images | 20,000 |
 | Negative Images | 20,000 |
 | Image Dimensions | 227 × 227 |
-| Image Format | RGB |
+| Image Type | RGB |
 | Original Photographs | 458 |
 | Dataset Type | Binary Classification |
 
-The dataset consists of cropped image patches derived from original concrete photographs.
+The dataset contains cropped image patches derived from original concrete photographs.
 
 ### Dataset Preparation
 
-The following steps are planned:
+The following preprocessing steps are planned:
 
 1. Load and inspect the dataset.
 2. Verify image dimensions and formats.
 3. Identify corrupted images.
-4. Check for duplicate and highly similar images.
+4. Check duplicate and highly similar images.
 5. Analyse class distribution.
 6. Prepare training, validation, and testing datasets.
 7. Apply appropriate image preprocessing.
@@ -267,27 +261,29 @@ The following steps are planned:
 
 ### Dataset Splitting
 
-The project will use a training, validation, and testing strategy.
+The dataset will be divided into:
+- Training set.
+- Validation set.
+- Testing set.
 
 Exact split ratios will be finalised during experimentation.
 
-Care will be taken to reduce data leakage between related image patches. Since parent-image mapping is unavailable, image similarity grouping can only serve as an approximation of source-image independence.
+Care will be taken to minimise data leakage between related image patches. Since parent-image mapping is unavailable, image similarity grouping can only approximate source-image independence.
 
-### Future Dataset Requirement
+### Future Dataset Requirements
 
-The initial dataset is intended for general concrete crack classification.
+The initial dataset is suitable for binary classification.
 
-Additional dam-specific images will be required to evaluate real-world performance on dam surfaces.
+Additional annotated images will be required for:
+- YOLO-based crack localisation.
+- U-Net-based crack segmentation.
+- Evaluation across different concrete surfaces and environmental conditions.
 
-YOLO and U-Net will also require their respective bounding-box and pixel-level annotations.
-
-**Dataset Source:** [ADD DETAILS]
-
----
+**Dataset Source:** [ADD DATASET LINK]
 
 ## Project Structure
 
-The following is the proposed repository structure. It may evolve as development progresses.
+The following is the proposed repository structure and may change during development.
 
 ```text
 CrackSenseAI/
@@ -344,21 +340,19 @@ CrackSenseAI/
 └── README.md
 ```
 
----
-
 ## Installation
 
-The following instructions describe the intended development environment. Final setup commands and dependencies will be confirmed as implementation progresses.
+The following instructions describe the intended development environment. Final commands and dependencies will be confirmed during implementation.
 
 ### Prerequisites
 
-Install the following tools:
+Install the following:
 
-- Python — [Download](https://www.python.org/downloads/)
-- Node.js and npm — [Download](https://nodejs.org/)
-- PostgreSQL — [Download](https://www.postgresql.org/download/)
-- Git — [Download](https://git-scm.com/)
-- Visual Studio Code — [Download](https://code.visualstudio.com/)
+- Python – https://www.python.org/downloads/
+- Node.js – https://nodejs.org/
+- PostgreSQL – https://www.postgresql.org/download/
+- Git – https://git-scm.com/
+- Visual Studio Code – https://code.visualstudio.com/
 
 ### 1. Clone the Repository
 
@@ -375,21 +369,13 @@ Create a Python virtual environment:
 python -m venv venv
 ```
 
-Activate it.
-
-Windows:
+Activate the environment on Windows:
 
 ```bash
 venv\Scripts\activate
 ```
 
-Linux/macOS:
-
-```bash
-source venv/bin/activate
-```
-
-Install dependencies:
+Install backend dependencies:
 
 ```bash
 pip install -r backend/requirements.txt
@@ -411,23 +397,19 @@ npm install
 
 ### 4. Database Setup
 
-Install and configure PostgreSQL.
-
-Create a database for CrackSense AI:
+Install PostgreSQL and create the project database:
 
 ```sql
 CREATE DATABASE cracksense_db;
 ```
 
-Configure the database connection in the environment file.
+Configure the database connection through the environment file.
 
-Database migration and initialisation commands: [ADD DETAILS]
-
----
+Database initialisation and migration commands: [ADD DETAILS]
 
 ## Configuration
 
-Create an environment file using `.env.example` as a reference.
+Create a `.env` file using `.env.example` as a reference.
 
 Example configuration:
 
@@ -449,38 +431,28 @@ CORS_ORIGINS=[ADD FRONTEND ORIGINS]
 
 ### Configuration Notes
 
+- Do not commit `.env` files.
 - Keep database credentials private.
-- Never commit `.env` files.
-- Store trained model checkpoints separately from source code where appropriate.
-- Configure upload limits and supported image formats.
-- Use a strong secret key for authentication.
-- Confirm model preprocessing settings match the training pipeline.
-
----
+- Store trained model checkpoints separately where appropriate.
+- Configure image upload limits.
+- Use a secure secret key.
+- Ensure inference preprocessing matches the model training configuration.
 
 ## Running the Application
 
-The final development commands will depend on the completed backend and frontend configuration.
+The following are intended development commands. They must be verified against the final project configuration.
 
 ### Start the Backend
 
-From the project root:
+From the backend directory:
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-The backend entry point and working directory must match the final implementation.
-
 ### Start the Frontend
 
-Navigate to:
-
-```bash
-cd desktop/frontend
-```
-
-Run:
+From the frontend directory:
 
 ```bash
 npm run dev
@@ -488,33 +460,27 @@ npm run dev
 
 ### Start the Desktop Application
 
-The Electron development command will be added after the desktop integration is configured.
-
-**Electron launch command:** [ADD DETAILS]
-
----
+Electron development and production launch commands: [ADD DETAILS]
 
 ## Expected Workflow
 
-The intended application workflow is:
+The intended user workflow is:
 
-1. Open CrackSense AI.
-2. Select or create an inspection record.
+1. Launch CrackSense AI.
+2. Open the inspection dashboard.
 3. Upload a concrete surface image.
 4. Start AI-based crack analysis.
 5. View the classification result.
-6. Review the detected crack locations.
+6. Review detected crack locations.
 7. Inspect segmentation results when available.
-8. Save the analysis.
+8. Save the analysis record.
 9. Generate an inspection report.
 
-The system will retain the original uploaded image alongside the AI-generated results.
-
----
+The original image and corresponding AI analysis results will be retained for review.
 
 ## Model Evaluation
 
-Model performance will be evaluated using appropriate metrics.
+Different evaluation metrics will be used depending on the AI task.
 
 | Model | Evaluation Metrics |
 |---|---|
@@ -522,64 +488,52 @@ Model performance will be evaluated using appropriate metrics.
 | YOLO | Precision, Recall, mAP@50, mAP@50-95 |
 | U-Net | IoU, Dice Coefficient, Precision, Recall |
 
-Performance will be assessed using separate training, validation, and testing datasets.
+Models will be evaluated using separate training, validation, and testing datasets.
 
-Evaluation on dam-specific images will be important before considering practical inspection use.
-
----
+Performance on different concrete surface conditions will be assessed before considering practical deployment.
 
 ## Development Roadmap
 
-The project will be developed incrementally.
-
 | Phase | Development Activity | Status |
 |---|---|---|
-| Phase 1 | Project planning and architecture | In Progress |
-| Phase 2 | Dataset exploration and preparation | Planned |
-| Phase 3 | ResNet classification model | Planned |
-| Phase 4 | FastAPI backend development | Planned |
-| Phase 5 | Electron and React desktop interface | Planned |
-| Phase 6 | YOLO crack localisation | Planned |
-| Phase 7 | U-Net crack segmentation | Planned |
-| Phase 8 | Database integration | Planned |
-| Phase 9 | Inspection history and reporting | Planned |
-| Phase 10 | Testing and performance evaluation | Planned |
-
----
+| 1 | Project planning and architecture | In Progress |
+| 2 | Dataset exploration and preparation | Planned |
+| 3 | ResNet classification model | Planned |
+| 4 | FastAPI backend development | Planned |
+| 5 | Electron and React desktop interface | Planned |
+| 6 | YOLO crack localisation | Planned |
+| 7 | U-Net crack segmentation | Planned |
+| 8 | Database integration | Planned |
+| 9 | Inspection history and PDF reporting | Planned |
+| 10 | Testing and performance evaluation | Planned |
 
 ## Limitations
 
-CrackSense AI is intended as an image-based inspection support tool.
+CrackSense AI is designed as an image-based concrete crack inspection support tool.
 
-The following limitations must be considered:
+Important limitations include:
 
 - Image quality can affect detection accuracy.
-- Shadows, stains, surface joints, and concrete texture may cause false detections.
-- The initial dataset may not represent all dam surface conditions.
-- General concrete crack datasets do not guarantee reliable performance on dam structures.
-- Crack width measurements require appropriate image calibration and scale information.
-- Visual image analysis cannot independently establish the structural severity of a crack.
+- Shadows, stains, joints, surface textures, and lighting variations may cause false detections.
+- General concrete crack datasets may not represent every real-world concrete surface.
+- Classification alone cannot identify the exact crack location.
+- Accurate crack-width measurement requires image calibration and known scale information.
+- Visual crack detection cannot independently establish structural severity or safety.
 
-AI-generated results must be reviewed by qualified engineering professionals. CrackSense AI is not a certified dam safety assessment system.
-
----
+AI-generated results should be reviewed by qualified professionals. CrackSense AI is not a replacement for professional structural inspection.
 
 ## Troubleshooting
-
-Common development issues and their resolutions will be documented here as they are identified.
 
 | Issue | Suggested Check |
 |---|---|
 | Python dependency installation fails | Verify Python version and virtual environment |
-| Database connection error | Check PostgreSQL service and connection settings |
-| Frontend dependency error | Remove incompatible dependencies and reinstall |
-| Model loading error | Verify checkpoint path and model architecture |
-| Image upload failure | Check file format, file size, and upload permissions |
-| API connection failure | Confirm backend availability and CORS configuration |
+| Database connection error | Check PostgreSQL service and connection string |
+| Frontend dependency error | Verify Node.js and npm installation |
+| Model loading error | Verify model checkpoint path and architecture |
+| Image upload failure | Check file format, file size, and permissions |
+| API connection failure | Verify backend availability and CORS settings |
 
-For unresolved issues, open a GitHub issue with the error message and relevant environment details.
-
----
+For unresolved problems, open a GitHub issue with the error message and relevant environment details.
 
 ## Contributing
 
@@ -588,11 +542,11 @@ Contributions, suggestions, and technical discussions are welcome.
 To contribute:
 
 1. Fork the repository.
-2. Create a feature branch.
-3. Make your changes.
-4. Test your implementation.
-5. Commit your changes with a meaningful message.
-6. Open a pull request.
+2. Create a new feature branch.
+3. Implement your changes.
+4. Test the implementation.
+5. Commit your changes.
+6. Submit a pull request.
 
 Example:
 
@@ -603,38 +557,34 @@ git commit -m "Add crack detection module"
 git push origin feature/crack-detection
 ```
 
-For major changes, open an issue first to discuss the proposed implementation.
-
----
+For major changes, open an issue before starting development.
 
 ## License
 
-This project does not currently have an open-source license.
+No open-source license has been selected for this project yet.
 
 **License:** Not yet selected.
 
-Until a license is added, the repository should not be assumed to grant permission to reuse, modify, or distribute its code.
-
----
+Until a license is added, the repository should not be assumed to grant permission to reuse, modify, or distribute the source code.
 
 ## Project Status
 
-**Current Stage:** Initial Development
+**Current Stage: Initial Development**
 
-CrackSense AI is being developed as a desktop-based AI solution for concrete dam surface crack detection.
+CrackSense AI is being developed as a desktop-based AI solution for concrete surface crack detection.
 
-The immediate priority is to establish a reliable dataset pipeline, develop the initial classification model, and integrate AI inference into the desktop application.
+The immediate development priorities are:
 
-### Future Direction
+1. Dataset exploration and preprocessing.
+2. Development of the initial crack classification model.
+3. Backend API development.
+4. Desktop application development.
+5. Integration of AI inference into the application.
 
-- Improved crack detection on dam-specific concrete images.
-- Better localisation and segmentation performance.
-- Reliable inspection record management.
-- Model evaluation across different concrete surface conditions.
-- Practical testing with real-world inspection images.
+Further development will focus on crack localisation, segmentation, result visualisation, and inspection reporting.
 
 ---
 
-**CrackSense AI – Dam Crack Detection System**
+**CrackSense AI – Concrete Crack Detection System**
 
-*AI-based visual analysis for concrete surface inspection.*
+*AI-powered visual analysis for concrete surface inspection.*
