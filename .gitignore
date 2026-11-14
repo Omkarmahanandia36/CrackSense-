@@ -19,6 +19,12 @@ build/
 *.onnx
 models_cache/
 
+# Datasets (raw images should not be committed)
+dataset/raw/*
+!dataset/raw/.gitkeep
+!dataset/raw/Positive/.gitkeep
+!dataset/raw/Negative/.gitkeep
+
 # Storage
 storage/uploads/*
 !storage/uploads/.gitkeep

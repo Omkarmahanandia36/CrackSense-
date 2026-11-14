@@ -1,0 +1,7 @@
+filepath,label,class_name,cluster_id,dhash
+"dataset/raw/Positive/crack_0015.jpg",1,Positive,11,0x180c06030008
+"dataset/raw/Positive/crack_0016.jpg",1,Positive,11,0x30b0982c06030100
+"dataset/raw/Positive/crack_0024.jpg",1,Positive,11,0x2090180c06230100
+"dataset/raw/Positive/crack_0022.jpg",1,Positive,10,0x40303218040700
+"dataset/raw/Positive/crack_0032.jpg",1,Positive,16,0x12602010088c5404
+"dataset/raw/Positive/crack_0009.jpg",1,Positive,4,0x2a182e06022101
