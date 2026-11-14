@@ -24,7 +24,14 @@ function createWindow() {
         console.log(`Waiting for frontend dev server at ${url}... (${retries} retries left)`);
         setTimeout(() => loadWithRetry(url, retries - 1), 1500);
       } else {
-        console.error(`Failed to load ${url}:`, err);
+        const fs = require('fs');
+        const distIndex = path.join(__dirname, '../frontend/dist/index.html');
+        if (fs.existsSync(distIndex)) {
+          console.log(`Vite server not detected. Loading compiled bundle: ${distIndex}`);
+          mainWindow.loadFile(distIndex);
+        } else {
+          console.error(`Failed to load ${url}:`, err);
+        }
       }
     });
   };
