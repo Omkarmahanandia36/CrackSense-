@@ -49,6 +49,11 @@ class InMemoryInspectionRepository:
         self._save_to_disk()
         return record_data
 
+    def save(self, record: Any) -> Dict[str, Any]:
+        """Convenience alias accepting either a dict or Pydantic model."""
+        data = record.model_dump() if hasattr(record, "model_dump") else dict(record)
+        return self.add(data)
+
     def get(self, record_id: str) -> Optional[Dict[str, Any]]:
         """Retrieve an inspection record by its ID."""
         return self.records.get(record_id)

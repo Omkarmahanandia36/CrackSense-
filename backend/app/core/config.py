@@ -15,11 +15,18 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     API_V1_PREFIX: str = "/api/v1"
 
-    # Security
-    SECRET_KEY: str = "cracksense-dev-secret-key-change-in-production"
+    # Database (Default: PostgreSQL via asyncpg, fallback to SQLite if postgres not active)
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgrespassword@localhost:5432/cracksense_db"
+    SQLITE_FALLBACK_URL: str = f"sqlite+aiosqlite:///{BASE_DIR}/cracksense.db"
+
+    # JWT Authentication
+    SECRET_KEY: str = "cracksense-super-secret-jwt-key-2026"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
 
     # Storage paths
     UPLOAD_DIRECTORY: str = str(BASE_DIR / "storage" / "uploads")
+    REPORT_DIRECTORY: str = str(BASE_DIR / "storage" / "reports")
     STORAGE_JSON_PATH: str = str(BASE_DIR / "storage" / "inspections.json")
 
     # File Upload Constraints
@@ -56,5 +63,6 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-# Ensure uploads directory exists
+# Ensure directories exist
 os.makedirs(settings.UPLOAD_DIRECTORY, exist_ok=True)
+os.makedirs(settings.REPORT_DIRECTORY, exist_ok=True)

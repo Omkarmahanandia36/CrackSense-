@@ -25,14 +25,35 @@ export interface AnalyzeResult {
   created_at: string;
 }
 
-// In development, Vite proxies /analyze and /health to http://localhost:8000
+export interface InspectionListItem {
+  id: number;
+  uuid: string;
+  filename: string;
+  is_crack: boolean;
+  predicted_class: string;
+  confidence: number;
+  image_url: string;
+  created_at: string;
+}
+
+export interface UserProfile {
+  id: number;
+  email: string;
+  full_name?: string;
+  is_active: boolean;
+  created_at: string;
+}
+
 const API_BASE = '';
+
+function getAuthHeaders(): HeadersInit {
+  const token = localStorage.getItem('cracksense_token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 export async function getSystemHealth(): Promise<HealthData> {
   const res = await fetch(`${API_BASE}/health`);
-  if (!res.ok) {
-    throw new Error(`Health check failed with status: ${res.status}`);
-  }
+  if (!res.ok) throw new Error(`Health check failed: ${res.status}`);
   return res.json();
 }
 
@@ -42,6 +63,7 @@ export async function uploadAndAnalyzeImage(file: File): Promise<AnalyzeResult> 
 
   const res = await fetch(`${API_BASE}/analyze`, {
     method: 'POST',
+    headers: getAuthHeaders(),
     body: formData,
   });
 
@@ -50,5 +72,60 @@ export async function uploadAndAnalyzeImage(file: File): Promise<AnalyzeResult> 
     throw new Error(errorData.detail || `Server returned error (${res.status})`);
   }
 
+  return res.json();
+}
+
+export async function fetchInspections(skip: number = 0, limit: number = 50): Promise<InspectionListItem[]> {
+  const res = await fetch(`${API_BASE}/inspections?skip=${skip}&limit=${limit}`, {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error('Failed to load inspection history');
+  return res.json();
+}
+
+export async function deleteInspection(id: number): Promise<void> {
+  const res = await fetch(`${API_BASE}/inspections/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error(`Failed to delete inspection #${id}`);
+}
+
+export async function loginUser(email: string, password: string): Promise<{ access_token: string; user: UserProfile }> {
+  const res = await fetch(`${API_BASE}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Login failed');
+  }
+  return res.json();
+}
+
+export async function registerUser(email: string, password: string, full_name?: string): Promise<UserProfile> {
+  const res = await fetch(`${API_BASE}/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, full_name }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Registration failed');
+  }
+  return res.json();
+}
+
+export async function getCurrentUser(): Promise<UserProfile | null> {
+  const token = localStorage.getItem('cracksense_token');
+  if (!token) return null;
+  const res = await fetch(`${API_BASE}/auth/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    localStorage.removeItem('cracksense_token');
+    return null;
+  }
   return res.json();
 }

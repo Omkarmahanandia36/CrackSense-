@@ -1,12 +1,24 @@
 import React from 'react';
-import { Activity, LayoutDashboard, UploadCloud, Eye } from 'lucide-react';
-import { HealthData } from '../services/api';
+import {
+  Activity,
+  LayoutDashboard,
+  UploadCloud,
+  Eye,
+  History as HistoryIcon,
+  User as UserIcon,
+  LogOut,
+  LogIn,
+} from 'lucide-react';
+import { HealthData, UserProfile } from '../services/api';
 
 interface NavbarProps {
-  currentPage: 'dashboard' | 'upload' | 'result';
-  onNavigate: (page: 'dashboard' | 'upload' | 'result') => void;
+  currentPage: 'dashboard' | 'upload' | 'result' | 'history';
+  onNavigate: (page: 'dashboard' | 'upload' | 'result' | 'history') => void;
   health: HealthData | null;
   hasResult: boolean;
+  user: UserProfile | null;
+  onOpenLogin: () => void;
+  onLogout: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -14,6 +26,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   onNavigate,
   health,
   hasResult,
+  user,
+  onOpenLogin,
+  onLogout,
 }) => {
   return (
     <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
@@ -63,6 +78,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span>Upload & Analyze</span>
           </button>
 
+          <button
+            onClick={() => onNavigate('history')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg flex items-center space-x-1.5 transition ${
+              currentPage === 'history'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <HistoryIcon className="w-3.5 h-3.5" />
+            <span>History</span>
+          </button>
+
           {hasResult && (
             <button
               onClick={() => onNavigate('result')}
@@ -78,20 +105,47 @@ export const Navbar: React.FC<NavbarProps> = ({
           )}
         </nav>
 
-        {/* Backend / Device Status */}
-        <div className="flex items-center space-x-2 text-xs">
+        {/* Backend / Device Status & Auth */}
+        <div className="flex items-center space-x-3 text-xs">
           {health ? (
-            <div className="flex items-center space-x-2 bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800 font-mono text-[11px]">
+            <div className="hidden sm:flex items-center space-x-2 bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800 font-mono text-[11px]">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-slate-300">FastAPI Online</span>
+              <span className="text-slate-300">FastAPI</span>
               <span className="text-slate-600">|</span>
               <span className="text-blue-400">{health.device.toUpperCase()}</span>
             </div>
           ) : (
-            <div className="flex items-center space-x-2 bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800 font-mono text-[11px]">
+            <div className="hidden sm:flex items-center space-x-2 bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800 font-mono text-[11px]">
               <span className="w-2 h-2 rounded-full bg-amber-500" />
-              <span className="text-amber-300">Connecting to Backend...</span>
+              <span className="text-amber-300">Connecting...</span>
             </div>
+          )}
+
+          {/* User Sign In / Profile */}
+          {user ? (
+            <div className="flex items-center space-x-2 bg-slate-950 px-2.5 py-1 rounded-xl border border-slate-800">
+              <div className="w-6 h-6 rounded-lg bg-blue-600/20 text-blue-400 flex items-center justify-center">
+                <UserIcon className="w-3.5 h-3.5" />
+              </div>
+              <span className="font-medium text-slate-200 text-xs max-w-[100px] truncate">
+                {user.full_name || user.email.split('@')[0]}
+              </span>
+              <button
+                onClick={onLogout}
+                className="text-slate-500 hover:text-red-400 transition p-1"
+                title="Sign out"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={onOpenLogin}
+              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs rounded-xl flex items-center space-x-1.5 transition shadow-sm"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Sign In</span>
+            </button>
           )}
         </div>
       </div>
