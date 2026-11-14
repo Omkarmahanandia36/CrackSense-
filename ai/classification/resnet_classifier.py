@@ -54,7 +54,7 @@ class ResNetCrackClassifier(nn.Module):
     def load_weights(self, weights_path: str) -> None:
         """Load trained state dictionary from disk."""
         try:
-            checkpoint = torch.load(weights_path, map_location=self.device)
+            checkpoint = torch.load(weights_path, map_location=self.device, weights_only=False)
             if isinstance(checkpoint, dict) and "state_dict" in checkpoint:
                 self.model.load_state_dict(checkpoint["state_dict"])
             elif isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
