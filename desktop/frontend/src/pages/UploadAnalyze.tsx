@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { UploadCloud, FileImage, AlertCircle, X, ArrowRight } from 'lucide-react';
+import { UploadCloud, AlertCircle, X, ArrowRight, FileImage, ShieldCheck } from 'lucide-react';
 import { uploadAndAnalyzeImage, AnalyzeResult } from '../services/api';
 
 interface UploadAnalyzeProps {
@@ -92,18 +92,20 @@ export const UploadAnalyze: React.FC<UploadAnalyzeProps> = ({ onAnalysisSuccess 
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 text-zinc-800">
+    <div className="max-w-3xl mx-auto space-y-6 animate-fade-rise">
       {/* Title */}
-      <div className="border-b border-zinc-200 pb-4">
-        <h1 className="text-xl font-semibold text-zinc-900 tracking-tight">Analyze concrete image</h1>
-        <p className="text-xs text-zinc-500 mt-0.5">
-          High-resolution crack classification (ResNet-18) and bounding-box localization (YOLOv8)
+      <div className="border-b border-white/[0.06] pb-5">
+        <h1 className="text-2xl md:text-3xl font-semibold text-text-primary tracking-tight">
+          Analyze concrete image
+        </h1>
+        <p className="text-sm text-text-secondary mt-1">
+          Full-resolution patch tiling (ResNet-18) and bounding-box crack localization (YOLOv8)
         </p>
       </div>
 
       {errorMessage && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded text-xs text-red-800 flex items-start space-x-2">
-          <AlertCircle className="w-4 h-4 text-[#c92a2a] flex-shrink-0 mt-0.5" />
+        <div className="p-4 bg-accent/10 border border-accent/25 rounded-xl text-xs text-text-primary flex items-start space-x-3">
+          <AlertCircle className="w-4 h-4 text-accent flex-shrink-0 mt-0.5" />
           <span>{errorMessage}</span>
         </div>
       )}
@@ -115,10 +117,10 @@ export const UploadAnalyze: React.FC<UploadAnalyzeProps> = ({ onAnalysisSuccess 
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
-          className={`p-12 border-2 border-dashed rounded text-center cursor-pointer transition select-none ${
+          className={`p-16 border-2 border-dashed rounded-xl text-center cursor-pointer transition-all duration-200 select-none ${
             isDragging
-              ? 'border-[#c92a2a] bg-red-50/50'
-              : 'border-zinc-300 hover:border-zinc-400 bg-white'
+              ? 'border-accent bg-accent/10 shadow-[0_0_25px_rgba(200,85,61,0.25)]'
+              : 'border-white/10 hover:border-white/20 bg-surface/40 hover:bg-surface/70'
           }`}
         >
           <input
@@ -129,33 +131,38 @@ export const UploadAnalyze: React.FC<UploadAnalyzeProps> = ({ onAnalysisSuccess 
             className="hidden"
           />
 
-          <UploadCloud className="w-8 h-8 text-zinc-400 mx-auto mb-3" />
-          <p className="text-xs font-medium text-zinc-900">
-            Click to select concrete photo, or drag and drop file here
+          <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-surface-elevated/80 border border-white/[0.08] flex items-center justify-center text-accent">
+            <UploadCloud className="w-7 h-7" />
+          </div>
+
+          <p className="text-sm font-medium text-text-primary">
+            Click to upload concrete photo, or drag and drop
           </p>
-          <p className="text-[11px] text-zinc-500 mt-1">
-            Supports JPG, PNG, BMP &bull; Max 15 MB
+          <p className="text-xs text-text-tertiary mt-1.5 font-mono">
+            JPG, PNG, BMP, WebP &bull; Max 15 MB
           </p>
         </div>
       ) : (
         /* Selected File Preview & Inspection Controls */
-        <div className="border border-zinc-200 rounded bg-white p-4 space-y-4">
+        <div className="card-surface p-6 space-y-5">
           <div className="flex items-start justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-zinc-100 border border-zinc-200 rounded overflow-hidden flex items-center justify-center flex-shrink-0">
-                {previewUrl && (
+            <div className="flex items-center space-x-3.5">
+              <div className="w-12 h-12 rounded-lg bg-surface-elevated border border-white/[0.08] overflow-hidden flex items-center justify-center flex-shrink-0">
+                {previewUrl ? (
                   <img
                     src={previewUrl}
                     alt="Preview"
                     className="w-full h-full object-cover"
                   />
+                ) : (
+                  <FileImage className="w-5 h-5 text-text-tertiary" />
                 )}
               </div>
-              <div className="text-xs">
-                <span className="font-medium text-zinc-900 block truncate max-w-md">
+              <div>
+                <span className="font-mono text-xs font-semibold text-text-primary block truncate max-w-md">
                   {selectedFile.name}
                 </span>
-                <span className="text-[11px] text-zinc-500 font-mono">
+                <span className="text-[11px] text-text-tertiary font-mono">
                   {(selectedFile.size / 1024).toFixed(1)} KB
                   {imageMeta && ` • ${imageMeta.width} × ${imageMeta.height} px`}
                 </span>
@@ -165,30 +172,50 @@ export const UploadAnalyze: React.FC<UploadAnalyzeProps> = ({ onAnalysisSuccess 
             <button
               onClick={handleClear}
               disabled={loading}
-              className="p-1 hover:bg-zinc-100 rounded text-zinc-400 hover:text-zinc-700"
+              className="p-1.5 hover:bg-surface-elevated rounded-lg text-text-tertiary hover:text-text-primary transition"
               title="Remove file"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
-          {/* Full Image Preview */}
-          <div className="bg-zinc-50 border border-zinc-200 rounded overflow-hidden flex items-center justify-center max-h-80">
-            {previewUrl && (
-              <img
-                src={previewUrl}
-                alt="Selected Concrete"
-                className="max-h-80 w-auto object-contain"
-              />
-            )}
-          </div>
+          {/* Full Image Preview or Skeleton Loader */}
+          {loading ? (
+            <div className="p-8 rounded-lg bg-[#080B10] border border-white/[0.08] space-y-4">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-medium text-text-secondary flex items-center space-x-2">
+                  <span className="w-2 h-2 rounded-full bg-accent animate-ping" />
+                  <span>Running neural inference pipeline...</span>
+                </span>
+                <span className="font-mono text-text-tertiary text-[11px]">ResNet-18 + YOLOv8</span>
+              </div>
+
+              {/* Skeleton loaders */}
+              <div className="h-44 w-full rounded-lg skeleton" />
+              <div className="grid grid-cols-3 gap-3 pt-2">
+                <div className="h-8 rounded skeleton" />
+                <div className="h-8 rounded skeleton" />
+                <div className="h-8 rounded skeleton" />
+              </div>
+            </div>
+          ) : (
+            <div className="bg-[#080B10] border border-white/[0.08] rounded-lg overflow-hidden flex items-center justify-center max-h-96 p-2">
+              {previewUrl && (
+                <img
+                  src={previewUrl}
+                  alt="Selected Concrete"
+                  className="max-h-96 w-auto object-contain rounded"
+                />
+              )}
+            </div>
+          )}
 
           {/* Action Row */}
-          <div className="flex items-center justify-between pt-2 border-t border-zinc-100">
+          <div className="flex items-center justify-between pt-3 border-t border-white/[0.06]">
             <button
               onClick={handleClear}
               disabled={loading}
-              className="px-3 py-1.5 text-xs text-zinc-600 hover:text-zinc-900 transition"
+              className="px-3.5 py-2 text-xs text-text-secondary hover:text-text-primary transition"
             >
               Choose different file
             </button>
@@ -196,19 +223,10 @@ export const UploadAnalyze: React.FC<UploadAnalyzeProps> = ({ onAnalysisSuccess 
             <button
               onClick={handleRunAnalysis}
               disabled={loading}
-              className="px-4 py-2 bg-[#c92a2a] hover:bg-[#b02525] disabled:bg-zinc-300 text-white text-xs font-medium rounded transition flex items-center space-x-1.5 shadow-sm"
+              className="px-5 py-2.5 bg-gradient-to-r from-accent to-[#B64A34] hover:shadow-[0_0_20px_rgba(200,85,61,0.35)] disabled:opacity-50 text-white text-xs font-medium rounded-lg transition-all flex items-center space-x-2 shadow-sm"
             >
-              {loading ? (
-                <>
-                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Processing neural inference...</span>
-                </>
-              ) : (
-                <>
-                  <span>Run analysis</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </>
-              )}
+              <span>{loading ? 'Processing...' : 'Run analysis'}</span>
+              {!loading && <ArrowRight className="w-3.5 h-3.5" />}
             </button>
           </div>
         </div>

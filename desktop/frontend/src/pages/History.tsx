@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Search, RefreshCw, Trash2, ArrowRight, AlertCircle } from 'lucide-react';
+import { Search, RefreshCw, Trash2, ArrowRight, AlertCircle, FileImage } from 'lucide-react';
 import {
   fetchInspections,
   deleteInspection,
   InspectionListItem,
   AnalyzeResult,
+  resolveImageUrl,
 } from '../services/api';
 
 interface HistoryProps {
@@ -87,28 +88,30 @@ export const History: React.FC<HistoryProps> = ({
   const clearCount = totalCount - crackCount;
 
   return (
-    <div className="max-w-5xl mx-auto space-y-5 text-zinc-800">
+    <div className="space-y-6 animate-fade-rise">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-zinc-200 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-white/[0.06] pb-5">
         <div>
-          <h1 className="text-xl font-semibold text-zinc-900 tracking-tight">Inspection history</h1>
-          <p className="text-xs text-zinc-500 mt-0.5">
-            Database records of all analyzed structural surfaces
+          <h1 className="text-2xl md:text-3xl font-semibold text-text-primary tracking-tight">
+            Inspection history
+          </h1>
+          <p className="text-sm text-text-secondary mt-1">
+            Database records of all analyzed structural surfaces and crack events
           </p>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2.5">
           <button
             onClick={loadData}
             disabled={loading}
-            className="px-3 py-1.5 bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 text-xs rounded transition flex items-center space-x-1"
+            className="px-3.5 py-2 bg-surface hover:bg-surface-hover border border-white/[0.08] hover:border-white/[0.16] text-text-primary text-xs font-medium rounded-lg transition flex items-center space-x-1.5"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
           </button>
           <button
             onClick={onNavigateUpload}
-            className="px-3 py-1.5 bg-[#c92a2a] hover:bg-[#b02525] text-white text-xs font-medium rounded transition"
+            className="px-3.5 py-2 bg-gradient-to-r from-accent to-[#B64A34] text-white text-xs font-medium rounded-lg hover:shadow-[0_0_15px_rgba(200,85,61,0.35)] transition shadow-sm"
           >
             New inspection
           </button>
@@ -117,44 +120,44 @@ export const History: React.FC<HistoryProps> = ({
 
       {/* Filter and Search Bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-        <div className="relative w-full sm:w-72">
-          <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-2.5" />
+        <div className="relative w-full sm:w-80">
+          <Search className="w-4 h-4 text-text-tertiary absolute left-3 top-2.5" />
           <input
             type="text"
             placeholder="Search by filename..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white border border-zinc-200 rounded pl-8 pr-3 py-1.5 text-xs text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-400"
+            className="w-full bg-surface border border-white/[0.08] focus:border-accent text-text-primary placeholder:text-text-tertiary rounded-lg pl-9 pr-3 py-2 text-xs transition focus:outline-none"
           />
         </div>
 
-        <div className="flex items-center space-x-1 border border-zinc-200 rounded bg-white overflow-hidden">
+        <div className="flex bg-surface p-1 rounded-lg border border-white/[0.08]">
           <button
             onClick={() => setFilterType('all')}
-            className={`px-3 py-1 font-medium transition ${
+            className={`px-3 py-1 rounded-md text-xs font-medium transition ${
               filterType === 'all'
-                ? 'bg-zinc-800 text-white'
-                : 'text-zinc-600 hover:bg-zinc-50'
+                ? 'bg-surface-elevated text-text-primary border border-white/[0.08] shadow-sm'
+                : 'text-text-tertiary hover:text-text-secondary'
             }`}
           >
             All ({totalCount})
           </button>
           <button
             onClick={() => setFilterType('crack')}
-            className={`px-3 py-1 font-medium border-l border-zinc-200 transition ${
+            className={`px-3 py-1 rounded-md text-xs font-medium transition ${
               filterType === 'crack'
-                ? 'bg-zinc-800 text-white'
-                : 'text-zinc-600 hover:bg-zinc-50'
+                ? 'bg-surface-elevated text-text-primary border border-white/[0.08] shadow-sm'
+                : 'text-text-tertiary hover:text-text-secondary'
             }`}
           >
             Cracks ({crackCount})
           </button>
           <button
             onClick={() => setFilterType('clear')}
-            className={`px-3 py-1 font-medium border-l border-zinc-200 transition ${
+            className={`px-3 py-1 rounded-md text-xs font-medium transition ${
               filterType === 'clear'
-                ? 'bg-zinc-800 text-white'
-                : 'text-zinc-600 hover:bg-zinc-50'
+                ? 'bg-surface-elevated text-text-primary border border-white/[0.08] shadow-sm'
+                : 'text-text-tertiary hover:text-text-secondary'
             }`}
           >
             Clear ({clearCount})
@@ -162,85 +165,103 @@ export const History: React.FC<HistoryProps> = ({
         </div>
       </div>
 
-      {/* Table of Records */}
+      {/* Table of Records or Skeleton / Empty */}
       {loading ? (
-        <div className="p-12 border border-zinc-200 rounded bg-white text-center text-xs text-zinc-500">
-          Loading history from database...
+        <div className="card-surface p-6 space-y-3">
+          <div className="h-6 w-48 rounded skeleton" />
+          <div className="h-10 w-full rounded skeleton" />
+          <div className="h-10 w-full rounded skeleton" />
+          <div className="h-10 w-full rounded skeleton" />
         </div>
       ) : error ? (
-        <div className="p-4 bg-red-50 border border-red-200 rounded text-xs text-red-800 flex items-center space-x-2">
-          <AlertCircle className="w-4 h-4 text-[#c92a2a]" />
+        <div className="p-4 bg-accent/10 border border-accent/25 rounded-xl text-xs text-text-primary flex items-center space-x-2.5">
+          <AlertCircle className="w-4 h-4 text-accent" />
           <span>{error}</span>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="p-12 border border-zinc-200 rounded bg-white text-center text-xs text-zinc-500 space-y-2">
+        <div className="card-surface p-12 text-center text-xs text-text-secondary space-y-3">
           <p>No inspection records match your criteria.</p>
           {!searchQuery && (
             <button
               onClick={onNavigateUpload}
-              className="text-xs text-[#c92a2a] hover:underline font-medium"
+              className="text-xs text-accent hover:underline font-medium"
             >
               Analyze a concrete photograph &rarr;
             </button>
           )}
         </div>
       ) : (
-        <div className="border border-zinc-200 rounded overflow-hidden bg-white">
+        <div className="card-surface overflow-hidden">
           <table className="w-full text-left text-xs">
-            <thead className="bg-zinc-50 border-b border-zinc-200 text-zinc-500 font-medium">
+            <thead className="bg-surface-elevated/40 border-b border-white/[0.06] text-text-tertiary font-medium">
               <tr>
-                <th className="py-2 px-3 w-16">ID</th>
-                <th className="py-2 px-3">File</th>
-                <th className="py-2 px-3">Verdict</th>
-                <th className="py-2 px-3">Confidence</th>
-                <th className="py-2 px-3">Timestamp</th>
-                <th className="py-2 px-3 text-right">Actions</th>
+                <th className="py-3 px-4 w-16">ID</th>
+                <th className="py-3 px-4">Surface / File</th>
+                <th className="py-3 px-4">Verdict</th>
+                <th className="py-3 px-4">Confidence</th>
+                <th className="py-3 px-4">Timestamp</th>
+                <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-200 text-zinc-700">
+            <tbody className="divide-y divide-white/[0.04] text-text-secondary">
               {filtered.map((item) => (
                 <tr
                   key={item.id}
                   onClick={() => handleView(item)}
-                  className="hover:bg-zinc-50 cursor-pointer transition"
+                  className="hover:bg-surface-hover/80 cursor-pointer transition-colors group"
                 >
-                  <td className="py-2.5 px-3 font-mono text-zinc-400 text-[11px]">
+                  <td className="py-3 px-4 font-mono text-text-tertiary text-[11px]">
                     #{item.id}
                   </td>
-                  <td className="py-2.5 px-3 font-mono text-zinc-900 font-medium truncate max-w-xs">
-                    {item.filename}
+                  <td className="py-3 px-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 rounded-md bg-surface-elevated border border-white/[0.08] overflow-hidden flex items-center justify-center flex-shrink-0">
+                        {item.image_url ? (
+                          <img
+                            src={resolveImageUrl(item.image_url)}
+                            alt="Thumbnail"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <FileImage className="w-4 h-4 text-text-tertiary" />
+                        )}
+                      </div>
+                      <span className="font-mono text-xs text-text-primary font-medium truncate max-w-xs">
+                        {item.filename}
+                      </span>
+                    </div>
                   </td>
-                  <td className="py-2.5 px-3">
-                    <span
-                      className={
-                        item.is_crack
-                          ? 'text-[#c92a2a] font-medium'
-                          : 'text-zinc-600'
-                      }
-                    >
-                      {item.predicted_class}
-                    </span>
+                  <td className="py-3 px-4">
+                    {item.is_crack ? (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-accent/15 text-[#E07A65] border border-accent/25">
+                        Crack detected
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald/15 text-emerald-text border border-emerald/25">
+                        Clear surface
+                      </span>
+                    )}
                   </td>
-                  <td className="py-2.5 px-3 font-mono">
+                  <td className="py-3 px-4 font-mono text-text-primary">
                     {(item.confidence * 100).toFixed(1)}%
                   </td>
-                  <td className="py-2.5 px-3 font-mono text-zinc-500 text-[11px]">
-                    {new Date(item.created_at).toLocaleString()}
+                  <td className="py-3 px-4 font-mono text-text-tertiary text-[11px]">
+                    {new Date(item.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
                   </td>
-                  <td className="py-2.5 px-3 text-right space-x-2">
+                  <td className="py-3 px-4 text-right space-x-2">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         handleView(item);
                       }}
-                      className="text-[#c92a2a] hover:underline text-xs"
+                      className="text-accent hover:text-accent-hover text-xs font-medium"
                     >
                       View
                     </button>
                     <button
                       onClick={(e) => handleDelete(item.id, e)}
                       disabled={deletingId === item.id}
-                      className="text-zinc-400 hover:text-red-700 text-xs ml-2"
+                      className="text-text-tertiary hover:text-accent text-xs ml-3 transition"
                       title="Delete record"
                     >
                       <Trash2 className="w-3.5 h-3.5 inline" />
