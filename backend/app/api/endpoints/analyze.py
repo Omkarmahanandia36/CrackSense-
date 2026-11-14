@@ -1,29 +1,63 @@
-"""Image upload, validation, and ResNet-18 crack classification endpoint."""
+"""Image upload, validation, ResNet-18 crack classification, and database persistence."""
 
 import os
 import uuid
 from io import BytesIO
 from pathlib import Path
-from fastapi import APIRouter, UploadFile, File, HTTPException, status
+from typing import Optional
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, status
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from PIL import Image
 
 from backend.app.core.config import settings
+from backend.app.core.database import get_db
+from backend.app.models.inspection import Inspection
+from backend.app.models.prediction import Prediction
+from backend.app.models.model_registry import ModelRecord
+from backend.app.models.user import User
 from backend.app.schemas.analyze import AnalyzeResponse, ClassProbabilities
+from backend.app.api.deps import get_optional_user
 from backend.app.services.storage import inspection_repo
 from ai.classification.predict import predict_image
 
 router = APIRouter()
 
 
+async def get_or_create_model_record(db: AsyncSession) -> ModelRecord:
+    """Ensure an active model record exists in the database."""
+    stmt = select(ModelRecord).where(ModelRecord.architecture == "resnet18", ModelRecord.is_active == True)
+    result = await db.execute(stmt)
+    model_rec = result.scalar_one_or_none()
+
+    if not model_rec:
+        model_rec = ModelRecord(
+            name="ResNet-18 Crack Classifier",
+            version="1.0.0",
+            architecture="resnet18",
+            checkpoint_path=settings.RESNET_MODEL_PATH,
+            is_active=True,
+        )
+        db.add(model_rec)
+        await db.commit()
+        await db.refresh(model_rec)
+
+    return model_rec
+
+
 @router.post(
     "/analyze",
     response_model=AnalyzeResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Upload concrete image for crack classification",
+    summary="Upload concrete image for crack classification and database logging",
 )
-async def analyze_concrete_image(file: UploadFile = File(...)):
-    """Upload concrete surface photograph, validate format/size, execute ResNet-18 inference, and store result."""
-    # 1. Filename & extension validation
+async def analyze_concrete_image(
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_user),
+):
+    """Upload concrete photograph, validate format/size, execute ResNet inference, and persist in PostgreSQL."""
+    # 1. Filename & format validation
     filename = file.filename or "image.jpg"
     ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
 
@@ -33,7 +67,7 @@ async def analyze_concrete_image(file: UploadFile = File(...)):
             detail=f"Unsupported file format '{ext}'. Allowed extensions: {', '.join(settings.ALLOWED_EXTENSIONS)}",
         )
 
-    # 2. Read and validate file content
+    # 2. File size validation
     contents = await file.read()
     if len(contents) == 0:
         raise HTTPException(
@@ -51,7 +85,7 @@ async def analyze_concrete_image(file: UploadFile = File(...)):
     # 3. Image integrity verification
     try:
         pil_image = Image.open(BytesIO(contents))
-        pil_image.verify()  # Check byte-level integrity
+        pil_image.verify()
         pil_image = Image.open(BytesIO(contents)).convert("RGB")
     except Exception as e:
         raise HTTPException(
@@ -60,12 +94,12 @@ async def analyze_concrete_image(file: UploadFile = File(...)):
         )
 
     # 4. Save uploaded image to storage/uploads
-    upload_id = str(uuid.uuid4())
-    saved_filename = f"{upload_id}.{ext}"
+    upload_uuid = str(uuid.uuid4())
+    saved_filename = f"{upload_uuid}.{ext}"
     saved_filepath = Path(settings.UPLOAD_DIRECTORY) / saved_filename
     pil_image.save(saved_filepath)
 
-    # 5. Run ResNet-18 inference
+    # 5. Execute ResNet-18 inference
     try:
         pred_result = predict_image(
             image_input=pil_image,
@@ -78,24 +112,45 @@ async def analyze_concrete_image(file: UploadFile = File(...)):
             detail=f"AI model inference error: {str(e)}",
         )
 
-    # 6. Construct response and save to in-memory/JSON repository
-    image_url = f"/storage/uploads/{saved_filename}"
+    # 6. Relational Database Persistence
+    model_rec = await get_or_create_model_record(db)
+
+    inspection = Inspection(
+        uuid=upload_uuid,
+        user_id=current_user.id if current_user else None,
+        filename=filename,
+        image_path=str(saved_filepath),
+    )
+    db.add(inspection)
+    await db.flush()  # Generate inspection.id
+
+    prediction = Prediction(
+        inspection_id=inspection.id,
+        model_id=model_rec.id,
+        is_crack=pred_result["is_crack"],
+        predicted_class=pred_result["predicted_class"],
+        confidence=pred_result["confidence"],
+        probabilities=pred_result["probabilities"],
+    )
+    db.add(prediction)
+    await db.commit()
+    await db.refresh(inspection)
+
+    # 7. Construct Response
     probabilities = ClassProbabilities(
         positive_crack=pred_result["probabilities"]["positive_crack"],
         negative_clear=pred_result["probabilities"]["negative_clear"],
     )
 
-    response_data = AnalyzeResponse(
-        id=upload_id,
-        filename=filename,
+    resp = AnalyzeResponse(
+        id=inspection.uuid,
+        filename=inspection.filename,
         is_crack=pred_result["is_crack"],
         predicted_class=pred_result["predicted_class"],
         confidence=pred_result["confidence"],
         probabilities=probabilities,
-        image_url=image_url,
+        image_url=f"/storage/uploads/{saved_filename}",
+        created_at=inspection.created_at,
     )
-
-    # Store in memory / JSON
-    inspection_repo.add(response_data.model_dump())
-
-    return response_data
+    inspection_repo.save(resp)
+    return resp

@@ -8,6 +8,7 @@ from httpx import AsyncClient, ASGITransport
 
 from backend.app.main import app
 from backend.app.core.config import settings
+from backend.app.core.database import init_db
 from backend.app.services.storage import inspection_repo
 
 
@@ -66,6 +67,7 @@ async def test_analyze_validation_corrupted_image():
 
 @pytest.mark.asyncio
 async def test_analyze_successful_inference():
+    await init_db()
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         img_bytes = make_dummy_jpeg()
         files = {"file": ("sample_concrete.jpg", img_bytes, "image/jpeg")}
