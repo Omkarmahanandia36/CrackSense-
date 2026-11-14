@@ -26,6 +26,8 @@ dataset/raw/*
 !dataset/raw/.gitkeep
 !dataset/raw/Positive/.gitkeep
 !dataset/raw/Negative/.gitkeep
+dataset/detection/*
+!dataset/detection/data.yaml
 
 # Storage
 storage/uploads/*
