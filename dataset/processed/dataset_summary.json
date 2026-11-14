@@ -1,0 +1,10 @@
+{
+  "total_images": 80,
+  "positive_count": 40,
+  "negative_count": 40,
+  "train_count": 62,
+  "val_count": 12,
+  "test_count": 6,
+  "hamming_threshold": 6,
+  "zero_leakage_verified": true
+}

@@ -1,0 +1,13 @@
+filepath,label,class_name,cluster_id,dhash
+"dataset/raw/Positive/crack_0007.jpg",1,Positive,2,0x14860182d072100
+"dataset/raw/Positive/crack_0031.jpg",1,Positive,15,0x18090613012010
+"dataset/raw/Positive/crack_0026.jpg",1,Positive,13,0x3418440201200011
+"dataset/raw/Positive/crack_0037.jpg",1,Positive,20,0x48309c4c02028200
+"dataset/raw/Positive/crack_0038.jpg",1,Positive,21,0x41381804420912
+"dataset/raw/Positive/crack_0010.jpg",1,Positive,5,0x4100c0601101000
+"dataset/raw/Negative/clean_0003.jpg",0,Negative,23,0x4010000140005020
+"dataset/raw/Negative/clean_0033.jpg",0,Negative,28,0x82000212088400
+"dataset/raw/Negative/clean_0005.jpg",0,Negative,24,0x244100040040a
+"dataset/raw/Negative/clean_0024.jpg",0,Negative,26,0x8208006008800008
+"dataset/raw/Negative/clean_0015.jpg",0,Negative,25,0x404501a00054
+"dataset/raw/Negative/clean_0034.jpg",0,Negative,29,0x2800008409000040
