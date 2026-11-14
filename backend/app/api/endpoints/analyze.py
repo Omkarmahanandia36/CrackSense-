@@ -142,6 +142,30 @@ async def analyze_concrete_image(
         # Non-fatal warning: if YOLO localization fails, classification response still completes
         print(f"[!] Warning: YOLO Stage 2 localization error: {e}")
 
+    # 5c. Reconcile final verdict (verdict must not contradict detections)
+    img_w, img_h = pil_image.size
+    has_boxes = len(boxes_models) > 0
+    resnet_is_crack = pred_result.get("is_crack", False)
+
+    if has_boxes or resnet_is_crack:
+        final_is_crack = True
+        if has_boxes:
+            box_count = len(boxes_models)
+            final_class = f"{box_count} crack region{'s' if box_count != 1 else ''} found"
+            top_box_conf = max(b.confidence for b in boxes_models)
+            final_confidence = round(max(pred_result.get("confidence", 0.0), top_box_conf), 4)
+        else:
+            final_class = "Crack detected"
+            final_confidence = pred_result.get("confidence", 0.5)
+        pos_prob = final_confidence
+        neg_prob = round(max(0.0, 1.0 - pos_prob), 4)
+    else:
+        final_is_crack = False
+        final_class = "No crack found"
+        final_confidence = pred_result.get("confidence", 0.5)
+        pos_prob = round(pred_result.get("probabilities", {}).get("positive_crack", 0.0), 4)
+        neg_prob = round(max(0.0, 1.0 - pos_prob), 4)
+
     # 6. Relational Database Persistence
     model_rec = await get_or_create_model_record(db)
 
@@ -157,10 +181,10 @@ async def analyze_concrete_image(
     prediction = Prediction(
         inspection_id=inspection.id,
         model_id=model_rec.id,
-        is_crack=pred_result["is_crack"],
-        predicted_class=pred_result["predicted_class"],
-        confidence=pred_result["confidence"],
-        probabilities=pred_result["probabilities"],
+        is_crack=final_is_crack,
+        predicted_class=final_class,
+        confidence=final_confidence,
+        probabilities={"positive_crack": pos_prob, "negative_clear": neg_prob},
     )
     db.add(prediction)
     await db.commit()
@@ -168,20 +192,22 @@ async def analyze_concrete_image(
 
     # 7. Construct Response
     probabilities = ClassProbabilities(
-        positive_crack=pred_result["probabilities"]["positive_crack"],
-        negative_clear=pred_result["probabilities"]["negative_clear"],
+        positive_crack=pos_prob,
+        negative_clear=neg_prob,
     )
 
     resp = AnalyzeResponse(
         id=inspection.uuid,
         filename=inspection.filename,
-        is_crack=pred_result["is_crack"],
-        predicted_class=pred_result["predicted_class"],
-        confidence=pred_result["confidence"],
+        is_crack=final_is_crack,
+        predicted_class=final_class,
+        confidence=final_confidence,
         probabilities=probabilities,
         image_url=f"/storage/uploads/{saved_filename}",
         annotated_image_url=annotated_url,
         boxes=boxes_models,
+        image_width=img_w,
+        image_height=img_h,
         created_at=inspection.created_at,
     )
     inspection_repo.save(resp)

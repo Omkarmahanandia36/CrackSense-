@@ -42,6 +42,8 @@ class AnalyzeResponse(BaseModel):
     image_url: str = Field(..., description="Static URL to access stored uploaded photograph")
     annotated_image_url: Optional[str] = Field(default=None, description="Static URL to image with rendered bounding boxes")
     boxes: List[BoundingBox] = Field(default=[], description="Detected bounding boxes for localized cracks")
+    image_width: Optional[int] = Field(default=None, description="Width of the inspected image in pixels")
+    image_height: Optional[int] = Field(default=None, description="Height of the inspected image in pixels")
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     model_config = ConfigDict(from_attributes=True)

@@ -1,12 +1,5 @@
 import React, { useState, useRef } from 'react';
-import {
-  UploadCloud,
-  RefreshCw,
-  AlertTriangle,
-  FileCheck,
-  X,
-  Play,
-} from 'lucide-react';
+import { UploadCloud, FileImage, AlertCircle, X, ArrowRight } from 'lucide-react';
 import { uploadAndAnalyzeImage, AnalyzeResult } from '../services/api';
 
 interface UploadAnalyzeProps {
@@ -16,164 +9,210 @@ interface UploadAnalyzeProps {
 export const UploadAnalyze: React.FC<UploadAnalyzeProps> = ({ onAnalysisSuccess }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
+  const [imageMeta, setImageMeta] = useState<{ width: number; height: number } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = (file: File) => {
-    // Validate format
-    const validTypes = ['image/jpeg', 'image/png', 'image/bmp', 'image/webp'];
-    if (!validTypes.includes(file.type) && !file.name.match(/\.(jpg|jpeg|png|bmp|webp)$/i)) {
-      setErrorMsg('Invalid file format. Please upload JPG, PNG, BMP, or WebP images.');
+  const processFile = (file: File) => {
+    setErrorMessage(null);
+    const validExtensions = ['jpg', 'jpeg', 'png', 'bmp', 'webp'];
+    const ext = file.name.split('.').pop()?.toLowerCase();
+
+    if (!ext || !validExtensions.includes(ext)) {
+      setErrorMessage(`Unsupported format .${ext}. Use JPG, PNG, BMP, or WebP.`);
       return;
     }
 
-    // Validate size (15MB limit)
     if (file.size > 15 * 1024 * 1024) {
-      setErrorMsg('File exceeds 15 MB limit.');
+      setErrorMessage(`File exceeds 15 MB limit (${(file.size / (1024 * 1024)).toFixed(1)} MB).`);
       return;
     }
 
     setSelectedFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
-    setErrorMsg(null);
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+
+    // Read natural dimensions
+    const img = new Image();
+    img.onload = () => {
+      setImageMeta({ width: img.naturalWidth, height: img.naturalHeight });
+    };
+    img.src = url;
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFileSelect(e.dataTransfer.files[0]);
+      processFile(e.dataTransfer.files[0]);
     }
   };
 
-  const handleClear = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      processFile(e.target.files[0]);
+    }
+  };
+
+  const handleClear = () => {
     setSelectedFile(null);
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(null);
-    setErrorMsg(null);
+    setImageMeta(null);
+    setErrorMessage(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleRunInference = async () => {
+  const handleRunAnalysis = async () => {
     if (!selectedFile) return;
 
-    setIsAnalyzing(true);
-    setErrorMsg(null);
+    setLoading(true);
+    setErrorMessage(null);
 
     try {
       const result = await uploadAndAnalyzeImage(selectedFile);
       onAnalysisSuccess(result);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to analyze concrete photograph. Ensure backend is running.');
+      setErrorMessage(err.message || 'Inspection analysis failed. Check backend connection.');
     } finally {
-      setIsAnalyzing(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <div className="space-y-1 text-center sm:text-left">
-        <h2 className="text-xl sm:text-2xl font-bold text-slate-100">
-          Upload & Analyze Concrete Surface
-        </h2>
-        <p className="text-xs sm:text-sm text-slate-400">
-          Upload a concrete patch photograph to classify whether it contains fractures or is structurally intact.
+    <div className="max-w-3xl mx-auto space-y-6 text-zinc-800">
+      {/* Title */}
+      <div className="border-b border-zinc-200 pb-4">
+        <h1 className="text-xl font-semibold text-zinc-900 tracking-tight">Analyze concrete image</h1>
+        <p className="text-xs text-zinc-500 mt-0.5">
+          High-resolution crack classification (ResNet-18) and bounding-box localization (YOLOv8)
         </p>
       </div>
 
-      {/* Drag & Drop Dropzone */}
-      <div
-        onDragOver={(e) => e.preventDefault()}
-        onDrop={handleDrop}
-        onClick={() => !selectedFile && fileInputRef.current?.click()}
-        className={`border-2 border-dashed rounded-2xl p-8 text-center transition cursor-pointer relative ${
-          selectedFile
-            ? 'border-blue-500/50 bg-blue-950/10'
-            : 'border-slate-800 hover:border-slate-700 bg-slate-900/60'
-        }`}
-      >
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
-          accept="image/*"
-          className="hidden"
-        />
-
-        {previewUrl ? (
-          <div className="space-y-4">
-            <div className="relative max-h-72 inline-block rounded-xl overflow-hidden border border-slate-800 shadow-2xl">
-              <img
-                src={previewUrl}
-                alt="Selected preview"
-                className="max-h-72 w-auto object-contain mx-auto"
-              />
-              <button
-                onClick={handleClear}
-                className="absolute top-2 right-2 p-1.5 rounded-full bg-slate-900/80 text-slate-300 hover:text-white hover:bg-red-600 transition"
-                title="Remove image"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="flex items-center justify-center space-x-2 text-xs text-slate-300 font-mono">
-              <FileCheck className="w-4 h-4 text-emerald-400" />
-              <span>{selectedFile?.name}</span>
-              <span className="text-slate-500">
-                ({((selectedFile?.size || 0) / 1024).toFixed(1)} KB)
-              </span>
-            </div>
-          </div>
-        ) : (
-          <div className="py-10 space-y-4">
-            <div className="w-16 h-16 rounded-2xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center mx-auto text-blue-400">
-              <UploadCloud className="w-8 h-8" />
-            </div>
-            <div className="space-y-1">
-              <p className="text-base font-semibold text-slate-200">
-                Click to browse or drag & drop photograph here
-              </p>
-              <p className="text-xs text-slate-500">
-                JPG, PNG, BMP, or WebP &bull; Standard 227×227 RGB patch or macro surface photo
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Error Banner */}
-      {errorMsg && (
-        <div className="p-4 rounded-xl bg-red-950/60 border border-red-800/60 text-red-300 text-xs flex items-center space-x-2.5">
-          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-          <span>{errorMsg}</span>
+      {errorMessage && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded text-xs text-red-800 flex items-start space-x-2">
+          <AlertCircle className="w-4 h-4 text-[#c92a2a] flex-shrink-0 mt-0.5" />
+          <span>{errorMessage}</span>
         </div>
       )}
 
-      {/* Run Analysis Action Button */}
-      <button
-        onClick={handleRunInference}
-        disabled={!selectedFile || isAnalyzing}
-        className={`w-full py-3.5 px-5 rounded-xl font-medium text-sm flex items-center justify-center space-x-2 transition shadow-xl ${
-          !selectedFile || isAnalyzing
-            ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700/40'
-            : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/30'
-        }`}
-      >
-        {isAnalyzing ? (
-          <>
-            <RefreshCw className="w-4 h-4 animate-spin" />
-            <span>Analyzing Image with ResNet-18...</span>
-          </>
-        ) : (
-          <>
-            <Play className="w-4 h-4 fill-current" />
-            <span>Run AI Crack Detection</span>
-          </>
-        )}
-      </button>
+      {/* Upload Zone / Drop area */}
+      {!selectedFile ? (
+        <div
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onClick={() => fileInputRef.current?.click()}
+          className={`p-12 border-2 border-dashed rounded text-center cursor-pointer transition select-none ${
+            isDragging
+              ? 'border-[#c92a2a] bg-red-50/50'
+              : 'border-zinc-300 hover:border-zinc-400 bg-white'
+          }`}
+        >
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            accept=".jpg,.jpeg,.png,.bmp,.webp"
+            className="hidden"
+          />
+
+          <UploadCloud className="w-8 h-8 text-zinc-400 mx-auto mb-3" />
+          <p className="text-xs font-medium text-zinc-900">
+            Click to select concrete photo, or drag and drop file here
+          </p>
+          <p className="text-[11px] text-zinc-500 mt-1">
+            Supports JPG, PNG, BMP &bull; Max 15 MB
+          </p>
+        </div>
+      ) : (
+        /* Selected File Preview & Inspection Controls */
+        <div className="border border-zinc-200 rounded bg-white p-4 space-y-4">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-zinc-100 border border-zinc-200 rounded overflow-hidden flex items-center justify-center flex-shrink-0">
+                {previewUrl && (
+                  <img
+                    src={previewUrl}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
+                  />
+                )}
+              </div>
+              <div className="text-xs">
+                <span className="font-medium text-zinc-900 block truncate max-w-md">
+                  {selectedFile.name}
+                </span>
+                <span className="text-[11px] text-zinc-500 font-mono">
+                  {(selectedFile.size / 1024).toFixed(1)} KB
+                  {imageMeta && ` • ${imageMeta.width} × ${imageMeta.height} px`}
+                </span>
+              </div>
+            </div>
+
+            <button
+              onClick={handleClear}
+              disabled={loading}
+              className="p-1 hover:bg-zinc-100 rounded text-zinc-400 hover:text-zinc-700"
+              title="Remove file"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Full Image Preview */}
+          <div className="bg-zinc-50 border border-zinc-200 rounded overflow-hidden flex items-center justify-center max-h-80">
+            {previewUrl && (
+              <img
+                src={previewUrl}
+                alt="Selected Concrete"
+                className="max-h-80 w-auto object-contain"
+              />
+            )}
+          </div>
+
+          {/* Action Row */}
+          <div className="flex items-center justify-between pt-2 border-t border-zinc-100">
+            <button
+              onClick={handleClear}
+              disabled={loading}
+              className="px-3 py-1.5 text-xs text-zinc-600 hover:text-zinc-900 transition"
+            >
+              Choose different file
+            </button>
+
+            <button
+              onClick={handleRunAnalysis}
+              disabled={loading}
+              className="px-4 py-2 bg-[#c92a2a] hover:bg-[#b02525] disabled:bg-zinc-300 text-white text-xs font-medium rounded transition flex items-center space-x-1.5 shadow-sm"
+            >
+              {loading ? (
+                <>
+                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>Processing neural inference...</span>
+                </>
+              ) : (
+                <>
+                  <span>Run analysis</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
