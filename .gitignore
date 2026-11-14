@@ -1,0 +1,37 @@
+# Environment
+.env
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.sqlite3
+*.db
+
+# Node
+node_modules/
+dist/
+build/
+.npm
+
+# Machine Learning Artifacts
+*.pth
+*.pt
+*.onnx
+models_cache/
+
+# Storage
+storage/uploads/*
+!storage/uploads/.gitkeep
+storage/reports/*
+!storage/reports/.gitkeep
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
