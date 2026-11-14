@@ -67,7 +67,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#f8f9fa] text-zinc-900 font-sans selection:bg-[#c92a2a] selection:text-white">
+    <div className="flex min-h-screen bg-page text-text-primary font-sans selection:bg-accent selection:text-white">
       {/* Left Sidebar Nav */}
       <Sidebar
         currentPage={currentPage}
@@ -79,9 +79,9 @@ export default function App() {
         onLogout={handleLogout}
       />
 
-      {/* Main Content Area */}
-      <main className="flex-1 flex flex-col h-screen overflow-y-auto">
-        <div className={currentPage === 'result' ? 'flex-1 flex flex-col h-full' : 'p-6 max-w-6xl w-full mx-auto'}>
+      {/* Main Content Area with subtle radial lighting */}
+      <main className="flex-1 flex flex-col h-screen overflow-y-auto bg-page bg-radial-subtle">
+        <div className={currentPage === 'result' ? 'flex-1 flex flex-col h-full' : 'p-8 max-w-6xl w-full mx-auto'}>
           {currentPage === 'dashboard' && (
             <Dashboard
               onStartUpload={() => setCurrentPage('upload')}

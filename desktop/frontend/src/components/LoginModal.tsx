@@ -39,55 +39,55 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-      <div className="bg-white border border-zinc-300 rounded shadow-lg max-w-sm w-full p-5 space-y-4 text-zinc-800 animate-in fade-in zoom-in-95 duration-100">
-        <div className="flex items-center justify-between border-b border-zinc-200 pb-3">
-          <h2 className="text-sm font-semibold text-zinc-900">
-            {isRegister ? 'Register inspector' : 'Inspector sign in'}
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-surface border border-white/[0.1] rounded-xl shadow-diffuse max-w-sm w-full p-6 space-y-5 text-text-primary animate-fade-rise">
+        <div className="flex items-center justify-between border-b border-white/[0.06] pb-3.5">
+          <h2 className="text-sm font-semibold text-text-primary">
+            {isRegister ? 'Register inspector profile' : 'Field inspector sign in'}
           </h2>
           <button
             onClick={onClose}
-            className="p-1 text-zinc-400 hover:text-zinc-700 rounded"
+            className="p-1 text-text-tertiary hover:text-text-primary rounded-lg transition"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {errorMsg && (
-          <div className="p-2.5 bg-red-50 border border-red-200 rounded text-xs text-red-700 flex items-center space-x-1.5">
-            <AlertCircle className="w-3.5 h-3.5 text-[#c92a2a] flex-shrink-0" />
+          <div className="p-3 bg-accent/15 border border-accent/25 rounded-lg text-xs text-text-primary flex items-center space-x-2">
+            <AlertCircle className="w-4 h-4 text-accent flex-shrink-0" />
             <span>{errorMsg}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-3 text-xs">
+        <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
           {isRegister && (
             <div className="space-y-1">
-              <label className="text-zinc-600 block">Full name</label>
+              <label className="text-text-secondary block">Full name</label>
               <input
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder="Engineer Name"
-                className="w-full bg-white border border-zinc-300 rounded px-2.5 py-1.5 text-xs text-zinc-800 focus:outline-none focus:border-zinc-500"
+                placeholder="Structural Engineer Name"
+                className="w-full bg-[#080B10] border border-white/[0.08] focus:border-accent rounded-lg px-3 py-2 text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none transition"
               />
             </div>
           )}
 
           <div className="space-y-1">
-            <label className="text-zinc-600 block">Email address</label>
+            <label className="text-text-secondary block">Email address</label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="inspector@agency.gov"
-              className="w-full bg-white border border-zinc-300 rounded px-2.5 py-1.5 text-xs text-zinc-800 focus:outline-none focus:border-zinc-500"
+              className="w-full bg-[#080B10] border border-white/[0.08] focus:border-accent rounded-lg px-3 py-2 text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none transition"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-zinc-600 block">Password</label>
+            <label className="text-text-secondary block">Password</label>
             <input
               type="password"
               required
@@ -95,27 +95,27 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full bg-white border border-zinc-300 rounded px-2.5 py-1.5 text-xs text-zinc-800 focus:outline-none focus:border-zinc-500"
+              className="w-full bg-[#080B10] border border-white/[0.08] focus:border-accent rounded-lg px-3 py-2 text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none transition"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2 bg-[#c92a2a] hover:bg-[#b02525] disabled:bg-zinc-300 text-white font-medium text-xs rounded transition mt-2 shadow-sm"
+            className="w-full py-2.5 bg-gradient-to-r from-accent to-[#B64A34] hover:shadow-[0_0_15px_rgba(200,85,61,0.35)] disabled:opacity-50 text-white font-medium text-xs rounded-lg transition shadow-sm mt-2"
           >
             {loading ? 'Authenticating...' : isRegister ? 'Register & sign in' : 'Sign in'}
           </button>
         </form>
 
-        <div className="pt-2 border-t border-zinc-100 text-center">
+        <div className="pt-2 border-t border-white/[0.06] text-center">
           <button
             type="button"
             onClick={() => {
               setIsRegister(!isRegister);
               setErrorMsg(null);
             }}
-            className="text-xs text-zinc-500 hover:text-zinc-800 hover:underline"
+            className="text-xs text-text-tertiary hover:text-text-secondary hover:underline transition"
           >
             {isRegister
               ? 'Already registered? Sign in'
