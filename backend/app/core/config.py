@@ -35,7 +35,7 @@ class Settings(BaseSettings):
 
     # Trained Model Checkpoint Path
     RESNET_MODEL_PATH: str = str(BASE_DIR / "models" / "best_resnet18.pth")
-    YOLO_MODEL_PATH: str = ""
+    YOLO_MODEL_PATH: str = str(BASE_DIR / "models" / "best_yolo.pt")
     UNET_MODEL_PATH: str = ""
 
     # CORS Allowed Origins

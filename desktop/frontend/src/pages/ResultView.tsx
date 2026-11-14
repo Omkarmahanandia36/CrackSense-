@@ -6,7 +6,9 @@ import {
   UploadCloud,
   Layers,
   Calendar,
-  FileText,
+  Crosshair,
+  Maximize2,
+  Box,
 } from 'lucide-react';
 import { AnalyzeResult } from '../services/api';
 import { ConfidenceBar } from '../components/ConfidenceBar';
@@ -23,6 +25,10 @@ export const ResultView: React.FC<ResultViewProps> = ({
   onBackToDashboard,
 }) => {
   const [activeTab, setActiveTab] = useState<'side_by_side' | 'analysed' | 'original'>('side_by_side');
+  const [highlightedBoxIdx, setHighlightedBoxIdx] = useState<number | null>(null);
+
+  const displayAnnotatedUrl = result.annotated_image_url || result.image_url;
+  const boxes = result.boxes || [];
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -77,7 +83,7 @@ export const ResultView: React.FC<ResultViewProps> = ({
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase text-slate-400 tracking-wider flex items-center space-x-1.5">
                 <Layers className="w-3.5 h-3.5 text-blue-400" />
-                <span>Visual Comparison (Original vs Analysed)</span>
+                <span>Visual Localization (Stage 1 & Stage 2)</span>
               </span>
 
               {/* View Selector Tabs */}
@@ -100,7 +106,7 @@ export const ResultView: React.FC<ResultViewProps> = ({
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
-                  Analysed
+                  YOLO Overlay
                 </button>
                 <button
                   onClick={() => setActiveTab('original')}
@@ -120,7 +126,7 @@ export const ResultView: React.FC<ResultViewProps> = ({
               {activeTab === 'side_by_side' && (
                 <div className="grid grid-cols-2 gap-2 w-full">
                   <div className="space-y-1 text-center">
-                    <span className="text-[10px] text-slate-400 font-mono block">Original Image</span>
+                    <span className="text-[10px] text-slate-400 font-mono block">Original Photograph</span>
                     <div className="rounded-lg overflow-hidden border border-slate-800 bg-slate-900">
                       <img
                         src={result.image_url}
@@ -131,13 +137,14 @@ export const ResultView: React.FC<ResultViewProps> = ({
                   </div>
 
                   <div className="space-y-1 text-center">
-                    <span className="text-[10px] text-slate-400 font-mono block">
-                      Analysed Classification
+                    <span className="text-[10px] text-slate-400 font-mono block flex items-center justify-center space-x-1">
+                      <Crosshair className="w-3 h-3 text-red-400" />
+                      <span>YOLO Bounding Box Localization</span>
                     </span>
                     <div className="relative rounded-lg overflow-hidden border border-slate-800 bg-slate-900">
                       <img
-                        src={result.image_url}
-                        alt="Analysed concrete overlay"
+                        src={displayAnnotatedUrl}
+                        alt="Analysed concrete overlay with bounding boxes"
                         className="w-full h-auto object-contain max-h-72 mx-auto"
                       />
                       {/* Detection Tag Overlay */}
@@ -149,7 +156,7 @@ export const ResultView: React.FC<ResultViewProps> = ({
                               : 'bg-emerald-600 text-white'
                           }`}
                         >
-                          {result.is_crack ? 'CRACK DETECTED' : 'SURFACE CLEAR'}
+                          {result.is_crack ? `${boxes.length} CRACK(S) LOCALIZED` : 'SURFACE CLEAR'}
                         </span>
                       </div>
                     </div>
@@ -160,8 +167,8 @@ export const ResultView: React.FC<ResultViewProps> = ({
               {activeTab === 'analysed' && (
                 <div className="relative w-full text-center">
                   <img
-                    src={result.image_url}
-                    alt="Analysed photograph"
+                    src={displayAnnotatedUrl}
+                    alt="YOLO crack detection overlay"
                     className="w-auto max-h-80 mx-auto rounded-lg object-contain"
                   />
                   <div className="absolute top-3 left-3">
@@ -170,7 +177,7 @@ export const ResultView: React.FC<ResultViewProps> = ({
                         result.is_crack ? 'bg-red-600 text-white' : 'bg-emerald-600 text-white'
                       }`}
                     >
-                      {result.is_crack ? 'CRACK DETECTED' : 'CLEAR'}
+                      {result.is_crack ? `YOLOv8 Localized: ${boxes.length} Bounding Box(es)` : 'CLEAR'}
                     </span>
                   </div>
                 </div>
@@ -186,6 +193,51 @@ export const ResultView: React.FC<ResultViewProps> = ({
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Stage 2: Detected Bounding Boxes Breakdown */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase text-slate-300 tracking-wider flex items-center space-x-1.5">
+                <Box className="w-3.5 h-3.5 text-red-400" />
+                <span>Stage 2: YOLO Localized Crack Regions ({boxes.length})</span>
+              </span>
+              <span className="text-[10px] font-mono text-slate-500">Ultralytics YOLOv8n</span>
+            </div>
+
+            {boxes.length === 0 ? (
+              <p className="text-xs text-slate-500 italic py-2">
+                No localized bounding boxes detected for this photograph.
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {boxes.map((b, idx) => (
+                  <div
+                    key={idx}
+                    onMouseEnter={() => setHighlightedBoxIdx(idx)}
+                    onMouseLeave={() => setHighlightedBoxIdx(null)}
+                    className={`p-2.5 rounded-xl border text-xs space-y-1 transition ${
+                      highlightedBoxIdx === idx
+                        ? 'bg-red-950/40 border-red-600 text-white'
+                        : 'bg-slate-950/80 border-slate-800 text-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-red-400 flex items-center space-x-1">
+                        <Crosshair className="w-3 h-3" />
+                        <span>Box #{idx + 1} - {b.label}</span>
+                      </span>
+                      <span className="font-mono text-[11px] text-slate-400 font-bold">
+                        {(b.confidence * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="font-mono text-[10px] text-slate-500">
+                      [{b.x1}, {b.y1}] &rarr; [{b.x2}, {b.y2}]
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -214,11 +266,11 @@ export const ResultView: React.FC<ResultViewProps> = ({
             </div>
             <div>
               <h3 className="font-bold text-base text-slate-100">
-                {result.is_crack ? 'Structural Fracture Found' : 'Clean Surface Verified'}
+                {result.is_crack ? 'Structural Fracture Localized' : 'Clean Surface Verified'}
               </h3>
               <p className="text-xs text-slate-400">
                 {result.is_crack
-                  ? 'Surface shows linear concrete crack patterns.'
+                  ? `Identified concrete fracture with ${boxes.length} localized region(s).`
                   : 'No visual surface cracks detected in this patch.'}
               </p>
             </div>
@@ -238,12 +290,16 @@ export const ResultView: React.FC<ResultViewProps> = ({
               <span className="text-slate-300 font-mono truncate max-w-[180px]">{result.id}</span>
             </div>
             <div className="flex justify-between py-1 border-b border-slate-800">
-              <span className="text-slate-500">Architecture:</span>
-              <span className="text-slate-300">ResNet-18 (Phase 2 Fine-Tuned)</span>
+              <span className="text-slate-500">Stage 1 Classifier:</span>
+              <span className="text-slate-300">ResNet-18 (Binary)</span>
+            </div>
+            <div className="flex justify-between py-1 border-b border-slate-800">
+              <span className="text-slate-500">Stage 2 Localizer:</span>
+              <span className="text-slate-300">YOLOv8 Nano (Bounding Boxes)</span>
             </div>
             <div className="flex justify-between py-1">
-              <span className="text-slate-500">Input Resolution:</span>
-              <span className="text-slate-300">227 × 227 (Normalized RGB)</span>
+              <span className="text-slate-500">Local Hardware:</span>
+              <span className="text-emerald-400">NVIDIA RTX 3050 (6 GB VRAM)</span>
             </div>
           </div>
         </div>

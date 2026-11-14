@@ -14,6 +14,15 @@ export interface ClassProbabilities {
   negative_clear: number;
 }
 
+export interface BoundingBox {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  confidence: number;
+  label: string;
+}
+
 export interface AnalyzeResult {
   id: string;
   filename: string;
@@ -22,6 +31,8 @@ export interface AnalyzeResult {
   confidence: number;
   probabilities: ClassProbabilities;
   image_url: string;
+  annotated_image_url?: string;
+  boxes?: BoundingBox[];
   created_at: string;
 }
 
