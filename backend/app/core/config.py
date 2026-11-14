@@ -1,4 +1,4 @@
-"""Application configuration and environment settings."""
+"""Application configuration loaded from .env file using pydantic-settings."""
 
 import os
 from pathlib import Path
@@ -15,22 +15,23 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     API_V1_PREFIX: str = "/api/v1"
 
-    # Database
-    DATABASE_URL: str = f"sqlite+aiosqlite:///{BASE_DIR}/cracksense.db"
-
     # Security
-    SECRET_KEY: str = "cracksense-super-secret-key-change-in-production"
+    SECRET_KEY: str = "cracksense-dev-secret-key-change-in-production"
 
     # Storage paths
     UPLOAD_DIRECTORY: str = str(BASE_DIR / "storage" / "uploads")
-    REPORT_DIRECTORY: str = str(BASE_DIR / "storage" / "reports")
+    STORAGE_JSON_PATH: str = str(BASE_DIR / "storage" / "inspections.json")
 
-    # Model Weights (optional custom paths)
-    RESNET_MODEL_PATH: str = ""
+    # File Upload Constraints
+    MAX_FILE_SIZE_MB: int = 15
+    ALLOWED_EXTENSIONS: List[str] = ["jpg", "jpeg", "png", "bmp", "webp"]
+
+    # Trained Model Checkpoint Path
+    RESNET_MODEL_PATH: str = str(BASE_DIR / "models" / "best_resnet18.pth")
     YOLO_MODEL_PATH: str = ""
     UNET_MODEL_PATH: str = ""
 
-    # CORS
+    # CORS Allowed Origins
     CORS_ORIGINS: Union[List[str], str] = ["*"]
 
     @field_validator("CORS_ORIGINS", mode="before")
@@ -55,6 +56,5 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-# Ensure storage directories exist
+# Ensure uploads directory exists
 os.makedirs(settings.UPLOAD_DIRECTORY, exist_ok=True)
-os.makedirs(settings.REPORT_DIRECTORY, exist_ok=True)
