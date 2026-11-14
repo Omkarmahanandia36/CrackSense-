@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Navbar } from './components/Navbar';
+import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './pages/Dashboard';
 import { UploadAnalyze } from './pages/UploadAnalyze';
 import { ResultView } from './pages/ResultView';
@@ -67,8 +67,9 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-950 text-slate-100 selection:bg-blue-600 selection:text-white">
-      <Navbar
+    <div className="flex min-h-screen bg-[#f8f9fa] text-zinc-900 font-sans selection:bg-[#c92a2a] selection:text-white">
+      {/* Left Sidebar Nav */}
+      <Sidebar
         currentPage={currentPage}
         onNavigate={setCurrentPage}
         health={health}
@@ -78,34 +79,37 @@ export default function App() {
         onLogout={handleLogout}
       />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 md:p-8">
-        {currentPage === 'dashboard' && (
-          <Dashboard
-            onStartUpload={() => setCurrentPage('upload')}
-            onSelectResult={handleSelectRecentResult}
-            recentInspections={recentInspections}
-            health={health}
-          />
-        )}
+      {/* Main Content Area */}
+      <main className="flex-1 flex flex-col h-screen overflow-y-auto">
+        <div className={currentPage === 'result' ? 'flex-1 flex flex-col h-full' : 'p-6 max-w-6xl w-full mx-auto'}>
+          {currentPage === 'dashboard' && (
+            <Dashboard
+              onStartUpload={() => setCurrentPage('upload')}
+              onSelectResult={handleSelectRecentResult}
+              recentInspections={recentInspections}
+              health={health}
+            />
+          )}
 
-        {currentPage === 'upload' && (
-          <UploadAnalyze onAnalysisSuccess={handleAnalysisSuccess} />
-        )}
+          {currentPage === 'upload' && (
+            <UploadAnalyze onAnalysisSuccess={handleAnalysisSuccess} />
+          )}
 
-        {currentPage === 'history' && (
-          <History
-            onSelectResult={handleSelectRecentResult}
-            onNavigateUpload={() => setCurrentPage('upload')}
-          />
-        )}
+          {currentPage === 'history' && (
+            <History
+              onSelectResult={handleSelectRecentResult}
+              onNavigateUpload={() => setCurrentPage('upload')}
+            />
+          )}
 
-        {currentPage === 'result' && currentResult && (
-          <ResultView
-            result={currentResult}
-            onNewInspection={() => setCurrentPage('upload')}
-            onBackToDashboard={() => setCurrentPage('dashboard')}
-          />
-        )}
+          {currentPage === 'result' && currentResult && (
+            <ResultView
+              result={currentResult}
+              onNewInspection={() => setCurrentPage('upload')}
+              onBackToDashboard={() => setCurrentPage('dashboard')}
+            />
+          )}
+        </div>
       </main>
 
       <LoginModal
@@ -113,10 +117,6 @@ export default function App() {
         onClose={() => setIsLoginOpen(false)}
         onLoginSuccess={(loggedInUser) => setUser(loggedInUser)}
       />
-
-      <footer className="border-t border-slate-900 bg-slate-950 py-4 text-center text-xs text-slate-500 font-mono">
-        CrackSense AI &bull; Electron + React + FastAPI + PostgreSQL Concrete Surface Health Monitor
-      </footer>
     </div>
   );
 }

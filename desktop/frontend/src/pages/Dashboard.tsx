@@ -1,14 +1,6 @@
 import React from 'react';
-import {
-  UploadCloud,
-  CheckCircle2,
-  AlertTriangle,
-  Cpu,
-  History,
-  ArrowRight,
-  TrendingUp,
-} from 'lucide-react';
-import { AnalyzeResult, HealthData } from '../services/api';
+import { UploadCloud, CheckCircle2, AlertTriangle, ArrowRight } from 'lucide-react';
+import { HealthData, AnalyzeResult } from '../services/api';
 
 interface DashboardProps {
   onStartUpload: () => void;
@@ -23,147 +15,125 @@ export const Dashboard: React.FC<DashboardProps> = ({
   recentInspections,
   health,
 }) => {
-  const total = recentInspections.length;
-  const cracksCount = recentInspections.filter((r) => r.is_crack).length;
-  const clearCount = total - cracksCount;
+  const totalScans = recentInspections.length;
+  const crackScans = recentInspections.filter((r) => r.is_crack).length;
+  const clearScans = totalScans - crackScans;
 
   return (
-    <div className="space-y-6">
-      {/* Hero Banner */}
-      <div className="bg-gradient-to-r from-blue-950/60 via-slate-900 to-slate-900 border border-blue-900/40 rounded-2xl p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xl">
-        <div className="space-y-2 max-w-xl">
-          <span className="text-xs font-mono uppercase tracking-wider text-blue-400 font-semibold bg-blue-950 px-2.5 py-1 rounded-md border border-blue-800/50">
-            Phase 4: AI Inspection Workstation
-          </span>
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-100">
-            Concrete Crack Surface Health Monitoring
-          </h2>
-          <p className="text-sm text-slate-400">
-            Powered by a fine-tuned ResNet-18 classifier and FastAPI backend. Upload surface photographs to identify structural fractures with real-time confidence scores.
+    <div className="max-w-5xl mx-auto space-y-6 text-zinc-800">
+      {/* Title & Primary Action */}
+      <div className="flex items-center justify-between border-b border-zinc-200 pb-4">
+        <div>
+          <h1 className="text-xl font-semibold text-zinc-900 tracking-tight">Inspection overview</h1>
+          <p className="text-xs text-zinc-500 mt-0.5">
+            Surface health inspection and defect localization status
           </p>
         </div>
 
         <button
           onClick={onStartUpload}
-          className="px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm flex items-center space-x-2 transition shadow-lg shadow-blue-600/25 flex-shrink-0"
+          className="px-3.5 py-2 bg-[#c92a2a] hover:bg-[#b02525] text-white text-xs font-medium rounded transition flex items-center space-x-1.5 shadow-sm"
         >
-          <UploadCloud className="w-4 h-4" />
-          <span>New Concrete Inspection</span>
+          <UploadCloud className="w-3.5 h-3.5" />
+          <span>New inspection</span>
         </button>
       </div>
 
-      {/* KPI Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-2">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs uppercase font-medium tracking-wider">Total Scanned</span>
-            <History className="w-4 h-4 text-blue-400" />
-          </div>
-          <div className="text-3xl font-extrabold text-slate-100 font-mono">{total}</div>
-          <p className="text-[11px] text-slate-500">Patches evaluated this session</p>
+      {/* Practical Summary Strip (Not cards, just a clean horizontal data strip) */}
+      <div className="flex items-center space-x-8 py-3 px-4 bg-white border border-zinc-200 rounded text-xs">
+        <div>
+          <span className="text-zinc-500 block text-[11px]">Total inspections</span>
+          <span className="font-mono text-base font-semibold text-zinc-900">{totalScans}</span>
         </div>
-
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-2">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs uppercase font-medium tracking-wider">Cracks Detected</span>
-            <AlertTriangle className="w-4 h-4 text-red-400" />
-          </div>
-          <div className="text-3xl font-extrabold text-red-400 font-mono">{cracksCount}</div>
-          <p className="text-[11px] text-slate-500">Positive classification results</p>
+        <div className="border-l border-zinc-200 h-8" />
+        <div>
+          <span className="text-zinc-500 block text-[11px]">Cracks detected</span>
+          <span className="font-mono text-base font-semibold text-[#c92a2a]">{crackScans}</span>
         </div>
-
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-2">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs uppercase font-medium tracking-wider">Clear Surfaces</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-          </div>
-          <div className="text-3xl font-extrabold text-emerald-400 font-mono">{clearCount}</div>
-          <p className="text-[11px] text-slate-500">Intact concrete without defects</p>
+        <div className="border-l border-zinc-200 h-8" />
+        <div>
+          <span className="text-zinc-500 block text-[11px]">Clear surfaces</span>
+          <span className="font-mono text-base font-semibold text-zinc-700">{clearScans}</span>
+        </div>
+        <div className="border-l border-zinc-200 h-8" />
+        <div>
+          <span className="text-zinc-500 block text-[11px]">Inference device</span>
+          <span className="font-mono text-xs text-zinc-700 uppercase">
+            {health?.device || 'CPU'}
+          </span>
         </div>
       </div>
 
-      {/* System Hardware & Model Diagnostics */}
-      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-3">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center space-x-2">
-          <Cpu className="w-4 h-4 text-blue-400" />
-          <span>System & Hardware Acceleration</span>
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-mono">
-          <div className="bg-slate-950 p-3 rounded-lg border border-slate-800">
-            <span className="text-slate-500 block">FastAPI Server:</span>
-            <span className="text-slate-200 font-bold">{health ? 'Online (Port 8000)' : 'Offline'}</span>
-          </div>
-          <div className="bg-slate-950 p-3 rounded-lg border border-slate-800">
-            <span className="text-slate-500 block">Inference Hardware:</span>
-            <span className="text-blue-400 font-bold">
-              {health?.device === 'cuda' ? 'NVIDIA GPU (CUDA FP16)' : 'CPU Mode'}
-            </span>
-          </div>
-          <div className="bg-slate-950 p-3 rounded-lg border border-slate-800">
-            <span className="text-slate-500 block">Classification Model:</span>
-            <span className="text-emerald-400 font-bold">ResNet-18 (Phase 2 Weights)</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Inspections Grid */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+      {/* Recent Inspections Table */}
+      <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-slate-200 flex items-center space-x-2">
-            <History className="w-4 h-4 text-blue-400" />
-            <span>Recent Inspections</span>
-          </h3>
-          <span className="text-xs text-slate-500 font-mono">{recentInspections.length} recorded</span>
+          <h2 className="text-xs font-medium text-zinc-700">Recent inspections</h2>
+          <span className="text-[11px] font-mono text-zinc-400">Ordered by timestamp</span>
         </div>
 
         {recentInspections.length === 0 ? (
-          <div className="text-center py-10 space-y-2 border border-dashed border-slate-800 rounded-lg">
-            <p className="text-xs text-slate-400">No inspections performed yet.</p>
+          <div className="p-8 border border-zinc-200 rounded bg-white text-center space-y-2">
+            <p className="text-xs text-zinc-500">No recent inspections in current session.</p>
             <button
               onClick={onStartUpload}
-              className="text-xs text-blue-400 hover:text-blue-300 font-medium inline-flex items-center space-x-1"
+              className="text-xs text-[#c92a2a] hover:underline font-medium"
             >
-              <span>Upload your first concrete image</span>
-              <ArrowRight className="w-3 h-3" />
+              Analyze a concrete photograph &rarr;
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {recentInspections.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => onSelectResult(item)}
-                className="bg-slate-950 border border-slate-800 rounded-xl p-3 flex space-x-3 cursor-pointer hover:border-slate-700 transition"
-              >
-                <div className="w-16 h-16 rounded-lg overflow-hidden bg-slate-900 flex-shrink-0 border border-slate-800">
-                  <img
-                    src={item.image_url}
-                    alt={item.filename}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="flex-1 min-w-0 flex flex-col justify-between">
-                  <div className="flex items-center justify-between">
-                    <span
-                      className={`text-[10px] px-2 py-0.5 rounded font-semibold font-mono ${
-                        item.is_crack
-                          ? 'bg-red-950 text-red-400 border border-red-800/60'
-                          : 'bg-emerald-950 text-emerald-400 border border-emerald-800/60'
-                      }`}
-                    >
-                      {item.is_crack ? 'CRACK' : 'CLEAR'}
-                    </span>
-                    <span className="text-[10px] font-mono text-slate-400">
-                      {(item.confidence * 100).toFixed(0)}%
-                    </span>
-                  </div>
-                  <p className="text-xs font-medium text-slate-200 truncate mt-1">{item.filename}</p>
-                  <p className="text-[10px] text-slate-500 font-mono">
-                    {new Date(item.created_at).toLocaleTimeString()}
-                  </p>
-                </div>
-              </div>
-            ))}
+          <div className="border border-zinc-200 rounded overflow-hidden bg-white">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-zinc-50 border-b border-zinc-200 text-zinc-500 font-medium">
+                <tr>
+                  <th className="py-2 px-3">File</th>
+                  <th className="py-2 px-3">Verdict</th>
+                  <th className="py-2 px-3">Confidence</th>
+                  <th className="py-2 px-3">Regions</th>
+                  <th className="py-2 px-3">Timestamp</th>
+                  <th className="py-2 px-3 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-200 text-zinc-700">
+                {recentInspections.map((item) => (
+                  <tr
+                    key={item.id}
+                    onClick={() => onSelectResult(item)}
+                    className="hover:bg-zinc-50 cursor-pointer transition"
+                  >
+                    <td className="py-2.5 px-3 font-mono text-zinc-900 truncate max-w-xs font-medium">
+                      {item.filename}
+                    </td>
+                    <td className="py-2.5 px-3">
+                      <span
+                        className={
+                          item.is_crack
+                            ? 'text-[#c92a2a] font-medium'
+                            : 'text-zinc-600'
+                        }
+                      >
+                        {item.predicted_class}
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-3 font-mono">
+                      {(item.confidence * 100).toFixed(1)}%
+                    </td>
+                    <td className="py-2.5 px-3 font-mono text-zinc-500">
+                      {item.boxes ? item.boxes.length : item.is_crack ? 1 : 0}
+                    </td>
+                    <td className="py-2.5 px-3 font-mono text-zinc-500 text-[11px]">
+                      {new Date(item.created_at).toLocaleTimeString()}
+                    </td>
+                    <td className="py-2.5 px-3 text-right">
+                      <span className="text-[#c92a2a] hover:underline text-xs inline-flex items-center space-x-0.5">
+                        <span>View</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

@@ -33,6 +33,8 @@ export interface AnalyzeResult {
   image_url: string;
   annotated_image_url?: string;
   boxes?: BoundingBox[];
+  image_width?: number;
+  image_height?: number;
   created_at: string;
 }
 
