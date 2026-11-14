@@ -1,0 +1,28 @@
+[
+  {
+    "id": "5d416bb5-eae8-4ba6-91ff-ee3c6187fe7c",
+    "filename": "sample_concrete.jpg",
+    "is_crack": false,
+    "predicted_class": "Negative (Clear)",
+    "confidence": 0.9686,
+    "probabilities": {
+      "positive_crack": 0.0314,
+      "negative_clear": 0.9686
+    },
+    "image_url": "/storage/uploads/5d416bb5-eae8-4ba6-91ff-ee3c6187fe7c.jpg",
+    "created_at": "2026-11-14 15:21:33.214676"
+  },
+  {
+    "id": "912c7bb6-a366-4314-b6d8-37753f836951",
+    "filename": "sample_concrete.jpg",
+    "is_crack": false,
+    "predicted_class": "Negative (Clear)",
+    "confidence": 0.9686,
+    "probabilities": {
+      "positive_crack": 0.0314,
+      "negative_clear": 0.9686
+    },
+    "image_url": "/storage/uploads/912c7bb6-a366-4314-b6d8-37753f836951.jpg",
+    "created_at": "2026-11-14 15:22:04.381295"
+  }
+]

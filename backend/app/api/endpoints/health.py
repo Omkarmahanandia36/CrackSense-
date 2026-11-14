@@ -1,23 +1,25 @@
-"""Health check and system diagnostics endpoint."""
+"""System health check and runtime platform diagnostics endpoint."""
 
+import os
 from fastapi import APIRouter
 import torch
-import sys
 
 from backend.app.core.config import settings
+from backend.app.schemas.analyze import HealthResponse
 
 router = APIRouter()
 
 
-@router.get("/health")
+@router.get("/health", response_model=HealthResponse)
 async def health_check():
-    """System health check and runtime platform diagnostics."""
-    return {
-        "status": "online",
-        "app_name": settings.APP_NAME,
-        "environment": settings.APP_ENV,
-        "python_version": sys.version.split()[0],
-        "torch_version": torch.__version__,
-        "cuda_available": torch.cuda.is_available(),
-        "device_name": torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU",
-    }
+    """Returns application status, hardware device, and ResNet-18 checkpoint availability."""
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model_exists = os.path.exists(settings.RESNET_MODEL_PATH)
+
+    return HealthResponse(
+        status="healthy",
+        app_name=settings.APP_NAME,
+        environment=settings.APP_ENV,
+        device=device,
+        model_loaded=model_exists,
+    )
