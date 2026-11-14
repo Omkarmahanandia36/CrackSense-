@@ -3,6 +3,7 @@
 from backend.app.schemas.analyze import (
     HealthResponse,
     ClassProbabilities,
+    BoundingBox,
     AnalyzeResponse,
 )
 from backend.app.schemas.inspection import (
@@ -20,6 +21,7 @@ from backend.app.schemas.user import (
 __all__ = [
     "HealthResponse",
     "ClassProbabilities",
+    "BoundingBox",
     "AnalyzeResponse",
     "PredictionResponse",
     "InspectionListItem",

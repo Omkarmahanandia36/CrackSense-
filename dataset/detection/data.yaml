@@ -1,0 +1,9 @@
+# CrackSense AI - YOLO Crack Localization Dataset Configuration
+path: D:/PHD level project/dataset/detection
+train: train/images
+val: val/images
+test: test/images
+
+# Classes
+names:
+  0: crack

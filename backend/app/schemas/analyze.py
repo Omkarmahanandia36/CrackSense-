@@ -1,4 +1,4 @@
-"""Pydantic V2 schemas for Phase 3 request and response serialization."""
+"""Pydantic V2 schemas for image analysis, crack classification, and YOLO localization."""
 
 from typing import Dict, List, Optional
 from datetime import datetime
@@ -21,6 +21,17 @@ class ClassProbabilities(BaseModel):
     negative_clear: float = Field(..., description="Estimated probability of clear surface (0.0 to 1.0)")
 
 
+class BoundingBox(BaseModel):
+    x1: float = Field(..., description="Top-left X coordinate")
+    y1: float = Field(..., description="Top-left Y coordinate")
+    x2: float = Field(..., description="Bottom-right X coordinate")
+    y2: float = Field(..., description="Bottom-right Y coordinate")
+    confidence: float = Field(..., description="Detection confidence score (0.0 to 1.0)")
+    label: str = Field(default="Crack", description="Object label")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class AnalyzeResponse(BaseModel):
     id: str = Field(..., description="Unique inspection identifier (UUID)")
     filename: str = Field(..., description="Original image filename")
@@ -29,6 +40,8 @@ class AnalyzeResponse(BaseModel):
     confidence: float = Field(..., description="Prediction confidence score (0.0 to 1.0)")
     probabilities: ClassProbabilities = Field(..., description="Class probability distribution")
     image_url: str = Field(..., description="Static URL to access stored uploaded photograph")
+    annotated_image_url: Optional[str] = Field(default=None, description="Static URL to image with rendered bounding boxes")
+    boxes: List[BoundingBox] = Field(default=[], description="Detected bounding boxes for localized cracks")
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     model_config = ConfigDict(from_attributes=True)

@@ -16,10 +16,11 @@ from backend.app.models.inspection import Inspection
 from backend.app.models.prediction import Prediction
 from backend.app.models.model_registry import ModelRecord
 from backend.app.models.user import User
-from backend.app.schemas.analyze import AnalyzeResponse, ClassProbabilities
+from backend.app.schemas.analyze import AnalyzeResponse, ClassProbabilities, BoundingBox
 from backend.app.api.deps import get_optional_user
 from backend.app.services.storage import inspection_repo
 from ai.classification.predict import predict_image
+from ai.detection.predict import predict_crack_boxes
 
 router = APIRouter()
 
@@ -99,7 +100,7 @@ async def analyze_concrete_image(
     saved_filepath = Path(settings.UPLOAD_DIRECTORY) / saved_filename
     pil_image.save(saved_filepath)
 
-    # 5. Execute ResNet-18 inference
+    # 5. Execute Stage 1 ResNet-18 Classification
     try:
         pred_result = predict_image(
             image_input=pil_image,
@@ -109,8 +110,37 @@ async def analyze_concrete_image(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"AI model inference error: {str(e)}",
+            detail=f"AI model inference error (Stage 1): {str(e)}",
         )
+
+    # 5b. Execute Stage 2 YOLO Crack Localization
+    annotated_url = None
+    boxes_models = []
+    try:
+        yolo_result = predict_crack_boxes(
+            image_input=pil_image,
+            checkpoint_path=settings.YOLO_MODEL_PATH,
+        )
+        if yolo_result["boxes"]:
+            annotated_filename = f"{upload_uuid}_annotated.{ext}"
+            annotated_filepath = Path(settings.UPLOAD_DIRECTORY) / annotated_filename
+            yolo_result["annotated_image"].save(annotated_filepath)
+            annotated_url = f"/storage/uploads/{annotated_filename}"
+
+            boxes_models = [
+                BoundingBox(
+                    x1=b["x1"],
+                    y1=b["y1"],
+                    x2=b["x2"],
+                    y2=b["y2"],
+                    confidence=b["confidence"],
+                    label=b.get("label", "Crack"),
+                )
+                for b in yolo_result["boxes"]
+            ]
+    except Exception as e:
+        # Non-fatal warning: if YOLO localization fails, classification response still completes
+        print(f"[!] Warning: YOLO Stage 2 localization error: {e}")
 
     # 6. Relational Database Persistence
     model_rec = await get_or_create_model_record(db)
@@ -150,6 +180,8 @@ async def analyze_concrete_image(
         confidence=pred_result["confidence"],
         probabilities=probabilities,
         image_url=f"/storage/uploads/{saved_filename}",
+        annotated_image_url=annotated_url,
+        boxes=boxes_models,
         created_at=inspection.created_at,
     )
     inspection_repo.save(resp)

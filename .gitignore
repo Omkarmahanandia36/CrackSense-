@@ -18,6 +18,8 @@ build/
 *.pt
 *.onnx
 models_cache/
+runs/
+yolov8*.pt
 
 # Datasets (raw images should not be committed)
 dataset/raw/*
