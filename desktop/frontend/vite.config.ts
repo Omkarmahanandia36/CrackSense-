@@ -6,14 +6,12 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-      },
-      '/storage': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-      },
+      '/api': 'http://127.0.0.1:8000',
+      '/health': 'http://127.0.0.1:8000',
+      '/analyze': 'http://127.0.0.1:8000',
+      '/auth': 'http://127.0.0.1:8000',
+      '/inspections': 'http://127.0.0.1:8000',
+      '/storage': 'http://127.0.0.1:8000',
     },
   },
 });

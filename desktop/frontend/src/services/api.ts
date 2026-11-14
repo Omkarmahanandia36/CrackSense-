@@ -55,7 +55,17 @@ export interface UserProfile {
   created_at: string;
 }
 
-const API_BASE = '';
+const API_BASE =
+  typeof window !== 'undefined' && window.location.protocol === 'file:'
+    ? 'http://127.0.0.1:8000'
+    : '';
+
+export function resolveImageUrl(url?: string): string {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  const base = typeof window !== 'undefined' && window.location.protocol === 'file:' ? 'http://127.0.0.1:8000' : '';
+  return `${base}${url}`;
+}
 
 function getAuthHeaders(): HeadersInit {
   const token = localStorage.getItem('cracksense_token');
