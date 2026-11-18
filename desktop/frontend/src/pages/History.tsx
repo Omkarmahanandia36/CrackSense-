@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, RefreshCw, Trash2, ArrowRight, AlertCircle, FileImage } from 'lucide-react';
+import { Search, RefreshCw, Trash2, FileImage } from 'lucide-react';
 import {
   fetchInspections,
   deleteInspection,
@@ -7,6 +7,14 @@ import {
   AnalyzeResult,
   resolveImageUrl,
 } from '../services/api';
+import {
+  GlassPanel,
+  Button,
+  Input,
+  SegmentedControl,
+  Skeleton,
+  EmptyState,
+} from '../components/ui';
 
 interface HistoryProps {
   onSelectResult: (result: AnalyzeResult) => void;
@@ -90,110 +98,109 @@ export const History: React.FC<HistoryProps> = ({
   return (
     <div className="space-y-6 animate-fade-rise">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-white/[0.06] pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-semibold text-text-primary tracking-tight">
+          <h1 className="text-2xl font-semibold tracking-tight" style={{ color: 'var(--text-1)' }}>
             Inspection history
           </h1>
-          <p className="text-sm text-text-secondary mt-1">
-            Database records of all analyzed structural surfaces and crack events
+          <p className="text-xs mt-1" style={{ color: 'var(--text-2)' }}>
+            Database records of all analyzed structural surfaces and defect classifications
           </p>
         </div>
 
-        <div className="flex items-center space-x-2.5">
-          <button
+        <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={RefreshCw}
             onClick={loadData}
-            disabled={loading}
-            className="px-3.5 py-2 bg-surface hover:bg-surface-hover border border-white/[0.08] hover:border-white/[0.16] text-text-primary text-xs font-medium rounded-lg transition flex items-center space-x-1.5"
+            loading={loading}
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span>Refresh</span>
-          </button>
-          <button
+            Refresh
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
             onClick={onNavigateUpload}
-            className="px-3.5 py-2 bg-gradient-to-r from-accent to-[#B64A34] text-white text-xs font-medium rounded-lg hover:shadow-[0_0_15px_rgba(200,85,61,0.35)] transition shadow-sm"
           >
             New inspection
-          </button>
+          </Button>
         </div>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-        <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-text-tertiary absolute left-3 top-2.5" />
-          <input
-            type="text"
-            placeholder="Search by filename..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-surface border border-white/[0.08] focus:border-accent text-text-primary placeholder:text-text-tertiary rounded-lg pl-9 pr-3 py-2 text-xs transition focus:outline-none"
+      {/* Filter & Search Toolbar in a single unified bar */}
+      <GlassPanel variant="base" className="p-3">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="w-full sm:w-80">
+            <Input
+              leftIcon={Search}
+              placeholder="Search by filename..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          <SegmentedControl
+            size="sm"
+            value={filterType}
+            onChange={(val) => setFilterType(val as any)}
+            options={[
+              { id: 'all', label: `All (${totalCount})` },
+              { id: 'crack', label: `Cracks (${crackCount})` },
+              { id: 'clear', label: `Clear (${clearCount})` },
+            ]}
           />
         </div>
-
-        <div className="flex bg-surface p-1 rounded-lg border border-white/[0.08]">
-          <button
-            onClick={() => setFilterType('all')}
-            className={`px-3 py-1 rounded-md text-xs font-medium transition ${
-              filterType === 'all'
-                ? 'bg-surface-elevated text-text-primary border border-white/[0.08] shadow-sm'
-                : 'text-text-tertiary hover:text-text-secondary'
-            }`}
-          >
-            All ({totalCount})
-          </button>
-          <button
-            onClick={() => setFilterType('crack')}
-            className={`px-3 py-1 rounded-md text-xs font-medium transition ${
-              filterType === 'crack'
-                ? 'bg-surface-elevated text-text-primary border border-white/[0.08] shadow-sm'
-                : 'text-text-tertiary hover:text-text-secondary'
-            }`}
-          >
-            Cracks ({crackCount})
-          </button>
-          <button
-            onClick={() => setFilterType('clear')}
-            className={`px-3 py-1 rounded-md text-xs font-medium transition ${
-              filterType === 'clear'
-                ? 'bg-surface-elevated text-text-primary border border-white/[0.08] shadow-sm'
-                : 'text-text-tertiary hover:text-text-secondary'
-            }`}
-          >
-            Clear ({clearCount})
-          </button>
-        </div>
-      </div>
+      </GlassPanel>
 
       {/* Table of Records or Skeleton / Empty */}
       {loading ? (
-        <div className="card-surface p-6 space-y-3">
-          <div className="h-6 w-48 rounded skeleton" />
-          <div className="h-10 w-full rounded skeleton" />
-          <div className="h-10 w-full rounded skeleton" />
-          <div className="h-10 w-full rounded skeleton" />
-        </div>
+        <GlassPanel variant="base" className="p-6 space-y-4">
+          <Skeleton height={20} width="40%" />
+          <Skeleton height={42} width="100%" />
+          <Skeleton height={42} width="100%" />
+          <Skeleton height={42} width="100%" />
+        </GlassPanel>
       ) : error ? (
-        <div className="p-4 bg-accent/10 border border-accent/25 rounded-xl text-xs text-text-primary flex items-center space-x-2.5">
-          <AlertCircle className="w-4 h-4 text-accent" />
+        <div
+          className="p-4 rounded-xl text-xs flex items-center gap-2.5"
+          style={{
+            background: 'var(--crack-tint)',
+            border: '1px solid rgba(255, 69, 58, 0.3)',
+            color: 'var(--text-1)',
+          }}
+        >
           <span>{error}</span>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="card-surface p-12 text-center text-xs text-text-secondary space-y-3">
-          <p>No inspection records match your criteria.</p>
-          {!searchQuery && (
-            <button
-              onClick={onNavigateUpload}
-              className="text-xs text-accent hover:underline font-medium"
-            >
-              Analyze a concrete photograph &rarr;
-            </button>
-          )}
-        </div>
+        <EmptyState
+          title="No inspection records found"
+          description={
+            searchQuery
+              ? `No records match "${searchQuery}". Try adjusting your search term or filter.`
+              : 'There are no inspection records saved in the database yet.'
+          }
+          actionLabel={searchQuery ? 'Clear search' : 'Analyze a concrete photograph'}
+          onAction={searchQuery ? () => setSearchQuery('') : onNavigateUpload}
+        />
       ) : (
-        <div className="card-surface overflow-hidden">
+        /* Table on a sunken-glass surface */
+        <div
+          className="w-full overflow-x-auto"
+          style={{
+            background: 'var(--glass-sunken-bg)',
+            border: '1px solid var(--glass-sunken-border)',
+            borderRadius: 'var(--r-panel)',
+          }}
+        >
           <table className="w-full text-left text-xs">
-            <thead className="bg-surface-elevated/40 border-b border-white/[0.06] text-text-tertiary font-medium">
+            <thead
+              className="border-b font-medium"
+              style={{
+                borderColor: 'var(--glass-sunken-border)',
+                color: 'var(--text-3)',
+              }}
+            >
               <tr>
                 <th className="py-3 px-4 w-16">ID</th>
                 <th className="py-3 px-4">Surface / File</th>
@@ -203,19 +210,31 @@ export const History: React.FC<HistoryProps> = ({
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/[0.04] text-text-secondary">
+            <tbody
+              className="divide-y"
+              style={{
+                borderColor: 'var(--glass-sunken-border)',
+                color: 'var(--text-2)',
+              }}
+            >
               {filtered.map((item) => (
                 <tr
                   key={item.id}
                   onClick={() => handleView(item)}
-                  className="hover:bg-surface-hover/80 cursor-pointer transition-colors group"
+                  className="hover:bg-[--hover-bg] cursor-pointer transition-colors duration-150 group"
                 >
-                  <td className="py-3 px-4 font-mono text-text-tertiary text-[11px]">
+                  <td className="py-3 px-4 font-mono text-[11px]" style={{ color: 'var(--text-3)' }}>
                     #{item.id}
                   </td>
                   <td className="py-3 px-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 rounded-md bg-surface-elevated border border-white/[0.08] overflow-hidden flex items-center justify-center flex-shrink-0">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0"
+                        style={{
+                          background: 'var(--glass-sunken-bg)',
+                          border: '1px solid var(--glass-sunken-border)',
+                        }}
+                      >
                         {item.image_url ? (
                           <img
                             src={resolveImageUrl(item.image_url)}
@@ -223,29 +242,43 @@ export const History: React.FC<HistoryProps> = ({
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <FileImage className="w-4 h-4 text-text-tertiary" />
+                          <FileImage className="w-4 h-4" style={{ color: 'var(--text-3)' }} strokeWidth={1.5} />
                         )}
                       </div>
-                      <span className="font-mono text-xs text-text-primary font-medium truncate max-w-xs">
+                      <span className="font-mono text-xs font-medium truncate max-w-xs" style={{ color: 'var(--text-1)' }}>
                         {item.filename}
                       </span>
                     </div>
                   </td>
                   <td className="py-3 px-4">
                     {item.is_crack ? (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-accent/15 text-[#E07A65] border border-accent/25">
+                      <span
+                        className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium"
+                        style={{
+                          background: 'var(--crack-tint)',
+                          color: 'var(--crack)',
+                          border: '1px solid rgba(255, 69, 58, 0.25)',
+                        }}
+                      >
                         Crack detected
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald/15 text-emerald-text border border-emerald/25">
+                      <span
+                        className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium"
+                        style={{
+                          background: 'var(--success-tint)',
+                          color: 'var(--success)',
+                          border: '1px solid rgba(48, 209, 88, 0.25)',
+                        }}
+                      >
                         Clear surface
                       </span>
                     )}
                   </td>
-                  <td className="py-3 px-4 font-mono text-text-primary">
+                  <td className="py-3 px-4 font-mono text-xs" style={{ color: 'var(--text-1)' }}>
                     {(item.confidence * 100).toFixed(1)}%
                   </td>
-                  <td className="py-3 px-4 font-mono text-text-tertiary text-[11px]">
+                  <td className="py-3 px-4 font-mono text-[11px]" style={{ color: 'var(--text-3)' }}>
                     {new Date(item.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
                   </td>
                   <td className="py-3 px-4 text-right space-x-2">
@@ -254,17 +287,19 @@ export const History: React.FC<HistoryProps> = ({
                         e.stopPropagation();
                         handleView(item);
                       }}
-                      className="text-accent hover:text-accent-hover text-xs font-medium"
+                      className="text-xs font-medium transition-colors"
+                      style={{ color: 'var(--accent)' }}
                     >
                       View
                     </button>
                     <button
                       onClick={(e) => handleDelete(item.id, e)}
                       disabled={deletingId === item.id}
-                      className="text-text-tertiary hover:text-accent text-xs ml-3 transition"
+                      className="p-1 rounded-md transition-colors hover:bg-[--hover-bg] ml-2"
+                      style={{ color: 'var(--text-3)' }}
                       title="Delete record"
                     >
-                      <Trash2 className="w-3.5 h-3.5 inline" />
+                      <Trash2 className="w-3.5 h-3.5 inline" strokeWidth={1.5} />
                     </button>
                   </td>
                 </tr>

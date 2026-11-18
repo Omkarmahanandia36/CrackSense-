@@ -1,0 +1,142 @@
+/*  CrackSense AI — Precise Architectural Palette
+    Defined from user swatch:
+    #06141B (Midnight Slate)
+    #11212D (Dark Prussian)
+    #253745 (Shadow Slate)
+    #4A5C6A (Steel Slate)
+    #9BA8AB (Mist Grey)
+    #CCD0CF (Frost Silver)
+*/
+
+:root {
+  color-scheme: dark;
+
+  /* ── Swatch Colors ── */
+  --c-1: #06141B; /* Deepest Navy Slate */
+  --c-2: #11212D; /* Dark Navy Surface */
+  --c-3: #253745; /* Medium Navy / Elevated */
+  --c-4: #4A5C6A; /* Steel Blue / Border */
+  --c-5: #9BA8AB; /* Mist Grey / Secondary text */
+  --c-6: #CCD0CF; /* Frost Silver / Primary text & highlight */
+
+  /* ── Background ── */
+  --bg-base:           #06141B;
+  --bg-gradient-start: #06141B;
+  --bg-gradient-mid:   #11212D;
+  --bg-gradient-warm:  #253745;
+
+  /* Ambient drifting glow blobs */
+  --blob-coral:  rgba(204, 208, 207, 0.08);
+  --blob-navy:   rgba(37, 55, 69, 0.35);
+  --blob-cream:  rgba(74, 92, 106, 0.20);
+
+  /* ── Glass Surfaces ── */
+  /* Base (cards, panels, sidebar) */
+  --glass-bg:           rgba(17, 33, 45, 0.78);
+  --glass-border:       rgba(74, 92, 106, 0.38);
+  --glass-highlight:    inset 0 1px 0 rgba(204, 208, 207, 0.16);
+  --glass-shadow:       0 12px 36px rgba(6, 20, 27, 0.55);
+  --glass-blur:         blur(20px) saturate(130%);
+
+  /* Raised (modals, dropdowns, toasts) */
+  --glass-raised-bg:    rgba(37, 55, 69, 0.90);
+  --glass-raised-border:rgba(155, 168, 171, 0.40);
+  --glass-raised-hl:    inset 0 1px 0 rgba(204, 208, 207, 0.28);
+  --glass-raised-shadow: 0 20px 48px rgba(6, 20, 27, 0.70);
+  --glass-raised-blur:  blur(28px) saturate(150%);
+
+  /* Sunken (inputs, table rows, inner viewports) */
+  --glass-sunken-bg:    rgba(6, 20, 27, 0.65);
+  --glass-sunken-border:rgba(74, 92, 106, 0.30);
+  --glass-sunken-hl:    inset 0 1.5px 3px rgba(0, 0, 0, 0.50);
+
+  /* Interactive states */
+  --hover-bg:   rgba(204, 208, 207, 0.08);
+  --active-bg:  rgba(204, 208, 207, 0.14);
+
+  /* ── Typography (Swatch 5 & 6) ── */
+  --text-1:     #CCD0CF;                      /* Frost Silver primary */
+  --text-2:     #9BA8AB;                      /* Mist Grey secondary */
+  --text-3:     #4A5C6A;                      /* Steel Slate tertiary */
+  --text-inv:   #06141B;                      /* Deep Midnight for inverted text */
+
+  --font-ui:   "SF Pro Display", "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* ── Accent ── */
+  /* Primary Action uses Frost Silver with Deep Slate text for high-end luxury */
+  --accent:       #CCD0CF;
+  --accent-hover: #E4E8E7;
+  --accent-text:  #06141B;
+  --accent-tint:  rgba(204, 208, 207, 0.14);
+  --accent-glow:  rgba(204, 208, 207, 0.25);
+
+  /* Defect & Status Highlights */
+  --crack:       #FF6F61;                      /* Warm Coral for defect visibility */
+  --crack-amber: #E5A440;                      /* Amber warning */
+  --crack-tint:  rgba(255, 111, 97, 0.18);
+  --amber-tint:  rgba(229, 164, 64, 0.18);
+  --success:     #52B788;                      /* Clear surface */
+  --success-tint:rgba(82, 183, 136, 0.18);
+
+  /* ── Radii ── */
+  --r-panel:   20px;
+  --r-control: 14px;
+  --r-pill:    9999px;
+
+  /* ── Spacing ── */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px;
+  --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
+  --sp-7: 48px;
+
+  /* ── Focus Ring ── */
+  --focus-ring: 0 0 0 2px #CCD0CF, 0 0 0 4px rgba(74, 92, 106, 0.45);
+}
+
+/* ── Light Mode (Inverted Swatch Scale) ── */
+[data-theme="light"] {
+  color-scheme: light;
+
+  --bg-base:           #CCD0CF;
+  --bg-gradient-start: #E4E8E7;
+  --bg-gradient-mid:   #CCD0CF;
+  --bg-gradient-warm:  #9BA8AB;
+
+  --blob-coral:  rgba(74, 92, 106, 0.12);
+  --blob-navy:   rgba(6, 20, 27, 0.08);
+  --blob-cream:  rgba(255, 255, 255, 0.60);
+
+  --glass-bg:           rgba(255, 255, 255, 0.75);
+  --glass-border:       rgba(74, 92, 106, 0.25);
+  --glass-highlight:    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  --glass-shadow:       0 12px 32px rgba(6, 20, 27, 0.08);
+
+  --glass-raised-bg:    rgba(255, 255, 255, 0.90);
+  --glass-raised-border:rgba(74, 92, 106, 0.35);
+  --glass-raised-hl:    inset 0 1px 0 #FFFFFF;
+  --glass-raised-shadow: 0 16px 40px rgba(6, 20, 27, 0.12);
+
+  --glass-sunken-bg:    rgba(6, 20, 27, 0.05);
+  --glass-sunken-border:rgba(74, 92, 106, 0.15);
+  --glass-sunken-hl:    inset 0 1.5px 2px rgba(6, 20, 27, 0.06);
+
+  --hover-bg:  rgba(6, 20, 27, 0.05);
+  --active-bg: rgba(6, 20, 27, 0.10);
+
+  --text-1:  #06141B;
+  --text-2:  #253745;
+  --text-3:  #4A5C6A;
+  --text-inv:#CCD0CF;
+
+  --accent:       #06141B;
+  --accent-hover: #11212D;
+  --accent-text:  #CCD0CF;
+  --accent-tint:  rgba(6, 20, 27, 0.12);
+  --accent-glow:  rgba(6, 20, 27, 0.20);
+
+  --crack:       #D9534F;
+  --crack-amber: #C67D28;
+  --crack-tint:  rgba(217, 83, 79, 0.14);
+  --success:     #388E3C;
+  --success-tint:rgba(56, 142, 60, 0.14);
+}

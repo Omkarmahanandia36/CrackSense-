@@ -1,108 +1,149 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import './tokens.css';
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  /* Colors */
-  --bg-page: #0B0E14;
-  --bg-sidebar: #0F131C;
-  --surface-card: #11151D;
-  --surface-hover: #161B26;
-  --surface-elevated: #1C2230;
-
-  --border-subtle: rgba(255, 255, 255, 0.06);
-  --border-medium: rgba(255, 255, 255, 0.12);
-  --border-focus: rgba(200, 85, 61, 0.5);
-
-  --accent-copper: #C8553D;
-  --accent-copper-hover: #B64A34;
-  --accent-copper-subtle: rgba(200, 85, 61, 0.14);
-  --accent-copper-glow: rgba(200, 85, 61, 0.25);
-
-  --color-emerald: #3FB68B;
-  --color-emerald-subtle: rgba(63, 182, 139, 0.14);
-  --color-amber: #E5A440;
-  --color-amber-subtle: rgba(229, 164, 64, 0.14);
-
-  --text-primary: #E8EAF0;
-  --text-secondary: #9AA3B2;
-  --text-tertiary: #626B7A;
-
-  /* Typography */
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-
-  /* Spacing grid & Radius */
-  --radius-card: 12px;
-  --radius-btn: 8px;
-
-  /* Shadows */
-  --shadow-diffuse: 0 10px 30px rgba(0, 0, 0, 0.35);
-  --shadow-inner-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
-
+/* ── Base reset ── */
 @layer base {
   * {
-    border-color: var(--border-subtle);
+    border-color: var(--glass-sunken-border);
   }
 
   body {
     margin: 0;
-    font-family: var(--font-sans);
-    background-color: var(--bg-page);
-    color: var(--text-primary);
+    font-family: var(--font-ui);
+    background: var(--bg-base);
+    color: var(--text-1);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow: hidden;
   }
 
-  /* Keyboard focus rings in the accent color */
+  /* Keyboard focus rings */
   button:focus-visible,
   a:focus-visible,
   input:focus-visible,
-  textarea:focus-visible {
-    outline: 2px solid var(--accent-copper);
-    outline-offset: 2px;
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+
+  ::selection {
+    background: var(--c-4);
+    color: var(--c-6);
   }
 }
 
-/* Custom scrollbars */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+/* ── Custom Scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.10);
+  background: rgba(155, 168, 171, 0.18);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.20);
+  background: rgba(204, 208, 207, 0.30);
 }
 
-/* Subtle background radial glow */
-.bg-radial-subtle {
-  background-image: radial-gradient(circle at 50% 0%, rgba(200, 85, 61, 0.04) 0%, transparent 65%);
+/* ── Glass utility classes ── */
+.glass-base {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-highlight), var(--glass-shadow);
+  border-radius: var(--r-panel);
 }
 
-/* Card inner highlight utility */
-.card-surface {
-  background-color: var(--surface-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-inner-highlight), var(--shadow-diffuse);
-  transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
+.glass-raised {
+  background: var(--glass-raised-bg);
+  backdrop-filter: var(--glass-raised-blur);
+  -webkit-backdrop-filter: var(--glass-raised-blur);
+  border: 1px solid var(--glass-raised-border);
+  box-shadow: var(--glass-raised-hl), var(--glass-raised-shadow);
+  border-radius: var(--r-panel);
 }
 
-.card-surface:hover {
-  border-color: var(--border-medium);
+.glass-sunken {
+  background: var(--glass-sunken-bg);
+  border: 1px solid var(--glass-sunken-border);
+  box-shadow: var(--glass-sunken-hl);
+  border-radius: var(--r-control);
 }
 
-/* Fade-and-rise keyframe animation for load */
-@keyframes fadeAndRise {
+/* Solid fallback when backdrop-filter is unsupported */
+@supports not (backdrop-filter: blur(1px)) {
+  .glass-base  { background: #11212D; }
+  .glass-raised { background: #253745; }
+}
+
+/* ── Ambient Background matching user's swatch palette ── */
+.ambient-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: radial-gradient(
+    circle at 85% 15%,
+    rgba(74, 92, 106, 0.40) 0%,
+    rgba(37, 55, 69, 0.50) 35%,
+    #11212D 65%,
+    #06141B 100%
+  );
+}
+
+.ambient-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  will-change: transform;
+}
+.blob-1 {
+  width: 500px; height: 500px;
+  background: rgba(155, 168, 171, 0.10);
+  top: -10%; right: 10%;
+  animation: blobDrift1 30s infinite alternate ease-in-out;
+}
+.blob-2 {
+  width: 450px; height: 450px;
+  background: rgba(37, 55, 69, 0.40);
+  bottom: -10%; left: 5%;
+  animation: blobDrift2 35s infinite alternate ease-in-out;
+}
+.blob-3 {
+  width: 360px; height: 360px;
+  background: rgba(74, 92, 106, 0.25);
+  top: 35%; left: 30%;
+  animation: blobDrift3 40s infinite alternate ease-in-out;
+}
+
+@keyframes blobDrift1 {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(-40px, 40px) scale(1.08); }
+}
+@keyframes blobDrift2 {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(50px, -30px) scale(1.06); }
+}
+@keyframes blobDrift3 {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(-30px, -40px) scale(1.10); }
+}
+
+/* Noise overlay — SVG inline feTurbulence, 2.5% opacity */
+.ambient-noise {
+  position: absolute;
+  inset: 0;
+  opacity: 0.025;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+}
+
+/* ── Fade-and-rise animation ── */
+@keyframes fadeRise {
   from {
     opacity: 0;
     transform: translateY(8px);
@@ -114,42 +155,41 @@
 }
 
 .animate-fade-rise {
-  animation: fadeAndRise 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeRise 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-/* Pulse animation for green status dot */
-@keyframes emeraldPulse {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.3);
-    opacity: 0.6;
-  }
+/* ── Status pulse ── */
+@keyframes statusPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.35); opacity: 0.55; }
 }
-
 .animate-status-pulse {
-  animation: emeraldPulse 2.4s infinite ease-in-out;
+  animation: statusPulse 2.4s infinite ease-in-out;
 }
 
-/* Skeleton shimmer */
+/* ── Skeleton shimmer ── */
 @keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
-
 .skeleton {
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.04) 25%,
-    rgba(255, 255, 255, 0.08) 50%,
-    rgba(255, 255, 255, 0.04) 75%
+    rgba(74, 92, 106, 0.15) 25%,
+    rgba(155, 168, 171, 0.25) 50%,
+    rgba(74, 92, 106, 0.15) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.8s infinite ease-in-out;
+  border-radius: var(--r-control);
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .ambient-blob { animation: none !important; }
 }
