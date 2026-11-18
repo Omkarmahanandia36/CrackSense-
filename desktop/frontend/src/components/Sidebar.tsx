@@ -6,19 +6,37 @@ import {
   LogIn,
   LogOut,
   Cpu,
-  ChevronRight,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Sun,
+  Moon,
+  Sparkles,
 } from 'lucide-react';
 import { HealthData, UserProfile } from '../services/api';
 
 interface SidebarProps {
-  currentPage: 'dashboard' | 'upload' | 'result' | 'history';
-  onNavigate: (page: 'dashboard' | 'upload' | 'result' | 'history') => void;
+  currentPage: 'dashboard' | 'upload' | 'result' | 'history' | 'dev';
+  onNavigate: (page: 'dashboard' | 'upload' | 'result' | 'history' | 'dev') => void;
   health: HealthData | null;
   hasResult: boolean;
   user: UserProfile | null;
   onOpenLogin: () => void;
   onLogout: () => void;
+  collapsed: boolean;
+  onToggleCollapse: () => void;
+  theme: 'dark' | 'light';
+  onToggleTheme: () => void;
 }
+
+const NAV_ITEMS: {
+  key: 'dashboard' | 'upload' | 'history';
+  label: string;
+  icon: React.ElementType;
+}[] = [
+  { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { key: 'upload',    label: 'Analyze',   icon: UploadCloud },
+  { key: 'history',   label: 'History',   icon: HistoryIcon },
+];
 
 export const Sidebar: React.FC<SidebarProps> = ({
   currentPage,
@@ -28,189 +46,239 @@ export const Sidebar: React.FC<SidebarProps> = ({
   user,
   onOpenLogin,
   onLogout,
+  collapsed,
+  onToggleCollapse,
+  theme,
+  onToggleTheme,
 }) => {
   const isHealthy = health?.status === 'healthy';
   const deviceName = health?.device || 'CPU';
 
   return (
-    <aside className="w-[260px] flex-shrink-0 bg-sidebar border-r border-white/[0.06] flex flex-col justify-between h-screen sticky top-0 select-none z-30">
-      <div>
-        {/* Brand Header */}
-        <div className="p-5 border-b border-white/[0.06]">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2.5">
-              {/* Hexagon crack glyph logo */}
-              <div className="w-7 h-7 rounded-lg bg-surface border border-white/[0.08] flex items-center justify-center text-accent shadow-sm">
-                <svg
-                  className="w-4 h-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M12 2l7.5 4.3v8.7L12 22 4.5 17V6.3L12 2z" />
-                  <path d="M12 2v7" />
-                  <path d="M12 9l3 2" />
-                  <path d="M12 9l-3 4" />
-                </svg>
-              </div>
-              <span className="font-semibold text-base tracking-tight text-text-primary">
+    <aside
+      className="glass-base flex flex-col justify-between select-none flex-shrink-0 transition-[width] duration-200 ease-out overflow-hidden"
+      style={{ width: collapsed ? 64 : 240, minHeight: 0 }}
+    >
+      {/* ── Top: Wordmark + Real App Nav ── */}
+      <div className="flex flex-col min-h-0">
+        {/* Brand Wordmark */}
+        <div
+          className="flex items-center px-5 h-14 border-b flex-shrink-0"
+          style={{
+            borderColor: 'var(--glass-sunken-border)',
+            justifyContent: collapsed ? 'center' : 'space-between',
+          }}
+        >
+          {!collapsed && (
+            <div className="flex items-center gap-2.5">
+              <span
+                className="w-2.5 h-2.5 rounded-full"
+                style={{ background: 'var(--accent)' }}
+              />
+              <span
+                className="font-semibold text-[15px] tracking-tight whitespace-nowrap"
+                style={{ color: 'var(--text-1)' }}
+              >
                 CrackSense
               </span>
             </div>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-text-tertiary">
-              v1.2
-            </span>
-          </div>
-          <p className="text-[11px] text-text-tertiary mt-1.5 pl-0.5">
-            Concrete inspection tool
-          </p>
+          )}
+          <button
+            onClick={onToggleCollapse}
+            className="p-1.5 rounded-lg transition-colors hover:bg-[--hover-bg] cursor-pointer"
+            style={{ color: 'var(--text-3)' }}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {collapsed ? (
+              <PanelLeftOpen className="w-[18px] h-[18px]" strokeWidth={1.5} />
+            ) : (
+              <PanelLeftClose className="w-[18px] h-[18px]" strokeWidth={1.5} />
+            )}
+          </button>
         </div>
 
-        {/* Navigation Items */}
-        <nav className="p-3 space-y-1">
-          <button
-            onClick={() => onNavigate('dashboard')}
-            className={`w-full h-10 px-3 text-xs rounded-lg transition-all flex items-center justify-between group ${
-              currentPage === 'dashboard'
-                ? 'bg-accent-subtle text-text-primary font-medium border-l-2 border-accent rounded-l-none pl-2.5'
-                : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
-            }`}
-          >
-            <div className="flex items-center space-x-2.5">
-              <LayoutDashboard
-                className={`w-[18px] h-[18px] transition-colors ${
-                  currentPage === 'dashboard' ? 'text-accent' : 'text-text-tertiary group-hover:text-text-secondary'
-                }`}
-              />
-              <span>Dashboard</span>
-            </div>
-            {currentPage === 'dashboard' && (
-              <ChevronRight className="w-3.5 h-3.5 text-accent opacity-80" />
-            )}
-          </button>
+        {/* Primary Navigation */}
+        <nav className="p-2 space-y-1 flex-1 min-h-0">
+          {NAV_ITEMS.map(({ key, label, icon: Icon }) => {
+            const active = currentPage === key;
+            return (
+              <button
+                key={key}
+                onClick={() => onNavigate(key)}
+                className={`
+                  w-full h-10 flex items-center gap-2.5 rounded-xl transition-all duration-150 cursor-pointer
+                  ${collapsed ? 'justify-center px-0' : 'px-3'}
+                  ${active ? 'font-medium' : 'hover:bg-[--hover-bg]'}
+                `}
+                style={{
+                  background: active ? 'var(--accent-tint)' : undefined,
+                }}
+                title={collapsed ? label : undefined}
+              >
+                {/* Accent bar for active */}
+                {active && !collapsed && (
+                  <span
+                    className="w-[2.5px] h-5 rounded-full flex-shrink-0"
+                    style={{ background: 'var(--accent)' }}
+                  />
+                )}
+                <Icon
+                  className="w-[18px] h-[18px] flex-shrink-0"
+                  strokeWidth={1.5}
+                  style={{ color: active ? 'var(--accent)' : 'var(--text-3)' }}
+                />
+                {!collapsed && (
+                  <span
+                    className="text-[13px] whitespace-nowrap"
+                    style={{ color: active ? 'var(--text-1)' : 'var(--text-2)' }}
+                  >
+                    {label}
+                  </span>
+                )}
+              </button>
+            );
+          })}
 
-          <button
-            onClick={() => onNavigate('upload')}
-            className={`w-full h-10 px-3 text-xs rounded-lg transition-all flex items-center justify-between group ${
-              currentPage === 'upload'
-                ? 'bg-accent-subtle text-text-primary font-medium border-l-2 border-accent rounded-l-none pl-2.5'
-                : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
-            }`}
-          >
-            <div className="flex items-center space-x-2.5">
-              <UploadCloud
-                className={`w-[18px] h-[18px] transition-colors ${
-                  currentPage === 'upload' ? 'text-accent' : 'text-text-tertiary group-hover:text-text-secondary'
-                }`}
-              />
-              <span>Analyze</span>
-            </div>
-            {currentPage === 'upload' && (
-              <ChevronRight className="w-3.5 h-3.5 text-accent opacity-80" />
-            )}
-          </button>
-
-          <button
-            onClick={() => onNavigate('history')}
-            className={`w-full h-10 px-3 text-xs rounded-lg transition-all flex items-center justify-between group ${
-              currentPage === 'history'
-                ? 'bg-accent-subtle text-text-primary font-medium border-l-2 border-accent rounded-l-none pl-2.5'
-                : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
-            }`}
-          >
-            <div className="flex items-center space-x-2.5">
-              <HistoryIcon
-                className={`w-[18px] h-[18px] transition-colors ${
-                  currentPage === 'history' ? 'text-accent' : 'text-text-tertiary group-hover:text-text-secondary'
-                }`}
-              />
-              <span>History</span>
-            </div>
-            {currentPage === 'history' && (
-              <ChevronRight className="w-3.5 h-3.5 text-accent opacity-80" />
-            )}
-          </button>
-
+          {/* Current result link (when active) */}
           {hasResult && (
             <button
               onClick={() => onNavigate('result')}
-              className={`w-full h-10 px-3 text-xs rounded-lg transition-all flex items-center justify-between group ${
-                currentPage === 'result'
-                  ? 'bg-accent-subtle text-text-primary font-medium border-l-2 border-accent rounded-l-none pl-2.5'
-                  : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
-              }`}
+              className={`
+                w-full h-10 flex items-center gap-2.5 rounded-xl transition-all duration-150 cursor-pointer
+                ${collapsed ? 'justify-center px-0' : 'px-3'}
+                ${currentPage === 'result' ? 'font-medium' : 'hover:bg-[--hover-bg]'}
+              `}
+              style={{
+                background: currentPage === 'result' ? 'var(--accent-tint)' : undefined,
+              }}
+              title={collapsed ? 'Current result' : undefined}
             >
-              <div className="flex items-center space-x-2.5">
-                <span className="w-2 h-2 rounded-full bg-accent" />
-                <span>Current result</span>
-              </div>
-              <span className="text-[10px] font-mono text-accent bg-accent/15 px-1.5 py-0.5 rounded">
-                Active
-              </span>
+              {currentPage === 'result' && !collapsed && (
+                <span
+                  className="w-[2.5px] h-5 rounded-full flex-shrink-0"
+                  style={{ background: 'var(--accent)' }}
+                />
+              )}
+              <Sparkles
+                className="w-[18px] h-[18px] flex-shrink-0"
+                strokeWidth={1.5}
+                style={{ color: 'var(--accent)' }}
+              />
+              {!collapsed && (
+                <span
+                  className="text-[13px] whitespace-nowrap"
+                  style={{ color: currentPage === 'result' ? 'var(--text-1)' : 'var(--text-2)' }}
+                >
+                  Inspection result
+                </span>
+              )}
             </button>
           )}
         </nav>
       </div>
 
-      {/* Bottom Section: Backend Status & Inspector Profile */}
-      <div className="p-4 border-t border-white/[0.06] text-xs space-y-3 bg-surface/30">
-        {/* Device & Status Row */}
-        <div className="flex items-center justify-between px-1">
-          <div className="flex items-center space-x-2">
+      {/* ── Bottom: Status + Theme + Inspector Profile ── */}
+      <div
+        className="p-3 space-y-2 border-t flex-shrink-0"
+        style={{ borderColor: 'var(--glass-sunken-border)' }}
+      >
+        {/* Status row */}
+        <div
+          className={`flex items-center ${collapsed ? 'justify-center' : 'justify-between'} px-1`}
+        >
+          <div className="flex items-center gap-1.5">
             <span
-              className={`w-2 h-2 rounded-full ${
-                isHealthy ? 'bg-emerald animate-status-pulse' : 'bg-amber animate-pulse'
+              className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                isHealthy ? 'animate-status-pulse' : 'animate-pulse'
               }`}
+              style={{ background: isHealthy ? 'var(--success)' : 'var(--crack-amber)' }}
             />
-            <span className="text-[11px] font-medium text-text-secondary">
-              {health ? 'Backend online' : 'Connecting...'}
-            </span>
+            {!collapsed && (
+              <span className="text-[11px]" style={{ color: 'var(--text-2)' }}>
+                {health ? 'Online' : 'Connecting…'}
+              </span>
+            )}
           </div>
 
-          <div className="flex items-center space-x-1 px-1.5 py-0.5 rounded bg-white/[0.04] border border-white/[0.08] text-text-tertiary">
-            <Cpu className="w-3 h-3 text-accent" />
-            <span className="font-mono text-[10px] uppercase font-semibold text-text-secondary">
+          {!collapsed && (
+            <div
+              className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-mono uppercase font-semibold"
+              style={{
+                background: 'var(--glass-sunken-bg)',
+                border: '1px solid var(--glass-sunken-border)',
+                color: 'var(--text-2)',
+              }}
+            >
+              <Cpu className="w-3 h-3" style={{ color: 'var(--text-2)' }} strokeWidth={1.5} />
               {deviceName}
-            </span>
-          </div>
+            </div>
+          )}
         </div>
 
-        {/* User / Inspector Profile Button */}
-        <div>
-          {user ? (
-            <div className="flex items-center justify-between p-2 rounded-lg bg-surface border border-white/[0.08] text-text-primary">
-              <div className="truncate pr-1">
-                <span className="block font-medium text-xs truncate">
+        {/* Theme toggle */}
+        <button
+          onClick={onToggleTheme}
+          className={`w-full h-9 flex items-center gap-2 rounded-xl transition-colors duration-150 hover:bg-[--hover-bg] cursor-pointer ${
+            collapsed ? 'justify-center px-0' : 'px-3'
+          }`}
+          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          {theme === 'dark' ? (
+            <Sun className="w-[16px] h-[16px]" style={{ color: 'var(--text-2)' }} strokeWidth={1.5} />
+          ) : (
+            <Moon className="w-[16px] h-[16px]" style={{ color: 'var(--text-2)' }} strokeWidth={1.5} />
+          )}
+          {!collapsed && (
+            <span className="text-[12px]" style={{ color: 'var(--text-2)' }}>
+              {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+            </span>
+          )}
+        </button>
+
+        {/* User profile / Sign in button */}
+        {user ? (
+          <div
+            className="flex items-center gap-2 p-2 rounded-xl"
+            style={{
+              background: 'var(--glass-sunken-bg)',
+              border: '1px solid var(--glass-sunken-border)',
+            }}
+          >
+            {!collapsed && (
+              <div className="flex-1 min-w-0">
+                <span className="block text-[12px] font-medium truncate" style={{ color: 'var(--text-1)' }}>
                   {user.full_name || 'Field Inspector'}
                 </span>
-                <span className="block text-[10px] text-text-tertiary truncate">
+                <span className="block text-[10px] truncate" style={{ color: 'var(--text-3)' }}>
                   {user.email}
                 </span>
               </div>
-              <button
-                onClick={onLogout}
-                className="p-1 hover:bg-surface-hover rounded text-text-tertiary hover:text-accent transition"
-                title="Sign out"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ) : (
+            )}
             <button
-              onClick={onOpenLogin}
-              className="w-full py-2 px-3 bg-surface hover:bg-surface-hover border border-white/[0.08] hover:border-white/[0.16] text-text-primary text-xs font-medium rounded-lg flex items-center justify-between transition group"
+              onClick={onLogout}
+              className="p-1.5 rounded-lg transition-colors hover:bg-[--hover-bg] flex-shrink-0 cursor-pointer"
+              style={{ color: 'var(--text-3)' }}
+              title="Sign out"
             >
-              <div className="flex items-center space-x-2">
-                <LogIn className="w-3.5 h-3.5 text-text-tertiary group-hover:text-text-primary transition" />
-                <span>Sign in</span>
-              </div>
-              <span className="text-[10px] text-text-tertiary font-mono">Inspector</span>
+              <LogOut className="w-3.5 h-3.5" strokeWidth={1.5} />
             </button>
-          )}
-        </div>
+          </div>
+        ) : (
+          <button
+            onClick={onOpenLogin}
+            className={`w-full h-9 flex items-center gap-2 rounded-xl transition-colors duration-150 cursor-pointer ${
+              collapsed ? 'justify-center px-0' : 'px-3'
+            }`}
+            style={{
+              background: 'var(--glass-sunken-bg)',
+              border: '1px solid var(--glass-sunken-border)',
+              color: 'var(--text-2)',
+            }}
+          >
+            <LogIn className="w-[16px] h-[16px] flex-shrink-0" strokeWidth={1.5} />
+            {!collapsed && <span className="text-[12px]">Sign in</span>}
+          </button>
+        )}
       </div>
     </aside>
   );

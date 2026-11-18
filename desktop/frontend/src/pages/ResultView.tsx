@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   ArrowLeft,
   ZoomIn,
@@ -6,10 +6,13 @@ import {
   RotateCcw,
   Check,
   UploadCloud,
-  Layers,
-  Activity,
+  Download,
+  Save,
+  CheckCircle2,
+  FileImage,
 } from 'lucide-react';
 import { AnalyzeResult, resolveImageUrl } from '../services/api';
+import { GlassPanel, Button, SegmentedControl, Toast } from '../components/ui';
 
 interface ResultViewProps {
   result: AnalyzeResult;
@@ -22,8 +25,10 @@ export const ResultView: React.FC<ResultViewProps> = ({
   onNewInspection,
   onBackToDashboard,
 }) => {
-  const [viewMode, setViewMode] = useState<'boxes' | 'original' | 'mask'>('boxes');
+  // View mode: default Both
+  const [viewMode, setViewMode] = useState<'both' | 'boxes' | 'mask' | 'original'>('both');
   const [hoveredBoxIdx, setHoveredBoxIdx] = useState<number | null>(null);
+  const [selectedBoxIdx, setSelectedBoxIdx] = useState<number | null>(null);
 
   // Zoom and pan state
   const [zoom, setZoom] = useState<number>(1);
@@ -31,6 +36,9 @@ export const ResultView: React.FC<ResultViewProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const dragStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const imageRef = useRef<HTMLImageElement>(null);
+
+  // Table row refs for scroll into view
+  const tableRowRefs = useRef<(HTMLTableRowElement | null)[]>([]);
 
   // Natural image dimensions
   const [naturalDimensions, setNaturalDimensions] = useState<{ width: number; height: number }>({
@@ -49,39 +57,35 @@ export const ResultView: React.FC<ResultViewProps> = ({
     return localStorage.getItem(`cracksense_notes_${result.id}`) || '';
   });
 
-  const boxes = result.boxes || [];
+  // Toast feedback state
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
-  // Plain wording verdict
-  const verdictText =
+  // Detections & Boxes mapping
+  const detections = result.detections || [];
+  const boxes = (result.boxes && result.boxes.length > 0)
+    ? result.boxes
+    : detections.map((d) => ({
+        x1: d.bbox[0],
+        y1: d.bbox[1],
+        x2: d.bbox[0] + d.bbox[2],
+        y2: d.bbox[1] + d.bbox[3],
+        confidence: d.confidence,
+        label: 'Crack Region',
+      }));
+
+  // Plain headline text
+  const verdictHeadline =
     boxes.length > 0
       ? `${boxes.length} crack region${boxes.length === 1 ? '' : 's'} found`
       : result.is_crack
-      ? 'Cracks detected'
+      ? 'Crack detected'
       : 'No crack found';
 
-  const confidencePct = (result.confidence * 100).toFixed(1);
-
-  // Crack severity estimation based on count & confidence
-  const severityLabel =
-    boxes.length >= 4 || result.confidence > 0.92
-      ? 'Critical'
-      : boxes.length >= 2 || result.confidence > 0.75
-      ? 'Moderate'
-      : result.is_crack
-      ? 'Minor'
-      : 'None (Intact)';
-
-  const severityColor =
-    severityLabel === 'Critical'
-      ? 'text-accent border-accent/30 bg-accent/15'
-      : severityLabel === 'Moderate'
-      ? 'text-amber-text border-amber/30 bg-amber/15'
-      : severityLabel === 'Minor'
-      ? 'text-accent/80 border-accent/20 bg-accent/10'
-      : 'text-emerald-text border-emerald/30 bg-emerald/15';
+  const confidencePct = Math.round(result.confidence * 100);
 
   const handleZoom = (delta: number) => {
-    setZoom((prev) => Math.min(4.0, Math.max(0.5, prev + delta)));
+    setZoom((prev) => Math.min(4.0, Math.max(0.5, Number((prev + delta).toFixed(2)))));
   };
 
   const handleResetView = () => {
@@ -118,18 +122,28 @@ export const ResultView: React.FC<ResultViewProps> = ({
     setNaturalDimensions({ width: img.naturalWidth, height: img.naturalHeight });
   };
 
+  const handleSelectBox = (idx: number) => {
+    setSelectedBoxIdx(idx);
+    const rowEl = tableRowRefs.current[idx];
+    if (rowEl) {
+      rowEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  };
+
   const toggleReviewStatus = () => {
     if (isReviewed) {
       setIsReviewed(false);
       setReviewedAt(null);
       localStorage.removeItem(`cracksense_reviewed_${result.id}`);
       localStorage.removeItem(`cracksense_reviewed_at_${result.id}`);
+      setToastMessage('Marked as pending review');
     } else {
       const now = new Date().toLocaleString();
       setIsReviewed(true);
       setReviewedAt(now);
       localStorage.setItem(`cracksense_reviewed_${result.id}`, 'true');
       localStorage.setItem(`cracksense_reviewed_at_${result.id}`, now);
+      setToastMessage('Signed off and reviewed');
     }
   };
 
@@ -139,110 +153,217 @@ export const ResultView: React.FC<ResultViewProps> = ({
     localStorage.setItem(`cracksense_notes_${result.id}`, val);
   };
 
-  const currentDisplayUrl =
-    viewMode === 'boxes' && result.annotated_image_url
-      ? resolveImageUrl(result.annotated_image_url)
-      : resolveImageUrl(result.image_url);
+  const handleSave = () => {
+    localStorage.setItem(`cracksense_notes_${result.id}`, notes);
+    if (isReviewed) {
+      localStorage.setItem(`cracksense_reviewed_${result.id}`, 'true');
+    }
+    setToastMessage('Inspection record saved');
+  };
+
+  // Burn overlays into a high-res canvas and download as image
+  const handleDownloadAnnotatedImage = async () => {
+    if (!imageRef.current) return;
+    setIsExporting(true);
+
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = naturalDimensions.width;
+      canvas.height = naturalDimensions.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas context not available');
+
+      // 1. Draw base image
+      ctx.drawImage(imageRef.current, 0, 0, canvas.width, canvas.height);
+
+      // 2. Draw mask layer if available
+      if (result.mask_png_base64 && (viewMode === 'mask' || viewMode === 'both')) {
+        const maskImg = new Image();
+        maskImg.crossOrigin = 'anonymous';
+        await new Promise((resolve) => {
+          maskImg.onload = resolve;
+          maskImg.src = `data:image/png;base64,${result.mask_png_base64}`;
+        });
+
+        // Create colored mask buffer
+        const maskCanvas = document.createElement('canvas');
+        maskCanvas.width = canvas.width;
+        maskCanvas.height = canvas.height;
+        const mctx = maskCanvas.getContext('2d');
+        if (mctx) {
+          mctx.drawImage(maskImg, 0, 0, canvas.width, canvas.height);
+          mctx.globalCompositeOperation = 'source-in';
+          mctx.fillStyle = 'rgba(255, 69, 58, 0.65)';
+          mctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          ctx.drawImage(maskCanvas, 0, 0);
+        }
+      }
+
+      // 3. Draw bounding boxes
+      if (viewMode === 'boxes' || viewMode === 'both') {
+        boxes.forEach((b, idx) => {
+          const w = b.x2 - b.x1;
+          const h = b.y2 - b.y1;
+
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = '#FF453A';
+          ctx.strokeRect(b.x1, b.y1, w, h);
+
+          // ID chip
+          const text = `#${idx + 1} ${(b.confidence * 100).toFixed(0)}%`;
+          ctx.font = 'bold 14px "JetBrains Mono", monospace';
+          const textWidth = ctx.measureText(text).width;
+
+          ctx.fillStyle = '#FF453A';
+          ctx.fillRect(b.x1, Math.max(0, b.y1 - 22), textWidth + 12, 22);
+
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillText(text, b.x1 + 6, Math.max(16, b.y1 - 6));
+        });
+      }
+
+      // 4. Download blob
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `cracksense_annotated_${result.filename || 'inspection'}.png`;
+        a.click();
+        URL.revokeObjectURL(url);
+        setToastMessage('Annotated image downloaded');
+      }, 'image/png');
+    } catch (err: any) {
+      alert(`Export failed: ${err.message}`);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportPdf = () => {
+    window.print();
+  };
+
+  const rawImageUrl = resolveImageUrl(result.image_url);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-2rem)] text-text-primary bg-page">
-      {/* Top Action Bar */}
-      <div className="h-12 border-b border-white/[0.06] px-5 flex items-center justify-between flex-shrink-0 bg-surface/70 backdrop-blur-md">
-        <div className="flex items-center space-x-3">
-          <button
+    <div className="flex flex-col h-[calc(100vh-2rem)] space-y-3 animate-fade-rise">
+      {/* Hidden SVG Filter to colorize transparent white crack mask pixels into #FF453A at ~60% opacity */}
+      <svg className="hidden">
+        <defs>
+          <filter id="crack-red-filter">
+            <feColorMatrix
+              type="matrix"
+              values="1.0 0   0   0   1.0
+                      0   0.27 0   0   0.27
+                      0   0   0.23 0   0.23
+                      0   0   0   0.62 0"
+            />
+          </filter>
+        </defs>
+      </svg>
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-6 right-6 z-50">
+          <Toast
+            type="success"
+            title="Saved"
+            message={toastMessage}
+            onClose={() => setToastMessage(null)}
+            durationMs={2500}
+          />
+        </div>
+      )}
+
+      {/* Top Header / Breadcrumb Bar */}
+      <GlassPanel variant="base" className="h-12 px-5 flex items-center justify-between flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={ArrowLeft}
             onClick={onBackToDashboard}
-            className="text-xs text-text-secondary hover:text-text-primary flex items-center space-x-1.5 transition"
           >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Dashboard</span>
-          </button>
-          <span className="text-white/[0.15]">/</span>
-          <span className="text-xs font-mono font-medium text-text-primary truncate max-w-sm">
+            Dashboard
+          </Button>
+          <span style={{ color: 'var(--text-3)' }}>/</span>
+          <span className="text-xs font-mono font-medium truncate max-w-sm" style={{ color: 'var(--text-1)' }}>
             {result.filename}
           </span>
         </div>
 
-        <div className="flex items-center space-x-2">
-          <button
+        <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={UploadCloud}
             onClick={onNewInspection}
-            className="px-3 py-1.5 bg-surface-elevated hover:bg-surface-hover border border-white/[0.08] text-text-primary text-xs rounded-lg transition flex items-center space-x-1.5"
           >
-            <UploadCloud className="w-3.5 h-3.5 text-accent" />
-            <span>Analyze another image</span>
-          </button>
+            Analyze another image
+          </Button>
         </div>
-      </div>
+      </GlassPanel>
 
-      {/* Main Split Workbench: 65% canvas, 35% plain panel */}
-      <div className="flex flex-1 min-h-0 overflow-hidden bg-page">
-        {/* Left Column: Interactive Image Viewer (~65% width) */}
-        <div className="flex-1 flex flex-col min-w-0 border-r border-white/[0.06] bg-[#080B10]">
-          {/* Canvas Toolbar */}
-          <div className="h-11 px-4 border-b border-white/[0.06] bg-surface/50 flex items-center justify-between text-xs">
-            {/* View Mode Segmented Controls */}
-            <div className="flex bg-[#080B10] p-0.5 rounded-lg border border-white/[0.08]">
-              <button
-                onClick={() => setViewMode('original')}
-                className={`px-3 py-1 rounded-md text-xs font-medium transition ${
-                  viewMode === 'original'
-                    ? 'bg-surface-elevated text-text-primary shadow-sm border border-white/[0.08]'
-                    : 'text-text-tertiary hover:text-text-secondary'
-                }`}
-              >
-                Original
-              </button>
-              <button
-                onClick={() => setViewMode('boxes')}
-                className={`px-3 py-1 rounded-md text-xs font-medium transition ${
-                  viewMode === 'boxes'
-                    ? 'bg-surface-elevated text-text-primary shadow-sm border border-white/[0.08]'
-                    : 'text-text-tertiary hover:text-text-secondary'
-                }`}
-              >
-                Boxes ({boxes.length})
-              </button>
-              <button
-                onClick={() => setViewMode('mask')}
-                className={`px-3 py-1 rounded-md text-xs font-medium transition ${
-                  viewMode === 'mask'
-                    ? 'bg-surface-elevated text-text-primary shadow-sm border border-white/[0.08]'
-                    : 'text-text-tertiary hover:text-text-secondary'
-                }`}
-              >
-                Mask
-              </button>
-            </div>
+      {/* Main Split Workbench: 65% Image Viewer / 35% Inspector Panel */}
+      <div className="flex flex-1 min-h-0 gap-4">
+        {/* Left Column: Glass Image Viewer (~65% width) */}
+        <GlassPanel
+          variant="base"
+          className="flex-1 flex flex-col min-w-0 overflow-hidden relative"
+        >
+          {/* Viewer Toolbar */}
+          <div
+            className="h-12 px-4 flex items-center justify-between border-b flex-shrink-0"
+            style={{ borderColor: 'var(--glass-sunken-border)' }}
+          >
+            {/* Segmented Control: Original | Boxes | Mask | Both (default: Both) */}
+            <SegmentedControl
+              size="sm"
+              value={viewMode}
+              onChange={(val) => setViewMode(val as any)}
+              options={[
+                { id: 'original', label: 'Original' },
+                { id: 'boxes', label: `Boxes (${boxes.length})` },
+                { id: 'mask', label: 'Mask' },
+                { id: 'both', label: 'Both' },
+              ]}
+            />
 
-            {/* Zoom / Pan Controls */}
-            <div className="flex items-center space-x-1">
+            {/* Zoom / Pan Toolbar */}
+            <div className="flex items-center gap-1">
               <button
                 onClick={() => handleZoom(-0.25)}
-                className="p-1 hover:bg-surface-elevated rounded text-text-secondary hover:text-text-primary transition"
+                className="p-1.5 rounded-lg transition-colors hover:bg-[--hover-bg] cursor-pointer"
+                style={{ color: 'var(--text-2)' }}
                 title="Zoom out"
               >
-                <ZoomOut className="w-3.5 h-3.5" />
+                <ZoomOut className="w-4 h-4" strokeWidth={1.5} />
               </button>
-              <span className="font-mono text-[11px] text-text-secondary w-12 text-center">
+              <span className="font-mono text-[11px] w-12 text-center select-none" style={{ color: 'var(--text-2)' }}>
                 {Math.round(zoom * 100)}%
               </span>
               <button
                 onClick={() => handleZoom(0.25)}
-                className="p-1 hover:bg-surface-elevated rounded text-text-secondary hover:text-text-primary transition"
+                className="p-1.5 rounded-lg transition-colors hover:bg-[--hover-bg] cursor-pointer"
+                style={{ color: 'var(--text-2)' }}
                 title="Zoom in"
               >
-                <ZoomIn className="w-3.5 h-3.5" />
+                <ZoomIn className="w-4 h-4" strokeWidth={1.5} />
               </button>
               <button
                 onClick={handleResetView}
-                className="p-1 hover:bg-surface-elevated rounded text-text-secondary hover:text-text-primary ml-1 transition"
+                className="p-1.5 rounded-lg transition-colors hover:bg-[--hover-bg] ml-1 cursor-pointer"
+                style={{ color: 'var(--text-2)' }}
                 title="Reset zoom and pan"
               >
-                <RotateCcw className="w-3.5 h-3.5" />
+                <RotateCcw className="w-4 h-4" strokeWidth={1.5} />
               </button>
             </div>
           </div>
 
-          {/* Interactive Canvas Viewport */}
+          {/* Interactive Canvas Viewport (Image stays crisp without blur) */}
           <div
             className="flex-1 overflow-hidden relative flex items-center justify-center cursor-grab active:cursor-grabbing select-none"
             onMouseDown={handleMouseDown}
@@ -250,27 +371,44 @@ export const ResultView: React.FC<ResultViewProps> = ({
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
             onWheel={handleWheel}
+            style={{ background: 'var(--glass-sunken-bg)' }}
           >
             <div
               style={{
                 transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
                 transformOrigin: 'center center',
-                transition: isDragging ? 'none' : 'transform 0.1s ease-out',
+                transition: isDragging ? 'none' : 'transform 0.12s ease-out',
               }}
               className="relative inline-block max-w-full max-h-full"
             >
-              {/* Target Image */}
+              {/* Sharp Target Image (Original pixel resolution) */}
               <img
                 ref={imageRef}
-                src={currentDisplayUrl}
+                src={rawImageUrl}
                 alt={result.filename}
                 onLoad={handleImageLoad}
-                className="block max-w-[80vw] max-h-[75vh] object-contain shadow-2xl rounded border border-white/[0.08]"
+                className="block max-w-[75vw] max-h-[70vh] object-contain rounded-xl shadow-2xl"
+                style={{
+                  border: '1px solid var(--glass-sunken-border)',
+                }}
                 draggable={false}
               />
 
-              {/* Interactive SVG Bounding Box Layer */}
-              {(viewMode === 'boxes' || viewMode === 'mask') && (
+              {/* Mask Layer: crack pixels in amber/red (#FF453A) at ~60% opacity with soft outline */}
+              {(viewMode === 'mask' || viewMode === 'both') && result.mask_png_base64 && (
+                <img
+                  src={`data:image/png;base64,${result.mask_png_base64}`}
+                  alt="Crack Mask"
+                  className="absolute inset-0 w-full h-full pointer-events-none rounded-xl"
+                  style={{
+                    filter: 'url(#crack-red-filter) drop-shadow(0 0 2px rgba(255, 69, 58, 0.7))',
+                  }}
+                  draggable={false}
+                />
+              )}
+
+              {/* Box Layer: thin rounded rectangles with label 1, 2, 3 and stroke drawing animation */}
+              {(viewMode === 'boxes' || viewMode === 'both') && (
                 <svg
                   className="absolute inset-0 w-full h-full pointer-events-none"
                   viewBox={`0 0 ${naturalDimensions.width} ${naturalDimensions.height}`}
@@ -280,45 +418,57 @@ export const ResultView: React.FC<ResultViewProps> = ({
                     const width = b.x2 - b.x1;
                     const height = b.y2 - b.y1;
                     const isHovered = hoveredBoxIdx === idx;
+                    const isSelected = selectedBoxIdx === idx;
 
                     return (
-                      <g key={idx} className="pointer-events-auto cursor-pointer">
-                        {/* Bounding box rectangle */}
+                      <g
+                        key={idx}
+                        className="pointer-events-auto cursor-pointer"
+                        onClick={() => handleSelectBox(idx)}
+                        onMouseEnter={() => setHoveredBoxIdx(idx)}
+                        onMouseLeave={() => setHoveredBoxIdx(null)}
+                      >
+                        {/* Bounding box rectangle with stroke animation */}
                         <rect
                           x={b.x1}
                           y={b.y1}
                           width={width}
                           height={height}
                           fill={
-                            viewMode === 'mask'
-                              ? 'rgba(200, 85, 61, 0.38)'
-                              : isHovered
-                              ? 'rgba(200, 85, 61, 0.22)'
+                            isHovered || isSelected
+                              ? 'rgba(255, 69, 58, 0.20)'
                               : 'none'
                           }
-                          stroke="#C8553D"
-                          strokeWidth={isHovered ? 3.5 : 2}
-                          onMouseEnter={() => setHoveredBoxIdx(idx)}
-                          onMouseLeave={() => setHoveredBoxIdx(null)}
+                          stroke={isHovered || isSelected ? '#FF9F0A' : '#FF453A'}
+                          strokeWidth={isHovered || isSelected ? 3 : 1.8}
+                          rx={4}
+                          className="transition-all duration-150"
+                          style={{
+                            filter: isHovered || isSelected ? 'drop-shadow(0 0 4px #FF9F0A)' : undefined,
+                          }}
                         />
-                        {/* ID Tag */}
+
+                        {/* Box label chip: small "1", "2" (shows confidence on hover) */}
                         <rect
                           x={b.x1}
                           y={Math.max(0, b.y1 - 18)}
-                          width={Math.max(46, (b.confidence * 100).toFixed(0).length * 8 + 28)}
+                          width={isHovered || isSelected ? 52 : 22}
                           height={18}
-                          rx={3}
-                          fill="#C8553D"
+                          rx={4}
+                          fill={isHovered || isSelected ? '#FF9F0A' : '#FF453A'}
+                          className="transition-all duration-150"
                         />
                         <text
-                          x={b.x1 + 4}
+                          x={b.x1 + 5}
                           y={Math.max(13, b.y1 - 5)}
                           fill="#FFFFFF"
                           fontSize="10"
-                          fontFamily="JetBrains Mono, monospace"
+                          fontFamily="var(--font-mono)"
                           fontWeight="600"
                         >
-                          #{idx + 1} {(b.confidence * 100).toFixed(0)}%
+                          {isHovered || isSelected
+                            ? `#${idx + 1} ${(b.confidence * 100).toFixed(0)}%`
+                            : String(idx + 1)}
                         </text>
                       </g>
                     );
@@ -327,201 +477,281 @@ export const ResultView: React.FC<ResultViewProps> = ({
               )}
             </div>
 
-            {/* Scale Bar Chip (bottom-left) */}
-            <div className="absolute bottom-4 left-4 bg-[#0B0E14]/85 backdrop-blur-md border border-white/[0.08] px-3 py-1.5 text-[10px] select-none rounded-lg shadow-diffuse text-text-secondary">
-              <div className="flex items-center space-x-2">
-                <div
-                  className="border-b-2 border-accent"
-                  style={{ width: `${Math.round(80 * zoom)}px` }}
-                />
-                <span className="font-mono text-text-tertiary">~100 px</span>
-              </div>
-            </div>
-
-            {/* Resolution Chip (bottom-right) */}
-            <div className="absolute bottom-4 right-4 bg-[#0B0E14]/85 backdrop-blur-md border border-white/[0.08] px-3 py-1.5 text-[11px] font-mono text-text-secondary rounded-lg shadow-diffuse">
+            {/* Resolution indicator chip (bottom-right) */}
+            <div
+              className="absolute bottom-4 right-4 px-3 py-1 text-[11px] font-mono rounded-lg shadow-sm"
+              style={{
+                background: 'var(--glass-raised-bg)',
+                border: '1px solid var(--glass-raised-border)',
+                color: 'var(--text-2)',
+              }}
+            >
               {naturalDimensions.width} &times; {naturalDimensions.height} px
             </div>
           </div>
-        </div>
+        </GlassPanel>
 
-        {/* Right Column: Sleek Engineering Panel (~35% width, ~380px) */}
-        <div className="w-96 flex-shrink-0 bg-surface overflow-y-auto p-6 space-y-6 border-l border-white/[0.06]">
-          {/* Section 1: Verdict & Confidence Meter */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-medium tracking-wider text-text-tertiary uppercase">
-                Inspection Verdict
+        {/* Right Column: Glass Inspector Panel (~35% width, 380px) */}
+        <GlassPanel
+          variant="base"
+          className="w-96 flex-shrink-0 flex flex-col justify-between overflow-y-auto p-6 space-y-6"
+        >
+          <div className="space-y-6">
+            {/* Section 1: Plain Verdict Headline & Thin Confidence Bar */}
+            <div className="space-y-3">
+              <span className="text-[11px] font-medium tracking-wider uppercase block" style={{ color: 'var(--text-3)' }}>
+                Verdict
               </span>
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-medium border ${severityColor}`}>
-                {severityLabel}
-              </span>
+
+              <h2
+                className="text-xl font-semibold tracking-tight"
+                style={{
+                  color: result.is_crack || boxes.length > 0 ? 'var(--crack)' : 'var(--success)',
+                }}
+              >
+                {verdictHeadline}
+              </h2>
+
+              {/* Thin Confidence Bar */}
+              <div className="space-y-1.5 pt-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span style={{ color: 'var(--text-3)' }}>Confidence</span>
+                  <span className="font-mono font-medium" style={{ color: 'var(--text-1)' }}>
+                    {confidencePct}%
+                  </span>
+                </div>
+                <div
+                  className="w-full h-1 rounded-full overflow-hidden"
+                  style={{ background: 'var(--glass-sunken-bg)' }}
+                >
+                  <div
+                    className="h-full rounded-full transition-all duration-500 ease-out"
+                    style={{
+                      width: `${confidencePct}%`,
+                      background: result.is_crack || boxes.length > 0 ? 'var(--crack)' : 'var(--success)',
+                    }}
+                  />
+                </div>
+              </div>
             </div>
 
-            <h1
-              className={`text-xl font-semibold tracking-tight ${
-                result.is_crack || boxes.length > 0 ? 'text-accent' : 'text-emerald-text'
-              }`}
-            >
-              {verdictText}
-            </h1>
+            <div className="border-t" style={{ borderColor: 'var(--glass-sunken-border)' }} />
 
-            {/* Confidence Meter */}
-            <div className="space-y-1.5 pt-1">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-text-tertiary">Confidence score</span>
-                <span className="font-mono font-semibold text-text-primary">{confidencePct}%</span>
+            {/* Section 2: Metadata */}
+            <div className="space-y-2 text-xs">
+              <span className="text-[11px] font-medium tracking-wider uppercase block" style={{ color: 'var(--text-3)' }}>
+                Scan details
+              </span>
+              <div className="grid grid-cols-3 gap-1 py-0.5">
+                <span style={{ color: 'var(--text-3)' }}>File</span>
+                <span className="col-span-2 truncate font-mono" style={{ color: 'var(--text-1)' }}>
+                  {result.filename}
+                </span>
               </div>
-              <div className="h-1.5 w-full bg-surface-elevated rounded-full overflow-hidden">
+              <div className="grid grid-cols-3 gap-1 py-0.5">
+                <span style={{ color: 'var(--text-3)' }}>Dimensions</span>
+                <span className="col-span-2 font-mono" style={{ color: 'var(--text-2)' }}>
+                  {naturalDimensions.width} &times; {naturalDimensions.height} px
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-1 py-0.5">
+                <span style={{ color: 'var(--text-3)' }}>Timestamp</span>
+                <span className="col-span-2 font-mono" style={{ color: 'var(--text-2)' }}>
+                  {new Date(result.created_at).toLocaleString()}
+                </span>
+              </div>
+            </div>
+
+            <div className="border-t" style={{ borderColor: 'var(--glass-sunken-border)' }} />
+
+            {/* Section 3: Detections Table with Bidirectional Linking */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-medium tracking-wider uppercase block" style={{ color: 'var(--text-3)' }}>
+                  Detections ({boxes.length})
+                </span>
+                <span className="text-[10px] font-mono" style={{ color: 'var(--text-3)' }}>
+                  x, y, w, h
+                </span>
+              </div>
+
+              {boxes.length === 0 ? (
+                <p className="text-xs py-2" style={{ color: 'var(--text-3)' }}>
+                  No crack regions detected.
+                </p>
+              ) : (
                 <div
-                  className={`h-full transition-all duration-500 rounded-full ${
-                    result.is_crack || boxes.length > 0 ? 'bg-accent' : 'bg-emerald'
-                  }`}
-                  style={{ width: `${confidencePct}%` }}
+                  className="rounded-xl overflow-hidden max-h-48 overflow-y-auto"
+                  style={{
+                    background: 'var(--glass-sunken-bg)',
+                    border: '1px solid var(--glass-sunken-border)',
+                  }}
+                >
+                  <table className="w-full text-left text-[11px] font-mono">
+                    <thead
+                      className="border-b font-medium sticky top-0"
+                      style={{
+                        background: 'var(--glass-raised-bg)',
+                        borderColor: 'var(--glass-sunken-border)',
+                        color: 'var(--text-3)',
+                      }}
+                    >
+                      <tr>
+                        <th className="py-2 px-3">ID</th>
+                        <th className="py-2 px-3">Conf</th>
+                        <th className="py-2 px-3">x</th>
+                        <th className="py-2 px-3">y</th>
+                        <th className="py-2 px-3">w</th>
+                        <th className="py-2 px-3">h</th>
+                      </tr>
+                    </thead>
+                    <tbody
+                      className="divide-y"
+                      style={{ borderColor: 'var(--glass-sunken-border)' }}
+                    >
+                      {boxes.map((b, idx) => {
+                        const w = Math.round(b.x2 - b.x1);
+                        const h = Math.round(b.y2 - b.y1);
+                        const isHovered = hoveredBoxIdx === idx;
+                        const isSelected = selectedBoxIdx === idx;
+
+                        return (
+                          <tr
+                            key={idx}
+                            ref={(el) => (tableRowRefs.current[idx] = el)}
+                            onClick={() => setSelectedBoxIdx(idx)}
+                            onMouseEnter={() => setHoveredBoxIdx(idx)}
+                            onMouseLeave={() => setHoveredBoxIdx(null)}
+                            className="transition-colors duration-150 cursor-pointer"
+                            style={{
+                              background:
+                                isSelected
+                                  ? 'rgba(255, 159, 10, 0.25)'
+                                  : isHovered
+                                  ? 'var(--accent-tint)'
+                                  : undefined,
+                            }}
+                          >
+                            <td className="py-2 px-3 font-semibold" style={{ color: 'var(--crack)' }}>
+                              #{idx + 1}
+                            </td>
+                            <td className="py-2 px-3" style={{ color: 'var(--text-1)' }}>
+                              {(b.confidence * 100).toFixed(0)}%
+                            </td>
+                            <td className="py-2 px-3" style={{ color: 'var(--text-3)' }}>
+                              {Math.round(b.x1)}
+                            </td>
+                            <td className="py-2 px-3" style={{ color: 'var(--text-3)' }}>
+                              {Math.round(b.y1)}
+                            </td>
+                            <td className="py-2 px-3" style={{ color: 'var(--text-3)' }}>
+                              {w}
+                            </td>
+                            <td className="py-2 px-3" style={{ color: 'var(--text-3)' }}>
+                              {h}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            <div className="border-t" style={{ borderColor: 'var(--glass-sunken-border)' }} />
+
+            {/* Section 4: Engineering Notes & Sign-Off */}
+            <div className="space-y-3 text-xs">
+              <span className="text-[11px] font-medium tracking-wider uppercase block" style={{ color: 'var(--text-3)' }}>
+                Field validation
+              </span>
+
+              {/* Status Row */}
+              <div
+                className="flex items-center justify-between p-3 rounded-xl"
+                style={{
+                  background: 'var(--glass-sunken-bg)',
+                  border: '1px solid var(--glass-sunken-border)',
+                }}
+              >
+                <div>
+                  <span className="block font-medium text-xs" style={{ color: 'var(--text-1)' }}>
+                    {isReviewed ? 'Validated' : 'Pending review'}
+                  </span>
+                  <span className="block text-[10px] mt-0.5" style={{ color: 'var(--text-3)' }}>
+                    {isReviewed && reviewedAt ? reviewedAt : 'Awaiting sign-off'}
+                  </span>
+                </div>
+                <Button
+                  variant={isReviewed ? 'secondary' : 'primary'}
+                  size="sm"
+                  icon={isReviewed ? Check : CheckCircle2}
+                  onClick={toggleReviewStatus}
+                >
+                  {isReviewed ? 'Reviewed' : 'Sign off'}
+                </Button>
+              </div>
+
+              {/* Notes */}
+              <div className="space-y-1">
+                <label className="text-[11px]" style={{ color: 'var(--text-3)' }}>
+                  Observations &amp; notes
+                </label>
+                <textarea
+                  value={notes}
+                  onChange={handleNotesChange}
+                  placeholder="Record structural observations, remediation priority..."
+                  rows={2}
+                  className="w-full p-2.5 text-xs outline-none resize-none transition-colors"
+                  style={{
+                    background: 'var(--glass-sunken-bg)',
+                    border: '1px solid var(--glass-sunken-border)',
+                    borderRadius: 'var(--r-control)',
+                    color: 'var(--text-1)',
+                  }}
                 />
               </div>
             </div>
           </div>
 
-          <div className="border-t border-white/[0.06]" />
+          {/* Section 5: Action Buttons (Download Annotated Image, Save, Export PDF) */}
+          <div
+            className="flex flex-col gap-2 pt-3 border-t flex-shrink-0"
+            style={{ borderColor: 'var(--glass-sunken-border)' }}
+          >
+            <Button
+              variant="primary"
+              size="sm"
+              icon={Download}
+              onClick={handleDownloadAnnotatedImage}
+              loading={isExporting}
+              className="w-full"
+            >
+              Download annotated image
+            </Button>
 
-          {/* Section 2: Image & Scan Details */}
-          <div className="space-y-2.5 text-xs">
-            <span className="text-[11px] font-medium tracking-wider text-text-tertiary uppercase block">
-              Scan metadata
-            </span>
-            <div className="grid grid-cols-3 gap-1 py-0.5">
-              <span className="text-text-tertiary">File</span>
-              <span className="col-span-2 text-text-primary truncate font-mono">{result.filename}</span>
-            </div>
-            <div className="grid grid-cols-3 gap-1 py-0.5">
-              <span className="text-text-tertiary">Dimensions</span>
-              <span className="col-span-2 text-text-secondary font-mono">
-                {naturalDimensions.width} &times; {naturalDimensions.height} px
-              </span>
-            </div>
-            <div className="grid grid-cols-3 gap-1 py-0.5">
-              <span className="text-text-tertiary">Timestamp</span>
-              <span className="col-span-2 text-text-secondary font-mono">
-                {new Date(result.created_at).toLocaleString()}
-              </span>
-            </div>
-            <div className="grid grid-cols-3 gap-1 py-0.5">
-              <span className="text-text-tertiary">Record ID</span>
-              <span className="col-span-2 text-text-tertiary font-mono text-[10px] truncate">
-                {result.id}
-              </span>
-            </div>
-          </div>
-
-          <div className="border-t border-white/[0.06]" />
-
-          {/* Section 3: Detections Table */}
-          <div className="space-y-2.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-medium tracking-wider text-text-tertiary uppercase">
-                Detections ({boxes.length})
-              </span>
-              <span className="text-[10px] text-text-tertiary font-mono">x, y, w, h</span>
-            </div>
-
-            {boxes.length === 0 ? (
-              <p className="text-xs text-text-tertiary py-2">No crack regions detected.</p>
-            ) : (
-              <div className="border border-white/[0.06] rounded-lg overflow-hidden bg-surface-elevated/40">
-                <table className="w-full text-left text-[11px] font-mono">
-                  <thead className="bg-surface-elevated/80 border-b border-white/[0.06] text-text-tertiary font-medium">
-                    <tr>
-                      <th className="py-1.5 px-2.5">ID</th>
-                      <th className="py-1.5 px-2.5">Conf</th>
-                      <th className="py-1.5 px-2.5">x</th>
-                      <th className="py-1.5 px-2.5">y</th>
-                      <th className="py-1.5 px-2.5">w</th>
-                      <th className="py-1.5 px-2.5">h</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/[0.04] text-text-secondary">
-                    {boxes.map((b, idx) => {
-                      const w = Math.round(b.x2 - b.x1);
-                      const h = Math.round(b.y2 - b.y1);
-                      const isHovered = hoveredBoxIdx === idx;
-
-                      return (
-                        <tr
-                          key={idx}
-                          onMouseEnter={() => setHoveredBoxIdx(idx)}
-                          onMouseLeave={() => setHoveredBoxIdx(null)}
-                          className={`transition-colors cursor-pointer ${
-                            isHovered
-                              ? 'bg-accent/20 text-text-primary font-semibold'
-                              : 'hover:bg-surface-hover/70'
-                          }`}
-                        >
-                          <td className="py-1.5 px-2.5 text-accent font-bold">#{idx + 1}</td>
-                          <td className="py-1.5 px-2.5">{(b.confidence * 100).toFixed(0)}%</td>
-                          <td className="py-1.5 px-2.5 text-text-tertiary">{Math.round(b.x1)}</td>
-                          <td className="py-1.5 px-2.5 text-text-tertiary">{Math.round(b.y1)}</td>
-                          <td className="py-1.5 px-2.5 text-text-tertiary">{w}</td>
-                          <td className="py-1.5 px-2.5 text-text-tertiary">{h}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-
-          <div className="border-t border-white/[0.06]" />
-
-          {/* Section 4: Review, Notes & Inspector Sign-Off */}
-          <div className="space-y-3.5 text-xs">
-            <span className="text-[11px] font-medium tracking-wider text-text-tertiary uppercase block">
-              Inspection review
-            </span>
-
-            {/* Inspector sign-off status box */}
-            <div className="flex items-center justify-between p-3.5 bg-surface-elevated/40 border border-white/[0.06] rounded-xl">
-              <div>
-                <span className="block font-medium text-text-primary">
-                  {isReviewed ? 'Marked as reviewed' : 'Pending engineer review'}
-                </span>
-                <span className="block text-[10px] text-text-tertiary mt-0.5">
-                  {isReviewed && reviewedAt ? `Signed off on ${reviewedAt}` : 'Awaiting structural validation'}
-                </span>
-              </div>
-              <button
-                onClick={toggleReviewStatus}
-                className={`px-3 py-1.5 text-xs rounded-lg transition-all flex items-center space-x-1.5 font-medium shadow-sm ${
-                  isReviewed
-                    ? 'bg-emerald/15 text-emerald-text border border-emerald/30'
-                    : 'bg-gradient-to-r from-accent to-[#B64A34] text-white hover:shadow-[0_0_15px_rgba(200,85,61,0.35)]'
-                }`}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={Save}
+                onClick={handleSave}
+                className="flex-1"
               >
-                {isReviewed ? (
-                  <>
-                    <Check className="w-3.5 h-3.5" />
-                    <span>Reviewed</span>
-                  </>
-                ) : (
-                  <span>Mark reviewed</span>
-                )}
-              </button>
-            </div>
-
-            {/* Notes textarea */}
-            <div className="space-y-1.5">
-              <label className="text-[11px] text-text-secondary block">Engineering observations</label>
-              <textarea
-                value={notes}
-                onChange={handleNotesChange}
-                placeholder="Enter field notes, crack severity, structural recommendations..."
-                rows={3}
-                className="w-full bg-[#080B10] border border-white/[0.08] rounded-lg p-2.5 text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-accent resize-none font-sans transition-colors"
-              />
+                Save
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleExportPdf}
+                className="flex-1"
+              >
+                Export PDF
+              </Button>
             </div>
           </div>
-        </div>
+        </GlassPanel>
       </div>
     </div>
   );

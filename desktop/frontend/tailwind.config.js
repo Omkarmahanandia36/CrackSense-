@@ -7,51 +7,49 @@ export default {
   theme: {
     extend: {
       colors: {
-        page: '#0B0E14',
-        sidebar: '#0F131C',
-        surface: {
-          DEFAULT: '#11151D',
-          hover: '#161B26',
-          elevated: '#1C2230',
-          active: '#242B3D',
-        },
-        border: {
-          subtle: 'rgba(255, 255, 255, 0.06)',
-          medium: 'rgba(255, 255, 255, 0.12)',
+        /* Mapped to CSS variables from tokens.css */
+        glass: {
+          bg: 'var(--glass-bg)',
+          border: 'var(--glass-border)',
         },
         accent: {
-          DEFAULT: '#C8553D',
-          hover: '#B64A34',
-          subtle: 'rgba(200, 85, 61, 0.14)',
-          glow: 'rgba(200, 85, 61, 0.25)',
+          DEFAULT: 'var(--accent)',
+          hover: 'var(--accent-hover)',
+          tint: 'var(--accent-tint)',
         },
-        emerald: {
-          DEFAULT: '#3FB68B',
-          subtle: 'rgba(63, 182, 139, 0.14)',
-          text: '#52D1A1',
+        crack: {
+          DEFAULT: 'var(--crack)',
+          amber: 'var(--crack-amber)',
+          tint: 'var(--crack-tint)',
         },
-        amber: {
-          DEFAULT: '#E5A440',
-          subtle: 'rgba(229, 164, 64, 0.14)',
-          text: '#F2B85E',
+        success: {
+          DEFAULT: 'var(--success)',
+          tint: 'var(--success-tint)',
         },
-        text: {
-          primary: '#E8EAF0',
-          secondary: '#9AA3B2',
-          tertiary: '#626B7A',
+        txt: {
+          1: 'var(--text-1)',
+          2: 'var(--text-2)',
+          3: 'var(--text-3)',
+          inv: 'var(--text-inv)',
         },
       },
       fontFamily: {
-        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
-        mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'monospace'],
+        ui: ['var(--font-ui)'],
+        mono: ['var(--font-mono)'],
       },
       borderRadius: {
-        xl: '12px',
-        lg: '8px',
+        panel: 'var(--r-panel)',
+        control: 'var(--r-control)',
+        pill: 'var(--r-pill)',
       },
-      boxShadow: {
-        diffuse: '0 10px 30px rgba(0, 0, 0, 0.35)',
-        'inner-highlight': 'inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+      spacing: {
+        'sp-1': 'var(--sp-1)',
+        'sp-2': 'var(--sp-2)',
+        'sp-3': 'var(--sp-3)',
+        'sp-4': 'var(--sp-4)',
+        'sp-5': 'var(--sp-5)',
+        'sp-6': 'var(--sp-6)',
+        'sp-7': 'var(--sp-7)',
       },
     },
   },

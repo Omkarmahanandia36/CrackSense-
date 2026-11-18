@@ -23,16 +23,25 @@ export interface BoundingBox {
   label: string;
 }
 
+export interface DetectionItem {
+  id: number;
+  confidence: number;
+  bbox: [number, number, number, number]; // [x, y, w, h] in original pixel coordinates
+}
+
 export interface AnalyzeResult {
   id: string;
   filename: string;
   is_crack: boolean;
+  verdict?: 'crack_detected' | 'no_crack' | string;
   predicted_class: string;
   confidence: number;
   probabilities: ClassProbabilities;
   image_url: string;
   annotated_image_url?: string;
   boxes?: BoundingBox[];
+  detections?: DetectionItem[];
+  mask_png_base64?: string;
   image_width?: number;
   image_height?: number;
   created_at: string;
@@ -80,11 +89,11 @@ export async function getSystemHealth(): Promise<HealthData> {
   return res.json();
 }
 
-export async function uploadAndAnalyzeImage(file: File): Promise<AnalyzeResult> {
+export async function uploadAndAnalyzeImage(file: File, threshold: number = 0.35): Promise<AnalyzeResult> {
   const formData = new FormData();
   formData.append('file', file);
 
-  const res = await fetch(`${API_BASE}/analyze`, {
+  const res = await fetch(`${API_BASE}/analyze?threshold=${threshold}`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: formData,

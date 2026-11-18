@@ -1,27 +1,55 @@
-import React, { useState, useRef } from 'react';
-import { UploadCloud, AlertCircle, X, ArrowRight, FileImage, ShieldCheck } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { UploadCloud, AlertCircle, X, Check, FileImage } from 'lucide-react';
 import { uploadAndAnalyzeImage, AnalyzeResult } from '../services/api';
+import { GlassPanel, Button } from '../components/ui';
 
 interface UploadAnalyzeProps {
+  initialFile?: File | null;
   onAnalysisSuccess: (result: AnalyzeResult) => void;
 }
 
-export const UploadAnalyze: React.FC<UploadAnalyzeProps> = ({ onAnalysisSuccess }) => {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+type AnalysisStage = 'idle' | 'uploading' | 'detecting' | 'done';
+
+export const UploadAnalyze: React.FC<UploadAnalyzeProps> = ({ initialFile, onAnalysisSuccess }) => {
+  const [selectedFile, setSelectedFile] = useState<File | null>(initialFile || null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [imageMeta, setImageMeta] = useState<{ width: number; height: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [stage, setStage] = useState<AnalysisStage>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const analysisTriggeredRef = useRef(false);
 
-  const processFile = (file: File) => {
+  const startAutoAnalysis = useCallback(async (file: File) => {
+    setErrorMessage(null);
+    setStage('uploading');
+
+    // Smooth stage transitions
+    const detectTimer = setTimeout(() => {
+      setStage('detecting');
+    }, 450);
+
+    try {
+      const result = await uploadAndAnalyzeImage(file, 0.35);
+      clearTimeout(detectTimer);
+      setStage('done');
+      setTimeout(() => {
+        onAnalysisSuccess(result);
+      }, 350);
+    } catch (err: any) {
+      clearTimeout(detectTimer);
+      setStage('idle');
+      setErrorMessage(err.message || 'Inspection analysis failed. Check backend connection.');
+    }
+  }, [onAnalysisSuccess]);
+
+  const processFile = useCallback((file: File) => {
     setErrorMessage(null);
     const validExtensions = ['jpg', 'jpeg', 'png', 'bmp', 'webp'];
     const ext = file.name.split('.').pop()?.toLowerCase();
 
     if (!ext || !validExtensions.includes(ext)) {
-      setErrorMessage(`Unsupported format .${ext}. Use JPG, PNG, BMP, or WebP.`);
+      setErrorMessage(`Unsupported format .${ext}. Please use JPG, PNG, BMP, or WebP.`);
       return;
     }
 
@@ -34,13 +62,22 @@ export const UploadAnalyze: React.FC<UploadAnalyzeProps> = ({ onAnalysisSuccess 
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
 
-    // Read natural dimensions
     const img = new Image();
     img.onload = () => {
       setImageMeta({ width: img.naturalWidth, height: img.naturalHeight });
     };
     img.src = url;
-  };
+
+    // Immediately start automated analysis
+    startAutoAnalysis(file);
+  }, [startAutoAnalysis]);
+
+  useEffect(() => {
+    if (initialFile && !analysisTriggeredRef.current) {
+      analysisTriggeredRef.current = true;
+      processFile(initialFile);
+    }
+  }, [initialFile, processFile]);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -72,56 +109,57 @@ export const UploadAnalyze: React.FC<UploadAnalyzeProps> = ({ onAnalysisSuccess 
     setPreviewUrl(null);
     setImageMeta(null);
     setErrorMessage(null);
+    setStage('idle');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleRunAnalysis = async () => {
-    if (!selectedFile) return;
+  const isAnalyzing = stage === 'uploading' || stage === 'detecting' || stage === 'done';
 
-    setLoading(true);
-    setErrorMessage(null);
-
-    try {
-      const result = await uploadAndAnalyzeImage(selectedFile);
-      onAnalysisSuccess(result);
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Inspection analysis failed. Check backend connection.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const progressPercent =
+    stage === 'uploading' ? 35 : stage === 'detecting' ? 78 : stage === 'done' ? 100 : 0;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 animate-fade-rise">
       {/* Title */}
-      <div className="border-b border-white/[0.06] pb-5">
-        <h1 className="text-2xl md:text-3xl font-semibold text-text-primary tracking-tight">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight" style={{ color: 'var(--text-1)' }}>
           Analyze concrete image
         </h1>
-        <p className="text-sm text-text-secondary mt-1">
-          Full-resolution patch tiling (ResNet-18) and bounding-box crack localization (YOLOv8)
+        <p className="text-xs mt-1" style={{ color: 'var(--text-2)' }}>
+          Automated multi-tile crack detection, NMS bounding-box localization, and fissure extraction
         </p>
       </div>
 
+      {/* Error Alert */}
       {errorMessage && (
-        <div className="p-4 bg-accent/10 border border-accent/25 rounded-xl text-xs text-text-primary flex items-start space-x-3">
-          <AlertCircle className="w-4 h-4 text-accent flex-shrink-0 mt-0.5" />
+        <div
+          className="p-3.5 rounded-xl text-xs flex items-start gap-2.5 animate-fade-rise"
+          style={{
+            background: 'var(--crack-tint)',
+            border: '1px solid rgba(255, 111, 97, 0.4)',
+            color: 'var(--text-1)',
+          }}
+        >
+          <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--crack)' }} strokeWidth={1.5} />
           <span>{errorMessage}</span>
         </div>
       )}
 
-      {/* Upload Zone / Drop area */}
+      {/* Upload Drop Zone (Empty State) */}
       {!selectedFile ? (
         <div
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
-          className={`p-16 border-2 border-dashed rounded-xl text-center cursor-pointer transition-all duration-200 select-none ${
-            isDragging
-              ? 'border-accent bg-accent/10 shadow-[0_0_25px_rgba(200,85,61,0.25)]'
-              : 'border-white/10 hover:border-white/20 bg-surface/40 hover:bg-surface/70'
-          }`}
+          className={`
+            glass-base p-16 text-center cursor-pointer select-none transition-all duration-200 group border border-dashed
+            ${isDragging ? 'scale-[1.01] shadow-2xl' : 'hover:bg-[--hover-bg]'}
+          `}
+          style={{
+            borderColor: isDragging ? 'var(--accent)' : 'var(--glass-border)',
+            background: isDragging ? 'var(--accent-tint)' : undefined,
+          }}
         >
           <input
             type="file"
@@ -131,38 +169,48 @@ export const UploadAnalyze: React.FC<UploadAnalyzeProps> = ({ onAnalysisSuccess 
             className="hidden"
           />
 
-          <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-surface-elevated/80 border border-white/[0.08] flex items-center justify-center text-accent">
-            <UploadCloud className="w-7 h-7" />
+          <div
+            className="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center transition-transform duration-200 group-hover:scale-105"
+            style={{
+              background: 'var(--glass-sunken-bg)',
+              border: '1px solid var(--glass-sunken-border)',
+              color: 'var(--text-1)',
+            }}
+          >
+            <UploadCloud className="w-7 h-7" strokeWidth={1.5} />
           </div>
 
-          <p className="text-sm font-medium text-text-primary">
+          <h3 className="text-sm font-medium" style={{ color: 'var(--text-1)' }}>
             Click to upload concrete photo, or drag and drop
-          </p>
-          <p className="text-xs text-text-tertiary mt-1.5 font-mono">
-            JPG, PNG, BMP, WebP &bull; Max 15 MB
+          </h3>
+          <p className="text-xs mt-1 font-mono" style={{ color: 'var(--text-3)' }}>
+            JPG, PNG, BMP, WebP &bull; Auto-analyzes on drop
           </p>
         </div>
       ) : (
-        /* Selected File Preview & Inspection Controls */
-        <div className="card-surface p-6 space-y-5">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center space-x-3.5">
-              <div className="w-12 h-12 rounded-lg bg-surface-elevated border border-white/[0.08] overflow-hidden flex items-center justify-center flex-shrink-0">
+        /* Selected File Preview & Automated Analysis Progress */
+        <GlassPanel variant="base" className="p-6 space-y-6">
+          {/* Header Info Row */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 min-w-0">
+              <div
+                className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center flex-shrink-0"
+                style={{
+                  background: 'var(--glass-sunken-bg)',
+                  border: '1px solid var(--glass-sunken-border)',
+                }}
+              >
                 {previewUrl ? (
-                  <img
-                    src={previewUrl}
-                    alt="Preview"
-                    className="w-full h-full object-cover"
-                  />
+                  <img src={previewUrl} alt="Thumbnail" className="w-full h-full object-cover" />
                 ) : (
-                  <FileImage className="w-5 h-5 text-text-tertiary" />
+                  <FileImage className="w-5 h-5" style={{ color: 'var(--text-3)' }} strokeWidth={1.5} />
                 )}
               </div>
-              <div>
-                <span className="font-mono text-xs font-semibold text-text-primary block truncate max-w-md">
+              <div className="min-w-0">
+                <span className="font-mono text-xs font-semibold block truncate" style={{ color: 'var(--text-1)' }}>
                   {selectedFile.name}
                 </span>
-                <span className="text-[11px] text-text-tertiary font-mono">
+                <span className="text-[11px] font-mono" style={{ color: 'var(--text-3)' }}>
                   {(selectedFile.size / 1024).toFixed(1)} KB
                   {imageMeta && ` • ${imageMeta.width} × ${imageMeta.height} px`}
                 </span>
@@ -171,65 +219,147 @@ export const UploadAnalyze: React.FC<UploadAnalyzeProps> = ({ onAnalysisSuccess 
 
             <button
               onClick={handleClear}
-              disabled={loading}
-              className="p-1.5 hover:bg-surface-elevated rounded-lg text-text-tertiary hover:text-text-primary transition"
-              title="Remove file"
+              disabled={isAnalyzing}
+              className="p-1.5 rounded-lg transition-colors hover:bg-[--hover-bg] disabled:opacity-40 cursor-pointer"
+              style={{ color: 'var(--text-3)' }}
+              title="Remove image"
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 h-4" strokeWidth={1.5} />
             </button>
           </div>
 
-          {/* Full Image Preview or Skeleton Loader */}
-          {loading ? (
-            <div className="p-8 rounded-lg bg-[#080B10] border border-white/[0.08] space-y-4">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-medium text-text-secondary flex items-center space-x-2">
-                  <span className="w-2 h-2 rounded-full bg-accent animate-ping" />
-                  <span>Running neural inference pipeline...</span>
+          {/* Sharp Image Preview */}
+          <div
+            className="w-full rounded-2xl overflow-hidden flex items-center justify-center p-2 relative"
+            style={{
+              background: 'var(--glass-sunken-bg)',
+              border: '1px solid var(--glass-sunken-border)',
+              maxHeight: 400,
+            }}
+          >
+            {previewUrl && (
+              <img
+                src={previewUrl}
+                alt="Selected Concrete"
+                className="max-h-[380px] w-auto object-contain rounded-xl select-none"
+              />
+            )}
+          </div>
+
+          {/* Thin Progress State: Uploading -> Detecting cracks -> Done */}
+          <div className="space-y-3 py-1">
+            <div className="flex items-center justify-between text-xs font-medium">
+              {/* Step 1: Uploading */}
+              <div className="flex items-center gap-2">
+                <span
+                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                    stage === 'uploading' ? 'animate-status-pulse' : ''
+                  }`}
+                  style={{
+                    background:
+                      stage === 'uploading' || stage === 'detecting' || stage === 'done'
+                        ? 'var(--text-1)'
+                        : 'var(--text-3)',
+                  }}
+                />
+                <span
+                  style={{
+                    color:
+                      stage === 'uploading'
+                        ? 'var(--text-1)'
+                        : stage === 'detecting' || stage === 'done'
+                        ? 'var(--text-2)'
+                        : 'var(--text-3)',
+                  }}
+                >
+                  Uploading
                 </span>
-                <span className="font-mono text-text-tertiary text-[11px]">ResNet-18 + YOLOv8</span>
               </div>
 
-              {/* Skeleton loaders */}
-              <div className="h-44 w-full rounded-lg skeleton" />
-              <div className="grid grid-cols-3 gap-3 pt-2">
-                <div className="h-8 rounded skeleton" />
-                <div className="h-8 rounded skeleton" />
-                <div className="h-8 rounded skeleton" />
+              {/* Step 2: Detecting cracks */}
+              <div className="flex items-center gap-2">
+                <span
+                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                    stage === 'detecting' ? 'animate-status-pulse' : ''
+                  }`}
+                  style={{
+                    background:
+                      stage === 'detecting' || stage === 'done'
+                        ? 'var(--text-1)'
+                        : 'var(--text-3)',
+                  }}
+                />
+                <span
+                  style={{
+                    color:
+                      stage === 'detecting'
+                        ? 'var(--text-1)'
+                        : stage === 'done'
+                        ? 'var(--text-2)'
+                        : 'var(--text-3)',
+                  }}
+                >
+                  Detecting cracks
+                </span>
+              </div>
+
+              {/* Step 3: Done */}
+              <div className="flex items-center gap-2">
+                <span
+                  className="w-2 h-2 rounded-full transition-all duration-300"
+                  style={{
+                    background: stage === 'done' ? 'var(--success)' : 'var(--text-3)',
+                  }}
+                />
+                <span
+                  style={{
+                    color: stage === 'done' ? 'var(--success)' : 'var(--text-3)',
+                  }}
+                >
+                  Done
+                </span>
               </div>
             </div>
-          ) : (
-            <div className="bg-[#080B10] border border-white/[0.08] rounded-lg overflow-hidden flex items-center justify-center max-h-96 p-2">
-              {previewUrl && (
-                <img
-                  src={previewUrl}
-                  alt="Selected Concrete"
-                  className="max-h-96 w-auto object-contain rounded"
-                />
-              )}
+
+            {/* Thin animated line progress bar */}
+            <div
+              className="w-full h-1 rounded-full overflow-hidden"
+              style={{ background: 'var(--glass-sunken-bg)' }}
+            >
+              <div
+                className="h-full rounded-full transition-all duration-400 ease-out"
+                style={{
+                  width: `${progressPercent}%`,
+                  background: stage === 'done' ? 'var(--success)' : 'var(--text-1)',
+                }}
+              />
             </div>
-          )}
+          </div>
 
           {/* Action Row */}
-          <div className="flex items-center justify-between pt-3 border-t border-white/[0.06]">
-            <button
+          <div
+            className="flex items-center justify-between pt-2 border-t"
+            style={{ borderColor: 'var(--glass-sunken-border)' }}
+          >
+            <Button
+              variant="ghost"
               onClick={handleClear}
-              disabled={loading}
-              className="px-3.5 py-2 text-xs text-text-secondary hover:text-text-primary transition"
+              disabled={isAnalyzing}
             >
-              Choose different file
-            </button>
+              Cancel
+            </Button>
 
-            <button
-              onClick={handleRunAnalysis}
-              disabled={loading}
-              className="px-5 py-2.5 bg-gradient-to-r from-accent to-[#B64A34] hover:shadow-[0_0_20px_rgba(200,85,61,0.35)] disabled:opacity-50 text-white text-xs font-medium rounded-lg transition-all flex items-center space-x-2 shadow-sm"
-            >
-              <span>{loading ? 'Processing...' : 'Run analysis'}</span>
-              {!loading && <ArrowRight className="w-3.5 h-3.5" />}
-            </button>
+            <span className="text-[11px] font-mono" style={{ color: 'var(--text-3)' }}>
+              {stage === 'uploading'
+                ? 'Transferring image payload...'
+                : stage === 'detecting'
+                ? 'Tiled neural localization...'
+                : stage === 'done'
+                ? 'Opening inspection result...'
+                : 'Ready'}
+            </span>
           </div>
-        </div>
+        </GlassPanel>
       )}
     </div>
   );

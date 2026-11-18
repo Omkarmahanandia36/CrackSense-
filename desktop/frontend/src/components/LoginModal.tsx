@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { X, AlertCircle } from 'lucide-react';
+import { X, AlertCircle, Mail, Lock, User } from 'lucide-react';
 import { loginUser, registerUser, UserProfile } from '../services/api';
+import { Button, Input } from './ui';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -39,83 +40,105 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-surface border border-white/[0.1] rounded-xl shadow-diffuse max-w-sm w-full p-6 space-y-5 text-text-primary animate-fade-rise">
-        <div className="flex items-center justify-between border-b border-white/[0.06] pb-3.5">
-          <h2 className="text-sm font-semibold text-text-primary">
-            {isRegister ? 'Register inspector profile' : 'Field inspector sign in'}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Frosted Backdrop */}
+      <div
+        className="fixed inset-0 bg-black/40 backdrop-blur-md transition-opacity"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+
+      {/* Centred minimal glass card over full gradient */}
+      <div
+        className="glass-raised relative z-10 w-full max-w-sm p-6 shadow-2xl animate-fade-rise space-y-5"
+        style={{ borderRadius: 'var(--r-panel)' }}
+        role="dialog"
+        aria-modal="true"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between pb-3 border-b" style={{ borderColor: 'var(--glass-sunken-border)' }}>
+          <h2 className="text-sm font-semibold tracking-tight" style={{ color: 'var(--text-1)' }}>
+            {isRegister ? 'Create inspector profile' : 'Sign in'}
           </h2>
           <button
             onClick={onClose}
-            className="p-1 text-text-tertiary hover:text-text-primary rounded-lg transition"
+            className="p-1.5 rounded-lg transition-colors hover:bg-[--hover-bg]"
+            style={{ color: 'var(--text-3)' }}
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4" strokeWidth={1.5} />
           </button>
         </div>
 
+        {/* Error Alert */}
         {errorMsg && (
-          <div className="p-3 bg-accent/15 border border-accent/25 rounded-lg text-xs text-text-primary flex items-center space-x-2">
-            <AlertCircle className="w-4 h-4 text-accent flex-shrink-0" />
+          <div
+            className="p-3 rounded-xl text-xs flex items-center gap-2 animate-fade-rise"
+            style={{
+              background: 'var(--crack-tint)',
+              border: '1px solid rgba(255, 69, 58, 0.3)',
+              color: 'var(--text-1)',
+            }}
+          >
+            <AlertCircle className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--crack)' }} strokeWidth={1.5} />
             <span>{errorMsg}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-3.5">
           {isRegister && (
-            <div className="space-y-1">
-              <label className="text-text-secondary block">Full name</label>
-              <input
-                type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="Structural Engineer Name"
-                className="w-full bg-[#080B10] border border-white/[0.08] focus:border-accent rounded-lg px-3 py-2 text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none transition"
-              />
-            </div>
+            <Input
+              label="Full name"
+              leftIcon={User}
+              placeholder="Structural Engineer Name"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+            />
           )}
 
-          <div className="space-y-1">
-            <label className="text-text-secondary block">Email address</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="inspector@agency.gov"
-              className="w-full bg-[#080B10] border border-white/[0.08] focus:border-accent rounded-lg px-3 py-2 text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none transition"
-            />
-          </div>
+          <Input
+            label="Email address"
+            leftIcon={Mail}
+            type="email"
+            required
+            placeholder="inspector@agency.gov"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
 
-          <div className="space-y-1">
-            <label className="text-text-secondary block">Password</label>
-            <input
-              type="password"
-              required
-              minLength={6}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full bg-[#080B10] border border-white/[0.08] focus:border-accent rounded-lg px-3 py-2 text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none transition"
-            />
-          </div>
+          <Input
+            label="Password"
+            leftIcon={Lock}
+            type="password"
+            required
+            minLength={6}
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2.5 bg-gradient-to-r from-accent to-[#B64A34] hover:shadow-[0_0_15px_rgba(200,85,61,0.35)] disabled:opacity-50 text-white font-medium text-xs rounded-lg transition shadow-sm mt-2"
-          >
-            {loading ? 'Authenticating...' : isRegister ? 'Register & sign in' : 'Sign in'}
-          </button>
+          <div className="pt-2">
+            <Button
+              type="submit"
+              variant="primary"
+              className="w-full"
+              loading={loading}
+            >
+              {loading ? 'Authenticating...' : isRegister ? 'Register & sign in' : 'Sign in'}
+            </Button>
+          </div>
         </form>
 
-        <div className="pt-2 border-t border-white/[0.06] text-center">
+        {/* Toggle between register & sign in */}
+        <div className="pt-2 border-t text-center" style={{ borderColor: 'var(--glass-sunken-border)' }}>
           <button
             type="button"
             onClick={() => {
               setIsRegister(!isRegister);
               setErrorMsg(null);
             }}
-            className="text-xs text-text-tertiary hover:text-text-secondary hover:underline transition"
+            className="text-xs transition-colors hover:underline"
+            style={{ color: 'var(--text-3)' }}
           >
             {isRegister
               ? 'Already registered? Sign in'
