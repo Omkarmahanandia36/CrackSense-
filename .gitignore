@@ -28,6 +28,9 @@ dataset/raw/*
 !dataset/raw/Negative/.gitkeep
 dataset/detection/*
 !dataset/detection/data.yaml
+dataset/damsegment*
+dataset/detection_damsegment/
+dataset/roboflow/
 
 # Storage
 storage/uploads/*
