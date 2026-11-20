@@ -14,6 +14,7 @@ import {
   Shield,
 } from 'lucide-react';
 import { HealthData, UserProfile } from '../services/api';
+import { UpdateStatus } from './UpdateStatus';
 
 interface SidebarProps {
   currentPage: 'dashboard' | 'upload' | 'result' | 'history' | 'dev' | 'admin';
@@ -217,11 +218,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
         className="p-3 space-y-2 border-t flex-shrink-0"
         style={{ borderColor: 'var(--glass-sunken-border)' }}
       >
-        {/* Status row */}
-        <div
-          className={`flex items-center ${collapsed ? 'justify-center' : 'justify-between'} px-1`}
-        >
-          <div className="flex items-center gap-1.5">
+        {/* Status row + In-app Update indicator */}
+        <div className="space-y-1.5 px-1">
+          <div className="flex items-center justify-between">
+            <UpdateStatus />
+          </div>
+
+          <div
+            className={`flex items-center ${collapsed ? 'justify-center' : 'justify-between'}`}
+          >
+            <div className="flex items-center gap-1.5">
             <span
               className={`w-2 h-2 rounded-full flex-shrink-0 ${
                 isHealthy ? 'animate-status-pulse' : 'animate-pulse'
@@ -249,6 +255,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           )}
         </div>
+      </div>
 
         {/* Theme toggle */}
         <button
@@ -313,6 +320,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <LogIn className="w-[16px] h-[16px] flex-shrink-0" strokeWidth={1.5} />
             {!collapsed && <span className="text-[12px]">Sign in</span>}
           </button>
+        )}
+
+        {/* App Version Info */}
+        {!collapsed && (
+          <div className="pt-1 flex items-center justify-between text-[10px] font-mono text-slate-500 px-1 select-none">
+            <span>CrackSense AI</span>
+            <span>v{import.meta.env.APP_VERSION || '1.0.0'}</span>
+          </div>
         )}
       </div>
     </aside>

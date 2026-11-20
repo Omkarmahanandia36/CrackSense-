@@ -13,6 +13,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { HealthData, UserProfile } from '../services/api';
+import { UpdateStatus } from './UpdateStatus';
 
 interface MobileNavProps {
   currentPage: 'dashboard' | 'upload' | 'result' | 'history' | 'dev' | 'admin';
@@ -74,8 +75,10 @@ export const MobileHeader: React.FC<MobileNavProps> = ({
         </div>
       </div>
 
-      {/* Action Buttons: Theme Toggle & User Auth */}
+      {/* Action Buttons: Update Indicator, Theme Toggle & User Auth */}
       <div className="flex items-center gap-1.5">
+        <UpdateStatus />
+
         <button
           onClick={onToggleTheme}
           className="p-2 rounded-xl text-xs transition-colors hover:bg-white/10 active:scale-95"

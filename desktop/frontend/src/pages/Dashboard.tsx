@@ -3,6 +3,7 @@ import { UploadCloud, ArrowRight, FileImage, Camera as CameraIcon } from 'lucide
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { HealthData, AnalyzeResult, resolveImageUrl } from '../services/api';
 import { GlassPanel, Button, EmptyState } from '../components/ui';
+import { UpdateStatus } from '../components/UpdateStatus';
 
 interface DashboardProps {
   onStartUpload: () => void;
@@ -142,13 +143,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </p>
         </div>
 
-        <Button
-          variant="primary"
-          icon={UploadCloud}
-          onClick={onStartUpload}
-        >
-          New inspection
-        </Button>
+        <div className="flex items-center gap-2.5">
+          <UpdateStatus />
+          <Button
+            variant="primary"
+            icon={UploadCloud}
+            onClick={onStartUpload}
+          >
+            New inspection
+          </Button>
+        </div>
       </div>
 
       {/* ── Large "Start new inspection" drop zone & camera buttons ── */}

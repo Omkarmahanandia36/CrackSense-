@@ -1,4 +1,27 @@
 apply plugin: 'com.android.application'
+import groovy.json.JsonSlurper
+
+// Derive version from single source of truth in desktop/package.json
+def packageJsonFile = file("../../../package.json")
+def appVersion = "1.0.0"
+def appVersionCode = 10000
+
+if (packageJsonFile.exists()) {
+    try {
+        def pkgJson = new JsonSlurper().parseText(packageJsonFile.text)
+        if (pkgJson.version) {
+            appVersion = pkgJson.version.toString()
+            def cleanVersion = appVersion.split("-")[0]
+            def parts = cleanVersion.tokenize('.').collect { it.isInteger() ? it.toInteger() : 0 }
+            def major = parts.size() > 0 ? parts[0] : 1
+            def minor = parts.size() > 1 ? parts[1] : 0
+            def patch = parts.size() > 2 ? parts[2] : 0
+            appVersionCode = (major * 10000) + (minor * 100) + patch
+        }
+    } catch (Exception e) {
+        println("Notice: Could not parse desktop/package.json version (${e.message}). Using fallback.")
+    }
+}
 
 android {
     namespace = "ai.cracksense.app"
@@ -7,8 +30,8 @@ android {
         applicationId "ai.cracksense.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode appVersionCode
+        versionName appVersion
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
