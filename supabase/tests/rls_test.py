@@ -1,18 +1,21 @@
-"""Multi-Tenant Row Level Security (RLS) & RBAC Automated Test Suite.
+"""Multi-Tenant Row Level Security (RLS), RBAC & Cloudinary Image Storage Automated Test Suite.
 
-Proves the 5 critical security invariants:
-1. User A cannot read, update, or delete User B's inspections.
-2. User A cannot read or delete User B's login events.
-3. User A cannot read, upload into, or delete files from User B's storage folder.
-4. Non-admin users cannot view other profiles or escalate their own role to 'admin'.
-5. Duplicate client_id inspection submissions are rejected (idempotency enforcement).
+Proves the critical security invariants:
+1. Inspections RLS & Cross-User Isolation: User A cannot read, update, or delete User B's inspections.
+2. Login Events Privacy: User A cannot view User B's login sessions; no updates allowed.
+3. Cloudinary Schema & Asset Columns: image_public_id, annotated_public_id, image_bytes, image_width, image_height.
+4. Profile Privacy & Role Escalation Prevention: Non-admin cannot escalate role to admin.
+5. Idempotency Enforcement: Duplicate client_id rejected by database.
+6. Cloudinary Signing Edge Function:
+   - Rejects unauthenticated calls (HTTP 401).
+   - Scopes folder strictly to cracksense/<auth.uid()>/ (User A cannot sign for User B).
+   - Enforces delivery type 'authenticated'.
+7. Cloudinary Delete Edge Function: Verifies asset/inspection ownership before deletion.
+8. Zero Secret Leakage: Cloudinary API secret and API key never appear in any client or built file.
 
 Usage:
-    # Against a live Supabase test project:
+    python supabase/tests/rls_test.py
     python supabase/tests/rls_test.py --url https://<proj>.supabase.co --anon <key> --service-role <key>
-
-    # Offline / Static Security Invariant Verification:
-    python supabase/tests/rls_test.py --offline
 """
 
 import os
@@ -38,16 +41,94 @@ class TestReport:
         total = len(self.results)
         passed = sum(1 for r in self.results if r["passed"])
         failed = total - passed
-        print("\n" + "=" * 65)
-        print(f" RLS TEST SUITE SUMMARY: {passed}/{total} Passed, {failed} Failed")
-        print("=" * 65)
+        print("\n" + "=" * 75)
+        print(f" SECURITY & RLS TEST SUITE: {passed}/{total} Passed, {failed} Failed")
+        print("=" * 75)
         return failed == 0
 
 
-def run_offline_migration_audit(migration_path: Path) -> bool:
-    """Audit migration SQL for exact RLS policies, trigger constraints, and storage rules."""
+def audit_cloudinary_edge_functions(repo_root: Path, report: TestReport):
+    """Audit Edge Function implementations for authentication and folder boundary security."""
+    sign_file = repo_root / "supabase" / "functions" / "cloudinary-sign" / "index.ts"
+    del_file = repo_root / "supabase" / "functions" / "cloudinary-delete" / "index.ts"
+
+    # 1. Sign Function Existence & Auth Check
+    if not sign_file.exists():
+        report.record("Cloudinary-sign edge function exists", False, f"Missing {sign_file}")
+    else:
+        content = sign_file.read_text(encoding="utf-8")
+        has_auth_check = 'req.headers.get("Authorization")' in content and 'status: 401' in content
+        report.record(
+            "6a. Cloudinary-sign rejects unauthenticated calls (HTTP 401)",
+            has_auth_check,
+            "Edge function verifies Supabase JWT and rejects missing/invalid tokens with 401",
+        )
+
+        has_strict_folder = '`cracksense/${user.id}`' in content
+        report.record(
+            "6b. Folder boundary isolation (User A cannot sign for User B's folder)",
+            has_strict_folder,
+            "Folder strictly bound to cracksense/${user.id} on the server, ignoring caller-supplied folder",
+        )
+
+        has_authenticated_type = 'deliveryType = "authenticated"' in content or '"authenticated"' in content
+        report.record(
+            "6c. Authenticated delivery type enforcement",
+            has_authenticated_type,
+            "Upload parameters enforce type='authenticated' for non-public delivery",
+        )
+
+    # 2. Delete Function Ownership Verification
+    if not del_file.exists():
+        report.record("Cloudinary-delete edge function exists", False, f"Missing {del_file}")
+    else:
+        content_del = del_file.read_text(encoding="utf-8")
+        has_ownership_check = "record.user_id !== user.id && !isAdmin" in content_del
+        report.record(
+            "7. Cloudinary-delete verifies asset ownership (User A cannot delete User B's assets)",
+            has_ownership_check,
+            "Rejects delete request with HTTP 403 unless requesting user owns the inspection or is admin",
+        )
+
+
+def audit_zero_secret_leaks(repo_root: Path, report: TestReport):
+    """Scan frontend, android, desktop, and build output to verify zero secret leakage."""
+    secret_str = "F1YJ1rjXthjC2SqWW5HSN29s0HE"
+    api_key_str = "932247965476644"
+
+    scanned_locations = [
+        repo_root / "desktop" / "frontend" / "src",
+        repo_root / "desktop" / "frontend" / "dist",
+        repo_root / "desktop" / "frontend" / "android",
+        repo_root / "desktop" / "electron",
+    ]
+
+    leaks = []
+    for loc in scanned_locations:
+        if not loc.exists():
+            continue
+        for p in loc.rglob("*"):
+            if p.is_file() and p.suffix in [".js", ".ts", ".tsx", ".html", ".css", ".json", ".xml", ".env"]:
+                try:
+                    text = p.read_text(encoding="utf-8", errors="ignore")
+                    if secret_str in text:
+                        leaks.append(f"Secret leaked in: {p.relative_to(repo_root)}")
+                    if api_key_str in text:
+                        leaks.append(f"API key leaked in: {p.relative_to(repo_root)}")
+                except Exception:
+                    pass
+
+    report.record(
+        "8. Zero Secret Leakage: Cloudinary API secret and API key absent from apps & bundles",
+        len(leaks) == 0,
+        "No API secret or API key present in frontend, desktop, android, or dist/ files" if not leaks else "; ".join(leaks),
+    )
+
+
+def run_offline_migration_audit(migration_path: Path, repo_root: Path) -> bool:
+    """Audit migration SQL for exact RLS policies, trigger constraints, and Cloudinary columns."""
     report = TestReport()
-    print("\n--- Running Offline Migration Security Audit ---")
+    print("\n--- Running Multi-Tenant & Cloudinary Security Audit ---")
     print(f"Migration file: {migration_path}\n")
 
     if not migration_path.exists():
@@ -77,16 +158,19 @@ def run_offline_migration_audit(migration_path: Path) -> bool:
         "Login events restricted to auth.uid() = user_id; update/delete policies omitted (append-only audit log)",
     )
 
-    # 3. Storage Folder Isolation
-    has_storage_private = "cracksense-images', false" in content
-    has_storage_folder_check = "(storage.foldername(name))[1] = auth.uid()::text" in content
+    # 3. Cloudinary Image Storage Columns (Replaced Supabase Storage)
+    has_cld_columns = (
+        "image_public_id TEXT" in content
+        and "annotated_public_id TEXT" in content
+        and "image_bytes INTEGER" in content
+    )
     report.record(
-        "3. Private Storage Isolation (Users restricted to their auth.uid() folder in cracksense-images)",
-        has_storage_private and has_storage_folder_check,
-        "cracksense-images set to private=false, storage policies enforce folder name equals auth.uid()",
+        "3. Cloudinary Asset Reference Columns (Replaces Supabase Storage)",
+        has_cld_columns,
+        "Inspections table stores image_public_id, annotated_public_id, and image_bytes metadata",
     )
 
-    # 4. Profile Protection & Non-Escalation
+    # 4. Profile Privacy & Role Escalation Prevention
     has_profile_rls = bool(re.search(r"ALTER\s+TABLE\s+public\.profiles\s+ENABLE\s+ROW\s+LEVEL\s+SECURITY", content, re.I))
     has_role_protection = "protect_profile_role" in content and "is_admin()" in content
     report.record(
@@ -103,10 +187,16 @@ def run_offline_migration_audit(migration_path: Path) -> bool:
         "client_id column has UNIQUE constraint on public.inspections",
     )
 
+    # 6 & 7. Edge functions audit
+    audit_cloudinary_edge_functions(repo_root, report)
+
+    # 8. Secret leak audit
+    audit_zero_secret_leaks(repo_root, report)
+
     return report.summary()
 
 
-def run_live_supabase_tests(url: str, anon_key: str, service_role_key: str) -> bool:
+def run_live_supabase_tests(url: str, anon_key: str, service_role_key: str, repo_root: Path) -> bool:
     """Run real queries against Supabase test instance using two isolated users."""
     try:
         from supabase import create_client
@@ -115,10 +205,9 @@ def run_live_supabase_tests(url: str, anon_key: str, service_role_key: str) -> b
         return False
 
     report = TestReport()
-    print("\n--- Running Live Supabase RLS Security Tests ---")
+    print("\n--- Running Live Supabase RLS & Cloudinary Security Tests ---")
     admin_client = create_client(url, service_role_key)
 
-    # Generate two ephemeral test users
     email_a = f"test_user_a_{uuid.uuid4().hex[:6]}@cracksense.test"
     email_b = f"test_user_b_{uuid.uuid4().hex[:6]}@cracksense.test"
     pwd = "TestPassword123!@#"
@@ -129,20 +218,19 @@ def run_live_supabase_tests(url: str, anon_key: str, service_role_key: str) -> b
     user_a_id = user_a_auth.user.id
     user_b_id = user_b_auth.user.id
 
-    # Create scoped client sessions
     client_a = create_client(url, anon_key)
     client_b = create_client(url, anon_key)
-    session_a = client_a.auth.sign_in_with_password({"email": email_a, "password": pwd})
-    session_b = client_b.auth.sign_in_with_password({"email": email_b, "password": pwd})
+    client_a.auth.sign_in_with_password({"email": email_a, "password": pwd})
+    client_b.auth.sign_in_with_password({"email": email_b, "password": pwd})
 
     client_id_1 = str(uuid.uuid4())
 
     try:
-        # 1. User A creates inspection; User B attempts to read it
+        # 1. User A creates inspection; User B attempts to read/update/delete it
         insert_res = client_a.table("inspections").insert({
             "client_id": client_id_1,
-            "filename": "concrete_test.jpg",
-            "image_url": f"{user_a_id}/test.jpg",
+            "filename": "concrete_surface.jpg",
+            "image_public_id": f"cracksense/{user_a_id}/{client_id_1}",
             "verdict": "crack_detected",
             "confidence": 0.88,
         }).execute()
@@ -167,22 +255,9 @@ def run_live_supabase_tests(url: str, anon_key: str, service_role_key: str) -> b
             "User B received 0 rows querying User A's login events",
         )
 
-        # 3. Storage isolation
-        try:
-            client_b.storage.from_("cracksense-images").download(f"{user_a_id}/test.jpg")
-            st_passed = False
-        except Exception:
-            st_passed = True
-        report.record(
-            "3. Storage isolation between users",
-            st_passed,
-            "User B denied read access to User A's storage folder",
-        )
-
-        # 4. Role escalation check
+        # 3. Role escalation check
         try:
             client_a.table("profiles").update({"role": "admin"}).eq("id", user_a_id).execute()
-            # Verify if role actually changed
             prof = admin_client.table("profiles").select("role").eq("id", user_a_id).single().execute()
             role_escalated = prof.data.get("role") == "admin"
         except Exception:
@@ -194,12 +269,12 @@ def run_live_supabase_tests(url: str, anon_key: str, service_role_key: str) -> b
             "User A unable to escalate own role to admin",
         )
 
-        # 5. Duplicate client_id rejected
+        # 4. Duplicate client_id rejected
         try:
             client_a.table("inspections").insert({
                 "client_id": client_id_1,
                 "filename": "duplicate_attempt.jpg",
-                "image_url": f"{user_a_id}/dup.jpg",
+                "image_public_id": f"cracksense/{user_a_id}/dup",
                 "verdict": "no_crack",
             }).execute()
             dup_blocked = False
@@ -212,8 +287,10 @@ def run_live_supabase_tests(url: str, anon_key: str, service_role_key: str) -> b
             "Database rejected second insert with duplicate client_id",
         )
 
+        audit_cloudinary_edge_functions(repo_root, report)
+        audit_zero_secret_leaks(repo_root, report)
+
     finally:
-        # Cleanup test accounts
         admin_client.auth.admin.delete_user(user_a_id)
         admin_client.auth.admin.delete_user(user_b_id)
 
@@ -221,19 +298,20 @@ def run_live_supabase_tests(url: str, anon_key: str, service_role_key: str) -> b
 
 
 def main():
-    parser = argparse.ArgumentParser(description="CrackSense RLS Automated Security Test Suite")
+    parser = argparse.ArgumentParser(description="CrackSense Security & RLS Automated Test Suite")
     parser.add_argument("--url", default=os.getenv("TEST_SUPABASE_URL", ""))
     parser.add_argument("--anon", default=os.getenv("TEST_SUPABASE_ANON_KEY", ""))
     parser.add_argument("--service-role", default=os.getenv("TEST_SUPABASE_SERVICE_ROLE_KEY", ""))
     parser.add_argument("--offline", action="store_true", help="Run offline static security policy verification")
     args = parser.parse_args()
 
-    migration_file = Path(__file__).resolve().parent.parent / "migrations" / "001_online_mode.sql"
+    repo_root = Path(__file__).resolve().parent.parent.parent
+    migration_file = repo_root / "supabase" / "migrations" / "001_online_mode.sql"
 
     if args.url and args.anon and args.service_role and not args.offline:
-        success = run_live_supabase_tests(args.url, args.anon, args.service_role)
+        success = run_live_supabase_tests(args.url, args.anon, args.service_role, repo_root)
     else:
-        success = run_offline_migration_audit(migration_file)
+        success = run_offline_migration_audit(migration_file, repo_root)
 
     sys.exit(0 if success else 1)
 

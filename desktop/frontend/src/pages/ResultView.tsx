@@ -160,6 +160,25 @@ export const ResultView: React.FC<ResultViewProps> = ({
 
   // Cloud sync status state
   const [syncStatus, setSyncStatus] = useState<'pending' | 'syncing' | 'synced' | null>(null);
+  const [displayImageUrl, setDisplayImageUrl] = useState<string>(() => resolveImageUrl(result.image_url));
+
+  useEffect(() => {
+    let active = true;
+    const resolveDisplay = async () => {
+      if (result.image_url && (result.image_url.startsWith('cracksense/') || !result.image_url.startsWith('http'))) {
+        const signed = await getSignedImageUrl(result.image_url);
+        if (active && signed) {
+          setDisplayImageUrl(signed);
+          return;
+        }
+      }
+      if (active) setDisplayImageUrl(resolveImageUrl(result.image_url));
+    };
+    resolveDisplay();
+    return () => {
+      active = false;
+    };
+  }, [result.image_url]);
 
   const handleSave = async () => {
     localStorage.setItem(`cracksense_notes_${result.id}`, notes);
@@ -169,26 +188,39 @@ export const ResultView: React.FC<ResultViewProps> = ({
 
     try {
       setSyncStatus('syncing');
+      let imageBlob: Blob | undefined;
+      if (imageRef.current && imageRef.current.src) {
+        try {
+          const res = await fetch(imageRef.current.src);
+          if (res.ok) imageBlob = await res.blob();
+        } catch {
+          // offline or cross-origin
+        }
+      }
+
       const currentUser = (await supabase.auth.getUser()).data.user;
-      await saveInspectionLocalFirst({
-        userId: currentUser?.id || 'offline-user',
-        filename: result.filename,
-        imageUrl: result.image_url,
-        annotatedImageUrl: result.annotated_image_url,
-        maskPngBase64: result.mask_png_base64,
-        verdict: result.is_crack ? 'crack_detected' : 'no_crack',
-        confidence: result.confidence,
-        boxCount: boxes.length,
-        imageWidth: naturalDimensions.width,
-        imageHeight: naturalDimensions.height,
-        detections: detections,
-        metadata: {
-          notes,
-          reviewed: isReviewed,
-          reviewedAt,
-          probabilities: result.probabilities,
+      await saveInspectionLocalFirst(
+        {
+          userId: currentUser?.id || 'offline-user',
+          filename: result.filename,
+          imageUrl: result.image_url,
+          annotatedImageUrl: result.annotated_image_url,
+          maskPngBase64: result.mask_png_base64,
+          verdict: result.is_crack ? 'crack_detected' : 'no_crack',
+          confidence: result.confidence,
+          boxCount: boxes.length,
+          imageWidth: naturalDimensions.width,
+          imageHeight: naturalDimensions.height,
+          detections: detections,
+          metadata: {
+            notes,
+            reviewed: isReviewed,
+            reviewedAt,
+            probabilities: result.probabilities,
+          },
         },
-      });
+        imageBlob
+      );
 
       setSyncStatus('synced');
       setToastMessage('Inspection saved & synced to cloud');
@@ -422,7 +454,7 @@ export const ResultView: React.FC<ResultViewProps> = ({
               {/* Sharp Target Image (Original pixel resolution) */}
               <img
                 ref={imageRef}
-                src={rawImageUrl}
+                src={displayImageUrl}
                 alt={result.filename}
                 onLoad={handleImageLoad}
                 className="block max-w-[75vw] max-h-[70vh] object-contain rounded-xl shadow-2xl"

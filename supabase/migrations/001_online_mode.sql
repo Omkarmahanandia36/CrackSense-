@@ -133,14 +133,17 @@ CREATE TABLE IF NOT EXISTS public.inspections (
     user_id UUID NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
     client_id UUID UNIQUE NOT NULL,
     filename TEXT NOT NULL,
-    image_url TEXT NOT NULL,
+    image_public_id TEXT,
+    annotated_public_id TEXT,
+    image_bytes INTEGER DEFAULT 0,
+    image_width INTEGER DEFAULT 0,
+    image_height INTEGER DEFAULT 0,
+    image_url TEXT,
     annotated_image_url TEXT,
     mask_png_base64 TEXT,
     verdict TEXT NOT NULL CHECK (verdict IN ('crack_detected', 'no_crack')),
     confidence DOUBLE PRECISION NOT NULL DEFAULT 0.0,
     box_count INTEGER NOT NULL DEFAULT 0,
-    image_width INTEGER DEFAULT 0,
-    image_height INTEGER DEFAULT 0,
     detections JSONB DEFAULT '[]'::jsonb NOT NULL,
     metadata JSONB DEFAULT '{}'::jsonb NOT NULL,
     sync_status TEXT DEFAULT 'synced'
@@ -148,6 +151,11 @@ CREATE TABLE IF NOT EXISTS public.inspections (
 
 -- Ensure columns exist if table was created in an earlier migration
 ALTER TABLE public.inspections ADD COLUMN IF NOT EXISTS client_id UUID UNIQUE;
+ALTER TABLE public.inspections ADD COLUMN IF NOT EXISTS image_public_id TEXT;
+ALTER TABLE public.inspections ADD COLUMN IF NOT EXISTS annotated_public_id TEXT;
+ALTER TABLE public.inspections ADD COLUMN IF NOT EXISTS image_bytes INTEGER DEFAULT 0;
+ALTER TABLE public.inspections ADD COLUMN IF NOT EXISTS image_width INTEGER DEFAULT 0;
+ALTER TABLE public.inspections ADD COLUMN IF NOT EXISTS image_height INTEGER DEFAULT 0;
 ALTER TABLE public.inspections ADD COLUMN IF NOT EXISTS sync_status TEXT DEFAULT 'synced';
 ALTER TABLE public.inspections ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'::jsonb NOT NULL;
 ALTER TABLE public.inspections ALTER COLUMN user_id SET DEFAULT auth.uid();
@@ -240,50 +248,26 @@ CREATE POLICY "Users can delete own detection boxes"
     TO authenticated
     USING (auth.uid() = user_id);
 
--- 6. Private Storage Bucket Setup
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('cracksense-images', 'cracksense-images', false)
-ON CONFLICT (id) DO UPDATE SET public = false;
+-- 6. Cloudinary Image Storage Architecture (Replaces Supabase Storage)
+-- All inspection photographic assets (original & annotated) are stored in Cloudinary
+-- under delivery type 'authenticated' scoped to cracksense/<auth.uid()>/ folder.
+-- Cloudinary credentials (API Secret & Key) are kept strictly in Supabase Edge Function Secrets.
+-- The database stores asset public IDs (image_public_id, annotated_public_id) and dimension metadata.
+-- Signed delivery URLs with HMAC tokens are generated on demand via the cloudinary-sign function.
 
--- Storage RLS: folder isolation by user auth.uid()
-DROP POLICY IF EXISTS "Public Access to CrackSense Images" ON storage.objects;
-DROP POLICY IF EXISTS "Allow Image Uploads to CrackSense Bucket" ON storage.objects;
-DROP POLICY IF EXISTS "Users can read own images or admin read all" ON storage.objects;
-DROP POLICY IF EXISTS "Users can upload own images" ON storage.objects;
-DROP POLICY IF EXISTS "Users can update own images" ON storage.objects;
-DROP POLICY IF EXISTS "Users can delete own images" ON storage.objects;
-
-CREATE POLICY "Users can read own images or admin read all"
-    ON storage.objects FOR SELECT
-    TO authenticated
-    USING (
-        bucket_id = 'cracksense-images' AND
-        ((storage.foldername(name))[1] = auth.uid()::text OR public.is_admin())
-    );
-
-CREATE POLICY "Users can upload own images"
-    ON storage.objects FOR INSERT
-    TO authenticated
-    WITH CHECK (
-        bucket_id = 'cracksense-images' AND
-        (storage.foldername(name))[1] = auth.uid()::text
-    );
-
-CREATE POLICY "Users can update own images"
-    ON storage.objects FOR UPDATE
-    TO authenticated
-    USING (
-        bucket_id = 'cracksense-images' AND
-        (storage.foldername(name))[1] = auth.uid()::text
-    );
-
-CREATE POLICY "Users can delete own images"
-    ON storage.objects FOR DELETE
-    TO authenticated
-    USING (
-        bucket_id = 'cracksense-images' AND
-        (storage.foldername(name))[1] = auth.uid()::text
-    );
+-- Clean up any legacy Supabase Storage objects policy if previously applied
+DO $$
+BEGIN
+    DROP POLICY IF EXISTS "Public Access to CrackSense Images" ON storage.objects;
+    DROP POLICY IF EXISTS "Allow Image Uploads to CrackSense Bucket" ON storage.objects;
+    DROP POLICY IF EXISTS "Users can read own images or admin read all" ON storage.objects;
+    DROP POLICY IF EXISTS "Users can upload own images" ON storage.objects;
+    DROP POLICY IF EXISTS "Users can update own images" ON storage.objects;
+    DROP POLICY IF EXISTS "Users can delete own images" ON storage.objects;
+EXCEPTION
+    WHEN undefined_table THEN
+        NULL;
+END $$;
 
 -- 7. Admin Summary RPC (Pagination & Aggregations)
 CREATE OR REPLACE FUNCTION public.get_admin_users(
