@@ -56,12 +56,14 @@ export interface InspectionListItem {
   confidence: number;
   image_url: string;
   created_at: string;
+  sync_status?: string;
 }
 
 export interface UserProfile {
   id: number | string;
   email: string;
   full_name?: string;
+  role?: string;
   is_active?: boolean;
   created_at?: string;
 }

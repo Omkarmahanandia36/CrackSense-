@@ -5,8 +5,15 @@ import { UploadAnalyze } from './pages/UploadAnalyze';
 import { ResultView } from './pages/ResultView';
 import { History } from './pages/History';
 import { DevComponents } from './pages/DevComponents';
+import { AdminView } from './pages/AdminView';
 import { LoginModal } from './components/LoginModal';
-import { supabase, isSupabaseConfigured, signOutSupabase } from './services/supabase';
+import {
+  supabase,
+  isSupabaseConfigured,
+  signOutSupabase,
+  getUserProfile,
+  getValidSession,
+} from './services/supabase';
 import {
   getSystemHealth,
   getCurrentUser,
@@ -17,7 +24,7 @@ import {
 } from './services/api';
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<'dashboard' | 'upload' | 'result' | 'history' | 'dev'>('dashboard');
+  const [currentPage, setCurrentPage] = useState<'dashboard' | 'upload' | 'result' | 'history' | 'dev' | 'admin'>('dashboard');
   const [currentResult, setCurrentResult] = useState<AnalyzeResult | null>(null);
   const [recentInspections, setRecentInspections] = useState<AnalyzeResult[]>([]);
   const [health, setHealth] = useState<HealthData | null>(null);
@@ -85,16 +92,19 @@ export default function App() {
       // 1. Check active Supabase session
       if (isSupabaseConfigured()) {
         try {
-          const { data: { session } } = await supabase.auth.getSession();
+          const session = await getValidSession();
           if (session?.user) {
+            const profile = await getUserProfile(session.user.id);
             setUser({
               id: session.user.id,
               email: session.user.email || '',
               full_name:
+                profile?.full_name ||
                 session.user.user_metadata?.full_name ||
                 session.user.user_metadata?.username ||
                 session.user.email?.split('@')[0] ||
                 'Inspector',
+              role: profile?.role || 'user',
               is_active: true,
               created_at: session.user.created_at,
             });
@@ -120,16 +130,19 @@ export default function App() {
     if (isSupabaseConfigured()) {
       const {
         data: { subscription },
-      } = supabase.auth.onAuthStateChange((event, session) => {
+      } = supabase.auth.onAuthStateChange(async (event, session) => {
         if (session?.user) {
+          const profile = await getUserProfile(session.user.id);
           setUser({
             id: session.user.id,
             email: session.user.email || '',
             full_name:
+              profile?.full_name ||
               session.user.user_metadata?.full_name ||
               session.user.user_metadata?.username ||
               session.user.email?.split('@')[0] ||
               'Inspector',
+            role: profile?.role || 'user',
             is_active: true,
             created_at: session.user.created_at,
           });
@@ -238,6 +251,13 @@ export default function App() {
                   setCurrentPage('upload');
                 }}
                 onBackToDashboard={() => setCurrentPage('dashboard')}
+              />
+            )}
+
+            {currentPage === 'admin' && (
+              <AdminView
+                currentUser={user}
+                onBack={() => setCurrentPage('dashboard')}
               />
             )}
 
