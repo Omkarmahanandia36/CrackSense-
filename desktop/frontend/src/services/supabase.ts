@@ -48,7 +48,7 @@ if (typeof window !== 'undefined') {
 
 /**
  * Validate and automatically refresh session if expired or expiring soon.
- * Returns valid session or null.
+ * Returns valid session or null. Never forcefully logs out the user on network failure.
  */
 export const getValidSession = async () => {
   if (!isSupabaseConfigured()) return null;
@@ -64,9 +64,9 @@ export const getValidSession = async () => {
       const { data: refreshData, error: refreshError } =
         await supabase.auth.refreshSession();
       if (refreshError || !refreshData.session) {
-        console.warn('Session refresh failed:', refreshError?.message);
-        localStorage.removeItem('supabase_token');
-        return null;
+        console.warn('Session refresh warning (retaining current session):', refreshError?.message);
+        // Do not wipe token on temporary offline/network issues
+        return session;
       }
       localStorage.setItem('supabase_token', refreshData.session.access_token);
       return refreshData.session;
@@ -84,7 +84,37 @@ export interface UserProfileData {
   full_name: string;
   role: 'user' | 'admin' | string;
   created_at?: string;
+  username?: string;
 }
+
+/**
+ * Retrieve cached user profile from localStorage for instant login persistence across app exits.
+ */
+export const getCachedUserProfile = (): UserProfileData | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem('supabase_user_profile');
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Persist cached user profile to localStorage so user stays logged in across app restarts.
+ */
+export const setCachedUserProfile = (profile: UserProfileData | null): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    if (profile) {
+      localStorage.setItem('supabase_user_profile', JSON.stringify(profile));
+    } else {
+      localStorage.removeItem('supabase_user_profile');
+    }
+  } catch (err) {
+    console.warn('Error caching user profile:', err);
+  }
+};
 
 /**
  * Fetch profile info including role from the profiles table.
@@ -558,13 +588,14 @@ export const signUpWithSupabase = async (
     return { success: false, error: 'Supabase configuration is missing' };
   }
   try {
+    const cleanEmail = email.trim().toLowerCase();
     const { data, error } = await supabase.auth.signUp({
-      email,
+      email: cleanEmail,
       password,
       options: {
         data: {
           full_name: fullName,
-          username: username || email.split('@')[0],
+          username: username || cleanEmail.split('@')[0],
         },
       },
     });
@@ -578,8 +609,17 @@ export const signUpWithSupabase = async (
       return { success: false, error: 'Failed to create user account' };
     }
 
+    const userData: UserProfileData = {
+      id: supaUser.id,
+      email: supaUser.email || cleanEmail,
+      full_name: fullName,
+      role: 'user',
+      username: username || cleanEmail.split('@')[0],
+    };
+
     if (data.session) {
       localStorage.setItem('supabase_token', data.session.access_token);
+      setCachedUserProfile(userData);
       await recordLoginEvent(supaUser.id);
     }
 
@@ -590,13 +630,7 @@ export const signUpWithSupabase = async (
 
     return {
       success: true,
-      user: {
-        id: supaUser.id,
-        email: supaUser.email || email,
-        full_name: fullName,
-        role: 'user',
-        username: username || email.split('@')[0],
-      },
+      user: userData,
       message: needsEmailConfirm
         ? 'Account registered! Please check your email to confirm your account.'
         : undefined,
@@ -614,8 +648,9 @@ export const signInWithSupabase = async (
     return { success: false, error: 'Supabase configuration is missing' };
   }
   try {
+    const cleanEmail = email.trim().toLowerCase();
     const { data, error } = await supabase.auth.signInWithPassword({
-      email,
+      email: cleanEmail,
       password,
     });
 
@@ -632,26 +667,32 @@ export const signInWithSupabase = async (
       return { success: false, error: 'Failed to retrieve authenticated user' };
     }
 
-    // Fetch profile and role
+    // Fetch profile and role from Supabase profiles table
     const profile = await getUserProfile(supaUser.id);
     const role = profile?.role || 'user';
+
+    const userData: UserProfileData = {
+      id: supaUser.id,
+      email: supaUser.email || cleanEmail,
+      full_name:
+        profile?.full_name ||
+        supaUser.user_metadata?.full_name ||
+        supaUser.user_metadata?.username ||
+        supaUser.email?.split('@')[0] ||
+        'Inspector',
+      role,
+      username: supaUser.user_metadata?.username,
+    };
+
+    // Cache profile for persistent login across app restarts
+    setCachedUserProfile(userData);
 
     // Record login audit event
     await recordLoginEvent(supaUser.id);
 
     return {
       success: true,
-      user: {
-        id: supaUser.id,
-        email: supaUser.email || email,
-        full_name:
-          profile?.full_name ||
-          supaUser.user_metadata?.full_name ||
-          supaUser.user_metadata?.username ||
-          supaUser.email?.split('@')[0],
-        role,
-        username: supaUser.user_metadata?.username,
-      },
+      user: userData,
     };
   } catch (err: any) {
     return { success: false, error: err.message || 'Sign in failed' };
@@ -665,9 +706,10 @@ export const resetPasswordWithSupabase = async (
     return { success: false, error: 'Supabase configuration is missing' };
   }
   try {
+    const cleanEmail = email.trim().toLowerCase();
     const redirectUrl =
       typeof window !== 'undefined' ? window.location.origin : undefined;
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
       redirectTo: redirectUrl,
     });
 
@@ -689,6 +731,7 @@ export const resetPasswordWithSupabase = async (
 
 export const signOutSupabase = async (): Promise<void> => {
   localStorage.removeItem('supabase_token');
+  setCachedUserProfile(null);
   if (isSupabaseConfigured()) {
     try {
       await supabase.auth.signOut();

@@ -40,16 +40,16 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
     setMode(newMode);
   };
 
-  // Convert identifier (handles phone numbers or emails)
+  // Convert identifier (handles phone numbers or emails) - always normalized to lowercase
   const getEmailOrFormattedIdentifier = (val: string): string => {
-    const trimmed = val.trim();
+    const trimmed = val.trim().toLowerCase();
     if (trimmed.includes('@')) return trimmed;
     // If phone number or numeric handle, format cleanly
     const digits = trimmed.replace(/[^0-9]/g, '');
     if (digits.length >= 7) {
       return `${digits}@phone.cracksense.internal`;
     }
-    return `${trimmed.toLowerCase()}@cracksense.internal`;
+    return `${trimmed}@cracksense.internal`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -219,7 +219,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
               <input
                 type="text"
                 required
-                placeholder="0942118181 or inspector@agency.gov"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                placeholder="inspector@agency.gov or username"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 className="w-full h-12 bg-white/5 border border-white/15 focus:border-cyan-400 rounded-xl px-4 text-sm text-white placeholder:text-white/30 outline-none transition-all"
