@@ -11,12 +11,13 @@ import {
   Sun,
   Moon,
   Sparkles,
+  Shield,
 } from 'lucide-react';
 import { HealthData, UserProfile } from '../services/api';
 
 interface SidebarProps {
-  currentPage: 'dashboard' | 'upload' | 'result' | 'history' | 'dev';
-  onNavigate: (page: 'dashboard' | 'upload' | 'result' | 'history' | 'dev') => void;
+  currentPage: 'dashboard' | 'upload' | 'result' | 'history' | 'dev' | 'admin';
+  onNavigate: (page: 'dashboard' | 'upload' | 'result' | 'history' | 'dev' | 'admin') => void;
   health: HealthData | null;
   hasResult: boolean;
   user: UserProfile | null;
@@ -170,6 +171,40 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   style={{ color: currentPage === 'result' ? 'var(--text-1)' : 'var(--text-2)' }}
                 >
                   Inspection result
+                </span>
+              )}
+            </button>
+          )}
+
+          {/* Admin Console Link (Visible only to role = 'admin') */}
+          {user?.role === 'admin' && (
+            <button
+              onClick={() => onNavigate('admin')}
+              className={`
+                w-full h-10 flex items-center gap-2.5 rounded-xl transition-all duration-150 cursor-pointer
+                ${collapsed ? 'justify-center px-0' : 'px-3'}
+                ${currentPage === 'admin' ? 'font-medium' : 'hover:bg-[--hover-bg]'}
+              `}
+              style={{
+                background: currentPage === 'admin' ? 'rgba(245, 158, 11, 0.15)' : undefined,
+              }}
+              title={collapsed ? 'Admin Console' : undefined}
+            >
+              {currentPage === 'admin' && !collapsed && (
+                <span
+                  className="w-[2.5px] h-5 rounded-full flex-shrink-0"
+                  style={{ background: '#f59e0b' }}
+                />
+              )}
+              <Shield
+                className="w-[18px] h-[18px] flex-shrink-0 text-amber-400"
+                strokeWidth={1.5}
+              />
+              {!collapsed && (
+                <span
+                  className="text-[13px] whitespace-nowrap text-amber-200"
+                >
+                  Admin Console
                 </span>
               )}
             </button>

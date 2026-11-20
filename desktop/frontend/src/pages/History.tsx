@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, RefreshCw, Trash2, FileImage } from 'lucide-react';
+import { Search, RefreshCw, Trash2, FileImage, Cloud, UploadCloud, CheckCircle2, Clock } from 'lucide-react';
 import {
   fetchInspections,
   deleteInspection,
@@ -7,6 +7,13 @@ import {
   AnalyzeResult,
   resolveImageUrl,
 } from '../services/api';
+import {
+  isSupabaseConfigured,
+  fetchSupabaseInspections,
+  getLocalInspections,
+  syncPendingInspections,
+  supabase,
+} from '../services/supabase';
 import {
   GlassPanel,
   Button,
@@ -27,6 +34,8 @@ export const History: React.FC<HistoryProps> = ({
 }) => {
   const [inspections, setInspections] = useState<InspectionListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'crack' | 'clear'>('all');
@@ -36,12 +45,80 @@ export const History: React.FC<HistoryProps> = ({
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchInspections(0, 100);
-      setInspections(data);
+      const localItems = getLocalInspections();
+      const pending = localItems.filter(
+        (x) => x.syncStatus === 'pending' || x.syncStatus === 'failed'
+      );
+      setPendingCount(pending.length);
+
+      let items: InspectionListItem[] = [];
+
+      // 1. Fetch from Supabase Cloud if configured
+      if (isSupabaseConfigured()) {
+        try {
+          const supaList = await fetchSupabaseInspections(100);
+          if (supaList && supaList.length > 0) {
+            items = supaList.map((s, idx) => ({
+              id: idx + 1,
+              uuid: s.id,
+              filename: s.filename,
+              is_crack: s.verdict === 'crack_detected',
+              predicted_class: s.verdict === 'crack_detected' ? 'crack' : 'clear',
+              confidence: s.confidence,
+              image_url: s.image_url,
+              created_at: s.created_at,
+              sync_status: s.sync_status || 'synced',
+            }));
+          }
+        } catch (supaErr) {
+          console.warn('Supabase inspections fetch error:', supaErr);
+        }
+      }
+
+      // 2. If no cloud records or offline, fallback to backend /inspections
+      if (items.length === 0) {
+        try {
+          items = await fetchInspections(0, 100);
+        } catch {
+          // offline or empty backend
+        }
+      }
+
+      // 3. Prepend local pending records if not already in list
+      const existingUuids = new Set(items.map((i) => i.uuid));
+      for (const loc of localItems) {
+        if (!existingUuids.has(loc.clientId) && !existingUuids.has(loc.supabaseId || '')) {
+          items.unshift({
+            id: items.length + 1,
+            uuid: loc.clientId,
+            filename: loc.filename,
+            is_crack: loc.verdict === 'crack_detected',
+            predicted_class: loc.verdict === 'crack_detected' ? 'crack' : 'clear',
+            confidence: loc.confidence,
+            image_url: loc.imageUrl,
+            created_at: loc.createdAt,
+            sync_status: loc.syncStatus,
+          });
+        }
+      }
+
+      setInspections(items);
     } catch (err: any) {
-      setError(err.message || 'Failed to load inspection history from database.');
+      setError(err.message || 'Failed to load inspection history.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSyncPending = async () => {
+    setSyncing(true);
+    try {
+      const result = await syncPendingInspections();
+      await loadData();
+    } catch (err: any) {
+      alert(`Sync error: ${err.message}`);
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -109,6 +186,17 @@ export const History: React.FC<HistoryProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
+          {pendingCount > 0 && (
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={UploadCloud}
+              onClick={handleSyncPending}
+              loading={syncing}
+            >
+              Sync Pending ({pendingCount})
+            </Button>
+          )}
           <Button
             variant="secondary"
             size="sm"
@@ -206,6 +294,7 @@ export const History: React.FC<HistoryProps> = ({
                 <th className="py-3 px-4">Surface / File</th>
                 <th className="py-3 px-4">Verdict</th>
                 <th className="py-3 px-4">Confidence</th>
+                <th className="py-3 px-4">Cloud Sync</th>
                 <th className="py-3 px-4">Timestamp</th>
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
@@ -277,6 +366,23 @@ export const History: React.FC<HistoryProps> = ({
                   </td>
                   <td className="py-3 px-4 font-mono text-xs" style={{ color: 'var(--text-1)' }}>
                     {(item.confidence * 100).toFixed(1)}%
+                  </td>
+                  <td className="py-3 px-4">
+                    {item.sync_status === 'synced' ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 font-medium">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        Synced
+                      </span>
+                    ) : item.sync_status === 'pending' || item.sync_status === 'failed' ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] text-amber-400 font-medium">
+                        <Clock className="w-3.5 h-3.5" />
+                        Pending
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[11px] text-white/40">
+                        Local
+                      </span>
+                    )}
                   </td>
                   <td className="py-3 px-4 font-mono text-[11px]" style={{ color: 'var(--text-3)' }}>
                     {new Date(item.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}

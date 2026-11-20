@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, AlertCircle, CheckCircle2, Eye, EyeOff, KeyRound, ArrowLeft } from 'lucide-react';
-import { loginUser, registerUser, UserProfile } from '../services/api';
+import { UserProfile } from '../services/api';
 import {
   isSupabaseConfigured,
   signInWithSupabase,
@@ -61,94 +61,68 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
     const emailToUse = getEmailOrFormattedIdentifier(identifier);
 
     try {
+      if (!isSupabaseConfigured()) {
+        throw new Error('Supabase is not configured. Please verify environment credentials.');
+      }
+
       if (mode === 'forgot') {
         if (!identifier.trim()) {
-          throw new Error('Please enter your email or phone number.');
+          throw new Error('Please enter your email or account identifier.');
         }
 
-        if (isSupabaseConfigured()) {
-          const res = await resetPasswordWithSupabase(emailToUse);
-          if (!res.success) throw new Error(res.error || 'Failed to dispatch password reset link.');
-          setSuccessMsg(res.message || 'Password reset link sent! Check your inbox.');
-        } else {
-          setSuccessMsg('If an account exists, password recovery instructions have been sent.');
-        }
+        const res = await resetPasswordWithSupabase(emailToUse);
+        if (!res.success) throw new Error(res.error || 'Failed to dispatch password reset link.');
+        setSuccessMsg(res.message || 'Password reset link sent! Check your inbox.');
         return;
       }
 
       if (mode === 'signup') {
-        let newUser: UserProfile | null = null;
+        const supaRes = await signUpWithSupabase(
+          emailToUse,
+          password,
+          fullName.trim() || 'Inspector',
+          identifier.trim()
+        );
 
-        if (isSupabaseConfigured()) {
-          const supaRes = await signUpWithSupabase(
-            emailToUse,
-            password,
-            fullName.trim() || 'Inspector',
-            identifier.trim()
-          );
+        if (!supaRes.success) throw new Error(supaRes.error || 'Registration failed in Supabase');
 
-          if (!supaRes.success) throw new Error(supaRes.error || 'Registration failed in Supabase');
+        if (supaRes.user) {
+          const newUser: UserProfile = {
+            id: supaRes.user.id,
+            email: supaRes.user.email,
+            full_name: supaRes.user.full_name || fullName.trim() || 'Inspector',
+            role: supaRes.user.role || 'user',
+            is_active: true,
+            created_at: new Date().toISOString(),
+          };
 
-          if (supaRes.user) {
-            newUser = {
-              id: supaRes.user.id,
-              email: supaRes.user.email,
-              full_name: supaRes.user.full_name || fullName.trim() || 'Inspector',
-              is_active: true,
-              created_at: new Date().toISOString(),
-            };
+          if (supaRes.message) {
+            setSuccessMsg(supaRes.message);
+          } else {
+            onLoginSuccess(newUser);
+            onClose();
           }
-          if (supaRes.message) setSuccessMsg(supaRes.message);
-        }
-
-        try {
-          await registerUser(emailToUse, password, fullName.trim() || undefined);
-          const data = await loginUser(emailToUse, password);
-          localStorage.setItem('cracksense_token', data.access_token);
-          if (!newUser) newUser = data.user;
-        } catch {
-          // Local fallback
-        }
-
-        if (newUser) {
-          onLoginSuccess(newUser);
-          onClose();
         }
         return;
       }
 
       // --- SIGN IN FLOW ---
-      let authUser: UserProfile | null = null;
-
-      if (isSupabaseConfigured()) {
-        const supaRes = await signInWithSupabase(emailToUse, password);
-        if (supaRes.success && supaRes.user) {
-          authUser = {
-            id: supaRes.user.id,
-            email: supaRes.user.email,
-            full_name: supaRes.user.full_name || 'Inspector',
-            is_active: true,
-            created_at: new Date().toISOString(),
-          };
-        } else if (!supaRes.success && supaRes.error) {
-          throw new Error(supaRes.error);
-        }
+      const supaRes = await signInWithSupabase(emailToUse, password);
+      if (!supaRes.success || !supaRes.user) {
+        throw new Error(supaRes.error || 'Invalid credentials or user not found');
       }
 
-      try {
-        const localData = await loginUser(emailToUse, password);
-        localStorage.setItem('cracksense_token', localData.access_token);
-        if (!authUser) authUser = localData.user;
-      } catch (err: any) {
-        if (!authUser) {
-          throw new Error(err.message || 'Invalid email/phone or password.');
-        }
-      }
+      const authUser: UserProfile = {
+        id: supaRes.user.id,
+        email: supaRes.user.email,
+        full_name: supaRes.user.full_name || 'Inspector',
+        role: supaRes.user.role || 'user',
+        is_active: true,
+        created_at: new Date().toISOString(),
+      };
 
-      if (authUser) {
-        onLoginSuccess(authUser);
-        onClose();
-      }
+      onLoginSuccess(authUser);
+      onClose();
     } catch (err: any) {
       setErrorMsg(err.message || 'Authentication failed');
     } finally {

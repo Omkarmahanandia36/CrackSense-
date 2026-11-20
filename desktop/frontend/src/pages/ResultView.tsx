@@ -13,6 +13,11 @@ import {
 } from 'lucide-react';
 import { AnalyzeResult, resolveImageUrl } from '../services/api';
 import { GlassPanel, Button, SegmentedControl, Toast } from '../components/ui';
+import {
+  saveInspectionLocalFirst,
+  getSignedImageUrl,
+  supabase,
+} from '../services/supabase';
 
 interface ResultViewProps {
   result: AnalyzeResult;
@@ -153,12 +158,45 @@ export const ResultView: React.FC<ResultViewProps> = ({
     localStorage.setItem(`cracksense_notes_${result.id}`, val);
   };
 
-  const handleSave = () => {
+  // Cloud sync status state
+  const [syncStatus, setSyncStatus] = useState<'pending' | 'syncing' | 'synced' | null>(null);
+
+  const handleSave = async () => {
     localStorage.setItem(`cracksense_notes_${result.id}`, notes);
     if (isReviewed) {
       localStorage.setItem(`cracksense_reviewed_${result.id}`, 'true');
     }
-    setToastMessage('Inspection record saved');
+
+    try {
+      setSyncStatus('syncing');
+      const currentUser = (await supabase.auth.getUser()).data.user;
+      await saveInspectionLocalFirst({
+        userId: currentUser?.id || 'offline-user',
+        filename: result.filename,
+        imageUrl: result.image_url,
+        annotatedImageUrl: result.annotated_image_url,
+        maskPngBase64: result.mask_png_base64,
+        verdict: result.is_crack ? 'crack_detected' : 'no_crack',
+        confidence: result.confidence,
+        boxCount: boxes.length,
+        imageWidth: naturalDimensions.width,
+        imageHeight: naturalDimensions.height,
+        detections: detections,
+        metadata: {
+          notes,
+          reviewed: isReviewed,
+          reviewedAt,
+          probabilities: result.probabilities,
+        },
+      });
+
+      setSyncStatus('synced');
+      setToastMessage('Inspection saved & synced to cloud');
+    } catch (err: any) {
+      console.warn('Sync failed during save, persisted locally:', err);
+      setSyncStatus('pending');
+      setToastMessage('Saved locally (offline pending sync)');
+    }
   };
 
   // Burn overlays into a high-res canvas and download as image
