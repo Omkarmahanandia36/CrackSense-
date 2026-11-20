@@ -3,16 +3,18 @@
 import os
 import uuid
 import asyncio
+import logging
 from io import BytesIO
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 from fastapi import APIRouter, UploadFile, File, Query, HTTPException, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from PIL import Image
+from PIL import Image, ImageOps
 
 from backend.app.core.config import settings
 from backend.app.core.database import get_db
+from backend.app.core.security import AuthUser
 from backend.app.models.inspection import Inspection
 from backend.app.models.prediction import Prediction
 from backend.app.models.model_registry import ModelRecord
@@ -24,13 +26,17 @@ from backend.app.schemas.analyze import (
     DetectionItem,
     CrackMetrics,
 )
-from backend.app.api.deps import get_optional_user
+from backend.app.api.deps import get_current_user
 from backend.app.services.storage import inspection_repo
 from backend.app.services.crack_detector import detect_cracks_tiled
 from backend.app.services.supabase_service import record_inspection_in_supabase, upload_image_to_supabase
 from ai.classification.predict import predict_image
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
+
+# Inference semaphore to prevent concurrent GPU thrashing / OOM
+INFERENCE_SEMAPHORE = asyncio.Semaphore(1)
 
 
 async def get_or_create_model_record(db: AsyncSession) -> ModelRecord:
@@ -64,7 +70,7 @@ async def analyze_concrete_image(
     file: UploadFile = File(...),
     threshold: float = Query(default=0.35, ge=0.05, le=0.95, description="Confidence threshold"),
     db: AsyncSession = Depends(get_db),
-    current_user: Optional[User] = Depends(get_optional_user),
+    current_user: Union[AuthUser, User] = Depends(get_current_user),
 ):
     """Upload concrete photograph, tile into overlapping patches, execute YOLO + OpenCV mask generation, and persist."""
     # 1. Filename & format validation
@@ -92,11 +98,25 @@ async def analyze_concrete_image(
             detail=f"File exceeds maximum allowed size of {settings.MAX_FILE_SIZE_MB} MB.",
         )
 
-    # 3. Image integrity verification
+    # 3. Image integrity verification, EXIF transposition, and downscaling
     try:
+        Image.MAX_IMAGE_PIXELS = 25_000_000
+        test_img = Image.open(BytesIO(contents))
+        test_img.verify()
+
+        # Reopen image after verify() as documented by Pillow
         pil_image = Image.open(BytesIO(contents))
-        pil_image.verify()
-        pil_image = Image.open(BytesIO(contents)).convert("RGB")
+        pil_image = ImageOps.exif_transpose(pil_image)
+        pil_image = pil_image.convert("RGB")
+
+        # Downscale excessively large photographs (e.g. > 12 Megapixels)
+        w, h = pil_image.size
+        max_pixels = 12_000_000
+        if w * h > max_pixels:
+            scale = (max_pixels / (w * h)) ** 0.5
+            new_w = int(w * scale)
+            new_h = int(h * scale)
+            pil_image = pil_image.resize((new_w, new_h), Image.Resampling.LANCZOS)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -111,15 +131,23 @@ async def analyze_concrete_image(
 
     img_w, img_h = pil_image.size
 
-    # 5. Execute Tiled Detection, NMS, and Morphological Mask Generation in Thread Pool (Non-Blocking)
-    detection_result = await asyncio.to_thread(
-        detect_cracks_tiled,
-        pil_image=pil_image,
-        conf_threshold=threshold,
-        tile_size=512,
-        overlap=0.20,
-        checkpoint_path=settings.YOLO_MODEL_PATH,
-    )
+    # 5. Execute Tiled Detection, NMS, and Morphological Mask Generation within Semaphore
+    try:
+        async with INFERENCE_SEMAPHORE:
+            detection_result = await asyncio.to_thread(
+                detect_cracks_tiled,
+                pil_image=pil_image,
+                conf_threshold=threshold,
+                tile_size=512,
+                overlap=0.20,
+                checkpoint_path=settings.YOLO_MODEL_PATH,
+            )
+    except RuntimeError as e:
+        logger.exception(f"Inference execution failure on {filename}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Inference engine failure during processing: {str(e)}",
+        )
 
     boxes_raw = detection_result["boxes"]
     annotated_url = None
@@ -172,9 +200,10 @@ async def analyze_concrete_image(
 
     inspection = Inspection(
         uuid=upload_uuid,
-        user_id=current_user.id if current_user else None,
+        user_id=str(current_user.id),
         filename=filename,
         image_path=str(saved_filepath),
+        sync_status="pending",
     )
     db.add(inspection)
     await db.flush()  # Generate inspection.id
@@ -204,6 +233,7 @@ async def analyze_concrete_image(
         verdict=verdict,
         predicted_class=final_class,
         confidence=final_confidence,
+        engine=detection_result.get("engine", "yolo"),
         probabilities=probabilities,
         image_url=f"/storage/uploads/{saved_filename}",
         annotated_image_url=annotated_url,
@@ -220,11 +250,11 @@ async def analyze_concrete_image(
     # 8. Asynchronous Supabase Cloud Synchronization (Single Writer Authority)
     try:
         supabase_img_url = upload_image_to_supabase(
-            file_bytes=content,
+            file_bytes=contents,
             filename=f"{upload_uuid}.{ext}",
             content_type=file.content_type or "image/jpeg",
         )
-        record_inspection_in_supabase({
+        supa_res = record_inspection_in_supabase({
             "id": inspection.uuid,
             "filename": inspection.filename,
             "image_url": supabase_img_url or f"/storage/uploads/{saved_filename}",
@@ -240,10 +270,13 @@ async def analyze_concrete_image(
                 "device": "cuda",
                 "threshold": threshold,
                 "metrics": detection_result.get("metrics", {}),
+                "engine": detection_result.get("engine", "yolo"),
             },
         })
+        if supa_res:
+            inspection.sync_status = "synced"
+            await db.commit()
     except Exception as e:
-        # Non-blocking logging if Supabase is unconfigured or offline
-        pass
+        logger.exception(f"Supabase cloud synchronization failed for {inspection.uuid}: {e}")
 
     return resp

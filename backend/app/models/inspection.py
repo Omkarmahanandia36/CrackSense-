@@ -12,11 +12,11 @@ class Inspection(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     uuid = Column(String(36), unique=True, index=True, default=lambda: str(uuid.uuid4()))
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    user_id = Column(String(64), nullable=True, index=True)
     filename = Column(String(255), nullable=False)
     image_path = Column(String(500), nullable=False)
+    sync_status = Column(String(20), default="pending", nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
-    user = relationship("User", back_populates="inspections")
     predictions = relationship("Prediction", back_populates="inspection", cascade="all, delete-orphan")
     reports = relationship("ReportRecord", back_populates="inspection", cascade="all, delete-orphan")

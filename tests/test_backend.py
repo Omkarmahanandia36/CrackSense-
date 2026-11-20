@@ -9,7 +9,14 @@ from httpx import AsyncClient, ASGITransport
 from backend.app.main import app
 from backend.app.core.config import settings
 from backend.app.core.database import init_db
+from backend.app.core.security import create_access_token
 from backend.app.services.storage import inspection_repo
+
+
+def get_test_auth_headers() -> dict:
+    """Generate authenticated bearer token headers for testing."""
+    token = create_access_token({"sub": "test-inspector-uuid", "id": "test-inspector-uuid"})
+    return {"Authorization": f"Bearer {token}"}
 
 
 def make_dummy_jpeg(color: tuple = (128, 128, 128), size: tuple = (227, 227)) -> bytes:
@@ -39,10 +46,19 @@ async def test_health_endpoints():
 
 
 @pytest.mark.asyncio
+async def test_analyze_unauthenticated_rejected():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        files = {"file": ("sample.jpg", make_dummy_jpeg(), "image/jpeg")}
+        res = await client.post("/analyze", files=files)
+        assert res.status_code == 401
+        assert "authentication" in res.json()["detail"].lower() or "missing" in res.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
 async def test_analyze_validation_empty_file():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         files = {"file": ("empty.jpg", b"", "image/jpeg")}
-        res = await client.post("/analyze", files=files)
+        res = await client.post("/analyze", files=files, headers=get_test_auth_headers())
         assert res.status_code == 400
         assert "empty" in res.json()["detail"].lower()
 
@@ -51,7 +67,7 @@ async def test_analyze_validation_empty_file():
 async def test_analyze_validation_invalid_extension():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         files = {"file": ("report.pdf", b"fake pdf bytes", "application/pdf")}
-        res = await client.post("/analyze", files=files)
+        res = await client.post("/analyze", files=files, headers=get_test_auth_headers())
         assert res.status_code == 400
         assert "unsupported file format" in res.json()["detail"].lower()
 
@@ -60,7 +76,7 @@ async def test_analyze_validation_invalid_extension():
 async def test_analyze_validation_corrupted_image():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         files = {"file": ("corrupt.jpg", b"not-a-valid-image-stream", "image/jpeg")}
-        res = await client.post("/analyze", files=files)
+        res = await client.post("/analyze", files=files, headers=get_test_auth_headers())
         assert res.status_code == 400
         assert "corrupted" in res.json()["detail"].lower() or "invalid" in res.json()["detail"].lower()
 
@@ -71,7 +87,7 @@ async def test_analyze_successful_inference():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         img_bytes = make_dummy_jpeg()
         files = {"file": ("sample_concrete.jpg", img_bytes, "image/jpeg")}
-        res = await client.post("/analyze", files=files)
+        res = await client.post("/analyze", files=files, headers=get_test_auth_headers())
 
         assert res.status_code == 201
         data = res.json()

@@ -42,9 +42,10 @@ class DetectionItem(BaseModel):
 
 class CrackMetrics(BaseModel):
     estimated_length_px: float = Field(default=0.0, description="Estimated crack centerline length in pixels")
-    max_width_px: float = Field(default=0.0, description="Maximum estimated crack width in pixels")
+    max_width_px: float = Field(default=0.0, description="95th percentile estimated crack width in pixels along skeleton")
     mean_width_px: float = Field(default=0.0, description="Mean estimated crack width in pixels")
     severity: str = Field(default="None", description="Severity grade: 'None' | 'Low' | 'Medium' | 'High' | 'Critical'")
+    severity_unit: str = Field(default="image-relative (px)", description="Unit of measurement: image-relative (px)")
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -56,6 +57,7 @@ class AnalyzeResponse(BaseModel):
     verdict: str = Field(default="no_crack", description="'crack_detected' | 'no_crack'")
     predicted_class: str = Field(..., description="'Positive (Crack)' or 'Negative (Clear)'")
     confidence: float = Field(..., description="Prediction confidence score (0.0 to 1.0)")
+    engine: str = Field(default="yolo", description="Inference engine: 'yolo' | 'fallback'")
     probabilities: ClassProbabilities = Field(..., description="Class probability distribution")
     image_url: str = Field(..., description="Static URL to access stored uploaded photograph")
     annotated_image_url: Optional[str] = Field(default=None, description="Static URL to image with rendered bounding boxes")

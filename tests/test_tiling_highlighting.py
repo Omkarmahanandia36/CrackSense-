@@ -87,10 +87,15 @@ async def test_backend_analyze_tiled_api():
     buf.seek(0)
 
     transport = ASGITransport(app=app)
+    from backend.app.core.security import create_access_token
+    token = create_access_token({"sub": "test-inspector-uuid", "id": "test-inspector-uuid"})
+    auth_headers = {"Authorization": f"Bearer {token}"}
+
     async with AsyncClient(transport=transport, base_url="http://testserver") as client:
         response = await client.post(
             "/analyze?threshold=0.30",
             files={"file": ("concrete_dam_wall.jpg", buf, "image/jpeg")},
+            headers=auth_headers,
         )
 
     assert response.status_code in (200, 201)

@@ -15,5 +15,3 @@ class User(Base):
     full_name = Column(String(255), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-
-    inspections = relationship("Inspection", back_populates="user", cascade="all, delete-orphan")

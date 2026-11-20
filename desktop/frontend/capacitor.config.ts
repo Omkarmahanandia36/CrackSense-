@@ -9,6 +9,9 @@ const config: CapacitorConfig = {
     cleartext: true, // Allow connecting to local LAN / development AI backend
   },
   plugins: {
+    CapacitorHttp: {
+      enabled: true,
+    },
     Camera: {
       presentationStyle: 'fullscreen',
     },
