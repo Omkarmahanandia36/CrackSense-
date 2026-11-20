@@ -26,7 +26,7 @@ from backend.app.schemas.analyze import (
     DetectionItem,
     CrackMetrics,
 )
-from backend.app.api.deps import get_current_user
+from backend.app.api.deps import get_current_user, get_optional_user
 from backend.app.services.storage import inspection_repo
 from backend.app.services.crack_detector import detect_cracks_tiled
 from backend.app.services.supabase_service import record_inspection_in_supabase, upload_image_to_supabase
@@ -70,7 +70,7 @@ async def analyze_concrete_image(
     file: UploadFile = File(...),
     threshold: float = Query(default=0.35, ge=0.05, le=0.95, description="Confidence threshold"),
     db: AsyncSession = Depends(get_db),
-    current_user: Union[AuthUser, User] = Depends(get_current_user),
+    current_user: Optional[Union[AuthUser, User]] = Depends(get_optional_user),
 ):
     """Upload concrete photograph, tile into overlapping patches, execute YOLO + OpenCV mask generation, and persist."""
     # 1. Filename & format validation
@@ -200,7 +200,7 @@ async def analyze_concrete_image(
 
     inspection = Inspection(
         uuid=upload_uuid,
-        user_id=str(current_user.id),
+        user_id=str(current_user.id) if current_user else "anonymous",
         filename=filename,
         image_path=str(saved_filepath),
         sync_status="pending",
@@ -256,6 +256,8 @@ async def analyze_concrete_image(
         )
         supa_res = record_inspection_in_supabase({
             "id": inspection.uuid,
+            "client_id": inspection.uuid,
+            "user_id": str(current_user.id) if current_user else None,
             "filename": inspection.filename,
             "image_url": supabase_img_url or f"/storage/uploads/{saved_filename}",
             "annotated_image_url": annotated_url,

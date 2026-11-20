@@ -3,7 +3,7 @@
 import os
 import logging
 from pathlib import Path
-from typing import List, Union
+from typing import List, Union, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,7 +17,7 @@ from backend.app.models.inspection import Inspection
 from backend.app.models.prediction import Prediction
 from backend.app.models.user import User
 from backend.app.schemas.inspection import InspectionListItem, InspectionDetailResponse, PredictionResponse
-from backend.app.api.deps import get_current_user
+from backend.app.api.deps import get_current_user, get_optional_user
 from backend.app.services.supabase_service import upload_image_to_supabase, record_inspection_in_supabase
 
 logger = logging.getLogger(__name__)
@@ -29,32 +29,29 @@ async def list_inspections(
     skip: int = Query(0, ge=0),
     limit: int = Query(25, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
-    current_user: Union[AuthUser, User] = Depends(get_current_user),
+    current_user: Optional[Union[AuthUser, User]] = Depends(get_optional_user),
 ):
-    """List historical inspection scans for the authenticated user, newest first."""
-    uid = str(current_user.id)
-    stmt = (
-        select(Inspection)
-        .options(selectinload(Inspection.predictions))
-        .where(Inspection.user_id == uid)
-        .order_by(desc(Inspection.created_at))
-        .offset(skip)
-        .limit(limit)
-    )
-    result = await db.execute(stmt)
-    inspections = result.scalars().all()
-
-    # If no records under user_id (e.g. dev legacy without user_id), include unassigned if owner
-    if not inspections and uid == "test-inspector-uuid":
-        stmt_fallback = (
+    """List historical inspection scans for the authenticated user (or recent scans if guest), newest first."""
+    uid = str(current_user.id) if current_user else None
+    if uid and uid != "test-inspector-uuid":
+        stmt = (
+            select(Inspection)
+            .options(selectinload(Inspection.predictions))
+            .where(Inspection.user_id == uid)
+            .order_by(desc(Inspection.created_at))
+            .offset(skip)
+            .limit(limit)
+        )
+    else:
+        stmt = (
             select(Inspection)
             .options(selectinload(Inspection.predictions))
             .order_by(desc(Inspection.created_at))
             .offset(skip)
             .limit(limit)
         )
-        res_fb = await db.execute(stmt_fallback)
-        inspections = res_fb.scalars().all()
+    result = await db.execute(stmt)
+    inspections = result.scalars().all()
 
     items = []
     for insp in inspections:

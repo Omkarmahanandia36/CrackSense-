@@ -57,7 +57,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <aside
-      className="glass-base flex flex-col justify-between select-none flex-shrink-0 transition-[width] duration-200 ease-out overflow-hidden"
+      className="hidden md:flex glass-base flex-col justify-between select-none flex-shrink-0 transition-[width] duration-200 ease-out overflow-hidden"
       style={{ width: collapsed ? 64 : 240, minHeight: 0 }}
     >
       {/* ── Top: Wordmark + Real App Nav ── */}
