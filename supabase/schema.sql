@@ -46,7 +46,11 @@ CREATE INDEX IF NOT EXISTS idx_detection_boxes_inspection_id ON public.detection
 ALTER TABLE public.inspections ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.detection_boxes ENABLE ROW LEVEL SECURITY;
 
--- 4. RLS Policies: Allow authenticated users to manage their own records,
+-- 4. Grant table access to API roles
+GRANT ALL ON TABLE public.inspections TO anon, authenticated, service_role;
+GRANT ALL ON TABLE public.detection_boxes TO anon, authenticated, service_role;
+
+-- 5. RLS Policies: Allow authenticated users to manage their own records,
 -- and allow anonymous access for local desktop inspection syncing
 DROP POLICY IF EXISTS "Public can view inspections" ON public.inspections;
 CREATE POLICY "Public can view inspections"
@@ -79,7 +83,7 @@ CREATE POLICY "Public can insert detection_boxes"
     ON public.detection_boxes FOR INSERT
     WITH CHECK (true);
 
--- 5. Set up Supabase Storage bucket for crack inspection images
+-- 6. Set up Supabase Storage bucket for crack inspection images
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('cracksense-images', 'cracksense-images', true)
 ON CONFLICT (id) DO NOTHING;
