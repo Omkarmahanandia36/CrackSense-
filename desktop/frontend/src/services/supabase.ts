@@ -127,7 +127,7 @@ export const recordLoginEvent = async (userId: string): Promise<void> => {
       platform = 'electron';
     }
 
-    const appVersion = '1.0.0';
+    const appVersion = import.meta.env.APP_VERSION || '1.0.0';
     let deviceModel = 'Desktop Client';
 
     if (typeof navigator !== 'undefined') {
