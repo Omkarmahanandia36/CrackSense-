@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "tiles_tested": 20,
+  "total_torch_boxes": 40,
+  "total_onnx_boxes": 40,
+  "matched_boxes": 40,
+  "match_ratio": 1.0,
+  "mean_iou": 0.9997,
+  "max_confidence_diff": 0.0004,
+  "boxes_only_torch": 0,
+  "boxes_only_onnx": 0,
+  "sample_fixtures_count": 3
+}

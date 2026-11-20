@@ -1,0 +1,14 @@
+{
+  "model": "best_yolo.onnx",
+  "num_tiles_benchmarked": 50,
+  "tiles_4000x3000": 80,
+  "all_threads": {
+    "avg_ms_per_tile": 18.05,
+    "est_4000x3000_sec": 1.44
+  },
+  "single_thread": {
+    "avg_ms_per_tile": 59.49,
+    "est_4000x3000_sec": 4.76
+  },
+  "gpu_directml": "Not available (CPU only)"
+}

@@ -1,0 +1,36 @@
+{
+  "model_name": "CrackSense YOLO",
+  "base_architecture": "YOLOv8n / YOLO11n",
+  "format": "ONNX",
+  "opset": 12,
+  "imgsz": 512,
+  "input_tensor": {
+    "name": "images",
+    "shape": [1, 3, 512, 512],
+    "dtype": "float32",
+    "color_format": "RGB",
+    "normalization": "1.0 / 255.0",
+    "layout": "NCHW"
+  },
+  "output_tensor": {
+    "name": "output0",
+    "shape": [1, 6, 5376],
+    "dtype": "float32",
+    "layout": "[batch, 4_coords_plus_num_classes, num_anchors]"
+  },
+  "classes": {
+    "0": "crack",
+    "1": "spalling"
+  },
+  "num_classes": 2,
+  "thresholds": {
+    "confidence_threshold": 0.35,
+    "iou_threshold": 0.40,
+    "tile_size": 512,
+    "tile_overlap": 0.20
+  },
+  "files": {
+    "static_onnx": "best_yolo.onnx",
+    "dynamic_onnx": "best_yolo_dynamic.onnx"
+  }
+}
