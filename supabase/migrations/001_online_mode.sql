@@ -4,22 +4,7 @@
 -- Enables strict multi-tenant Row Level Security, Profiles, Login Events,
 -- Admin RBAC with security definer functions, and Private Image Storage.
 
--- 1. Helper function: check if calling user is an Admin (SECURITY DEFINER)
--- Bypasses RLS recursion by running with privileges of the function creator.
-CREATE OR REPLACE FUNCTION public.is_admin()
-RETURNS BOOLEAN
-LANGUAGE sql
-SECURITY DEFINER
-SET search_path = public
-STABLE
-AS $$
-    SELECT EXISTS (
-        SELECT 1 FROM public.profiles
-        WHERE id = auth.uid() AND role = 'admin'
-    );
-$$;
-
--- 2. Profiles Table
+-- 1. Profiles Table (Must be created before is_admin() function references it)
 CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     email TEXT,
@@ -30,6 +15,23 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS email TEXT;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+-- 2. Helper function: check if calling user is an Admin (SECURITY DEFINER)
+-- Bypasses RLS recursion by running with privileges of the function creator.
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+STABLE
+AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1 FROM public.profiles
+        WHERE id = auth.uid() AND role = 'admin'
+    );
+END;
+$$;
 
 -- Profiles RLS
 DROP POLICY IF EXISTS "Users can read own profile or admin read all" ON public.profiles;
