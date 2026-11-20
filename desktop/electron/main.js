@@ -15,28 +15,30 @@ function createWindow() {
     },
   });
 
-  const startUrl = process.env.ELECTRON_START_URL || 'http://localhost:5173';
+  const fs = require('fs');
+  const distIndex = path.join(__dirname, '../frontend/dist/index.html');
+  const isDev = Boolean(process.env.ELECTRON_START_URL);
 
-  // Load dev server with simple retry logic if Vite is starting up
-  const loadWithRetry = (url, retries = 5) => {
-    mainWindow.loadURL(url).catch((err) => {
-      if (retries > 0) {
-        console.log(`Waiting for frontend dev server at ${url}... (${retries} retries left)`);
-        setTimeout(() => loadWithRetry(url, retries - 1), 1500);
-      } else {
-        const fs = require('fs');
-        const distIndex = path.join(__dirname, '../frontend/dist/index.html');
-        if (fs.existsSync(distIndex)) {
+  if (!isDev && fs.existsSync(distIndex)) {
+    console.log(`Loading compiled production bundle: ${distIndex}`);
+    mainWindow.loadFile(distIndex);
+  } else {
+    const startUrl = process.env.ELECTRON_START_URL || 'http://localhost:5173';
+    const loadWithRetry = (url, retries = 3) => {
+      mainWindow.loadURL(url).catch((err) => {
+        if (retries > 0) {
+          console.log(`Waiting for frontend dev server at ${url}... (${retries} retries left)`);
+          setTimeout(() => loadWithRetry(url, retries - 1), 1000);
+        } else if (fs.existsSync(distIndex)) {
           console.log(`Vite server not detected. Loading compiled bundle: ${distIndex}`);
           mainWindow.loadFile(distIndex);
         } else {
           console.error(`Failed to load ${url}:`, err);
         }
-      }
-    });
-  };
-
-  loadWithRetry(startUrl);
+      });
+    };
+    loadWithRetry(startUrl);
+  }
 
   // Clean menu bar
   mainWindow.setMenuBarVisibility(false);
