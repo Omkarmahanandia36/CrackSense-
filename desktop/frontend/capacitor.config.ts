@@ -5,7 +5,8 @@ const config: CapacitorConfig = {
   appName: 'CrackSense AI',
   webDir: 'dist',
   server: {
-    androidScheme: 'https',
+    // Set to 'http' to avoid mixed-content blocking when accessing plain HTTP backend on LAN
+    androidScheme: 'http',
     cleartext: true, // Allow connecting to local LAN / development AI backend
   },
   plugins: {
