@@ -26,6 +26,7 @@ export const UpdateStatus: React.FC = () => {
   const [error, setError] = useState<string | null>(updateService.getError());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [installedVersion, setInstalledVersion] = useState(updateService.getInstalledVersion());
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     updateService.init().then(() => {
@@ -41,14 +42,35 @@ export const UpdateStatus: React.FC = () => {
 
       // Prompt user with update dialog on app launch if an update is available
       if (newState === 'available' && newInfo?.version) {
-        const dismissed = sessionStorage.getItem(`cracksense_update_dismissed_${newInfo.version}`);
-        if (!dismissed) {
-          setIsModalOpen(true);
-        }
+        setIsModalOpen(true);
       }
     });
 
-    return unsubscribe;
+    // Custom event listeners for manual checks from Profile / Settings
+    const handleOpenModal = () => setIsModalOpen(true);
+    const handleCheckUpdates = async () => {
+      setNotice(null);
+      await updateService.checkForUpdates();
+      setTimeout(() => {
+        const curState = updateService.getState();
+        const curInfo = updateService.getUpdateInfo();
+        if (curState === 'available' && curInfo?.version) {
+          setIsModalOpen(true);
+        } else {
+          setNotice(`CrackSense AI v${updateService.getInstalledVersion()} is up to date!`);
+          setTimeout(() => setNotice(null), 3500);
+        }
+      }, 1200);
+    };
+
+    window.addEventListener('cracksense:open_update_modal', handleOpenModal);
+    window.addEventListener('cracksense:check_updates', handleCheckUpdates);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener('cracksense:open_update_modal', handleOpenModal);
+      window.removeEventListener('cracksense:check_updates', handleCheckUpdates);
+    };
   }, []);
 
   const handleAction = async () => {
@@ -310,6 +332,13 @@ export const UpdateStatus: React.FC = () => {
               <ExternalLink className="w-4 h-4" />
             </button>
           </div>
+        </div>
+      )}
+      {/* ── Up to date Toast notification ── */}
+      {notice && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 backdrop-blur-xl shadow-2xl animate-fade-rise text-xs font-medium">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+          <span>{notice}</span>
         </div>
       )}
     </>

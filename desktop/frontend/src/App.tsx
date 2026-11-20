@@ -8,6 +8,7 @@ import { History } from './pages/History';
 import { DevComponents } from './pages/DevComponents';
 import { AdminView } from './pages/AdminView';
 import { LoginModal } from './components/LoginModal';
+import { EditProfileModal } from './components/EditProfileModal';
 import {
   supabase,
   isSupabaseConfigured,
@@ -46,6 +47,7 @@ export default function App() {
   });
 
   const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [initialFileForUpload, setInitialFileForUpload] = useState<File | null>(null);
 
@@ -220,6 +222,7 @@ export default function App() {
           user={user}
           onOpenLogin={() => setIsLoginOpen(true)}
           onLogout={handleLogout}
+          onOpenEditProfile={() => setIsEditProfileOpen(true)}
           theme={theme}
           onToggleTheme={toggleTheme}
         />
@@ -233,6 +236,7 @@ export default function App() {
           user={user}
           onOpenLogin={() => setIsLoginOpen(true)}
           onLogout={handleLogout}
+          onOpenEditProfile={() => setIsEditProfileOpen(true)}
           collapsed={sidebarCollapsed}
           onToggleCollapse={() => setSidebarCollapsed((p) => !p)}
           theme={theme}
@@ -315,6 +319,13 @@ export default function App() {
         isOpen={isLoginOpen}
         onClose={() => setIsLoginOpen(false)}
         onLoginSuccess={(loggedInUser) => handleSetUser(loggedInUser)}
+      />
+
+      <EditProfileModal
+        isOpen={isEditProfileOpen}
+        onClose={() => setIsEditProfileOpen(false)}
+        user={user}
+        onProfileUpdated={(updated) => handleSetUser(updated)}
       />
     </div>
   );

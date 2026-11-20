@@ -11,6 +11,8 @@ import {
   LogOut,
   User,
   Sparkles,
+  UserCog,
+  RefreshCw,
 } from 'lucide-react';
 import { HealthData, UserProfile } from '../services/api';
 import { UpdateStatus } from './UpdateStatus';
@@ -24,6 +26,7 @@ interface MobileNavProps {
   user: UserProfile | null;
   onOpenLogin: () => void;
   onLogout: () => void;
+  onOpenEditProfile?: () => void;
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
 }
@@ -33,6 +36,7 @@ export const MobileHeader: React.FC<MobileNavProps> = ({
   user,
   onOpenLogin,
   onLogout,
+  onOpenEditProfile,
   theme,
   onToggleTheme,
   onNavigate,
@@ -134,6 +138,30 @@ export const MobileHeader: React.FC<MobileNavProps> = ({
                       </span>
                     )}
                   </div>
+
+                  {/* 1. Edit Profile */}
+                  <button
+                    onClick={() => {
+                      setShowProfileMenu(false);
+                      onOpenEditProfile?.();
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/10 rounded-xl transition-colors text-left cursor-pointer"
+                  >
+                    <UserCog className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Edit Profile</span>
+                  </button>
+
+                  {/* 2. Check for Updates */}
+                  <button
+                    onClick={() => {
+                      setShowProfileMenu(false);
+                      window.dispatchEvent(new CustomEvent('cracksense:check_updates'));
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/10 rounded-xl transition-colors text-left cursor-pointer"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Check for Updates</span>
+                  </button>
 
                   {user.role === 'admin' && (
                     <button
