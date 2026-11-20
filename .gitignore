@@ -12,10 +12,11 @@ __pycache__/
 # Node & Electron Builds
 node_modules/
 dist/
-build/
 dist-electron/
 desktop/dist-electron/
 .npm
+!desktop/build/
+!desktop/build/**
 
 # Machine Learning Artifacts
 *.pth
@@ -42,6 +43,12 @@ storage/uploads/*
 !storage/uploads/.gitkeep
 storage/reports/*
 !storage/reports/.gitkeep
+storage/inspections.json
+storage/*.json
+
+# Desktop build icon assets
+!desktop/build/icon.ico
+!desktop/build/icon.png
 
 # Testing & Coverage
 .pytest_cache/

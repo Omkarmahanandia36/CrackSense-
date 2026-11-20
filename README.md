@@ -1,12 +1,15 @@
 # CrackSense AI – Concrete Crack Detection System
 
+[![Version](https://img.shields.io/badge/version-1.1.0-teal.svg)](https://github.com/Omkarmahanandia36/CrackSense-/releases)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Android-blue.svg)](https://github.com/Omkarmahanandia36/CrackSense-)
+[![Backend](https://img.shields.io/badge/backend-FastAPI%20%7C%20Python%203.11-009688.svg)](https://fastapi.tiangolo.com)
+[![Frontend](https://img.shields.io/badge/frontend-React%2018%20%7C%20Vite%20%7C%20TailwindCSS-61DAFB.svg)](https://react.dev)
+[![Deep Learning](https://img.shields.io/badge/AI-YOLOv8%20%7C%20ResNet--18%20%7C%20OpenCV-EE4C2C.svg)](https://ultralytics.com)
+[![Cloud](https://img.shields.io/badge/cloud-Supabase%20%7C%20Cloudinary-3ECF8E.svg)](https://supabase.com)
+
 An AI-powered concrete crack detection system using deep learning and computer vision to identify, localise, and visualise cracks in concrete surfaces.
 
-CrackSense AI aims to simplify concrete surface inspection through automated image analysis. Users will be able to upload concrete images, analyse them using trained AI models, visualise detected cracks, and maintain inspection records through a desktop application.
-
-**Target Platforms:** Windows Desktop (`.exe` / portable) & Android Mobile (`.apk` / Capacitor)  
-**Cloud Infrastructure:** Supabase (PostgreSQL Database, Cloud Image Storage, User Auth)  
-**Project Status:** Production-Ready & Verified
+CrackSense AI aims to simplify concrete surface inspection through automated image analysis. Users will be able to upload concrete images, analyse them using trained AI models, visualise detected cracks, and maintain inspection records through a desktop application and mobile app.
 
 ---
 
@@ -14,566 +17,528 @@ CrackSense AI aims to simplify concrete surface inspection through automated ima
 
 - [Overview](#overview)
 - [Key Features](#key-features)
-- [Technology Stack](#technology-stack)
 - [System Architecture](#system-architecture)
-- [Cross-Platform Applications (Desktop & Mobile)](#cross-platform-applications-desktop--mobile)
-- [Dual-Database Architecture & Supabase](#dual-database-architecture--supabase)
-- [AI Models and Datasets](#ai-models-and-datasets)
-- [Quick Start & Launchers](#quick-start--launchers)
-- [Project Structure](#project-structure)
-- [Configuration](#configuration)
-- [Testing & Verification](#testing--verification)
+- [AI Engine & Computer Vision Pipeline](#ai-engine--computer-vision-pipeline)
+- [Technology Stack](#technology-stack)
+- [Repository Structure](#repository-structure)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [1. Backend Setup](#1-backend-setup)
+  - [2. Frontend & Desktop Setup](#2-frontend--desktop-setup)
+  - [3. Android Mobile Setup](#3-android-mobile-setup)
+  - [4. Environment Configuration](#4-environment-configuration)
+- [Running the Applications](#running-the-applications)
+  - [One-Click Windows Launchers](#one-click-windows-launchers)
+  - [Manual Execution](#manual-execution)
+- [Packaging & Releases](#packaging--releases)
+- [In-App Update System](#in-app-update-system)
+- [Evaluation & Benchmark Metrics](#evaluation--benchmark-metrics)
+- [Testing & Quality Assurance](#testing--quality-assurance)
 - [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
 - [License](#license)
 
 ---
 
 ## Overview
 
-Concrete cracks can develop in buildings, bridges, roads, pavements, walls, floors, and other concrete structures. Identifying and documenting these cracks is an important part of infrastructure inspection and maintenance.
+Concrete cracks develop naturally across buildings, bridges, roadways, tunnels, dams, floors, and retaining walls due to tensile stress, thermal expansion, shrinkage, settlement, or environmental degradation. Timely detection and regular structural health monitoring prevent catastrophic structural failure and minimize repair expenditures.
 
-Traditional visual inspection can be time-consuming, particularly when large concrete surfaces need to be examined.
+Traditional manual inspection requires physical scaffolding, manual measurement, and subjective visual judgment—making it hazardous, labor-intensive, and prone to human inconsistency.
 
-CrackSense AI is being developed to assist this process using artificial intelligence, deep learning, and image processing.
+**CrackSense AI** automates this workflow with an end-to-end multi-platform application:
+1. **Ingest:** Inspect via drag-and-drop file upload, direct camera snap on mobile, or batch imports.
+2. **Detect & Localize:** Execute tiled high-resolution YOLOv8 inference with OpenCV Non-Maximum Suppression (NMS) to detect hairline and structural cracks without downsampling distortion.
+3. **Segment & Quantify:** Compute pixel-precise morphological crack masks using adaptive CLAHE and Blackhat transforms, providing quantitative metrics (estimated length, max/mean width, severity index).
+4. **Inspect & Interact:** View results in a responsive glassmorphic multi-mode viewer (`Original`, `Boxes`, `Mask`, `Both`) with real-time zoom/pan.
+5. **Persist & Sync:** Maintain inspection records locally on SQLite with automatic background synchronization to Supabase PostgreSQL and secure cloud imagery storage.
+6. **Report:** Generate professional structural inspection PDF reports with embedded metrics and visual comparisons in a single click.
 
-The proposed system will analyse uploaded concrete images and provide:
-
-- Crack and non-crack classification.
-- Visual localisation of cracks.
-- Pixel-level crack segmentation.
-- AI prediction confidence scores.
-- Original and analysed image comparison.
-- Inspection history and records.
-- Inspection report generation.
-
-The primary focus is automated visual crack detection in concrete surfaces.
-
-## Project Objectives
-
-1. Develop an AI-based system for concrete crack detection.
-2. Train deep learning models to classify cracked and non-cracked concrete images.
-3. Identify and localise visible cracks within images.
-4. Explore pixel-level segmentation for accurate crack visualisation.
-5. Develop a desktop application for image-based inspection.
-6. Maintain organised inspection records.
-7. Evaluate model performance on different concrete surface conditions.
+---
 
 ## Key Features
 
-CrackSense AI delivers an end-to-end inspection workflow from edge hardware to cloud analytics:
+- **High-Resolution Tiling YOLOv8 Detection:** Splits large ultra-high-resolution photographs into 512×512 patches with 20% overlap, running local YOLOv8 inference and seam-merging bounding boxes via OpenCV NMS.
+- **Deep ResNet-18 Classification:** Binary surface verification trained on 40,000 concrete image patches achieving 99.8% validation accuracy.
+- **Morphological Crack Masking:** CLAHE contrast normalization followed by Blackhat morphological filtering generates transparent alpha masks with 60% amber/red crack highlighting.
+- **Crack Metric Quantification:** Morphological skeletonization extracts estimated crack length in pixels, maximum crack width, mean crack width, and assigns a structural severity grade (`None`, `Minor`, `Moderate`, `Severe`).
+- **Interactive Multi-Mode Inspection Viewer:** Smooth scroll zoom, drag-to-pan, 1-click fit-to-view, and segmented switching across `Original`, `Boxes`, `Mask`, and `Both`.
+- **Cross-Platform Native Builds:**
+  - **Windows Desktop:** Electron 29 NSIS installer and portable executable with background Python AI auto-launcher (launches the backend silently when `.exe` starts).
+  - **Android Mobile:** Capacitor 8 native Android application with hardware camera integration (`@capacitor/camera`) and configurable LAN backend connectivity.
+- **In-App Auto-Update System (v1.1.0):**
+  - **Desktop:** Integrated `electron-updater` checking GitHub Releases (`latest.yml`) with user-prompted background downloads and 1-click restart-to-install.
+  - **Android:** Supabase-backed version checking (`app_versions` table) with semver comparison, prompt modal, and direct APK download link.
+- **Dual-Database Architecture:**
+  - **Local Edge:** Offline-first SQLite database (SQLAlchemy async) for zero-latency local persistence.
+  - **Cloud Sync:** Supabase PostgreSQL for multi-inspector cloud synchronization, user authentication, and Cloudinary/Supabase media hosting.
+- **Automated PDF Inspection Reports:** Standardized engineering inspection reports generated using ReportLab, complete with summary tables, detected bounding boxes, severity analysis, and inspector credentials.
 
-| Feature | Description | Status |
-|---|---|---|
-| **Multi-Source Image Ingestion** | Drag-and-drop file upload, URL analysis, and live native camera capture | **Completed** |
-| **High-Resolution Tiled YOLO** | 512×512 tiling with 20% overlap + OpenCV NMS deduplication for fine crack detection | **Completed** |
-| **Morphological Crack Masking** | CLAHE + Blackhat morphology + adaptive thresholding generating transparent overlay masks | **Completed** |
-| **Interactive Glass Viewer** | Smooth wheel zoom, drag pan, segmented control (`Original`, `Boxes`, `Mask`, `Both`), two-way table linking | **Completed** |
-| **Dual-Database Storage** | Instant local offline persistence (SQLite) + Cloud synchronization (Supabase PostgreSQL) | **Completed** |
-| **Cloud Storage Provisioning** | Automatic upload and hosting of inspection imagery via Supabase Storage (`cracksense-images`) | **Completed** |
-| **Cloud Authentication** | Supabase Auth with Sign In, Inspector Registration (full name + handle), and Forgot Password recovery | **Completed** |
-| **Desktop Application** | Electron cross-platform desktop wrapper with zero-latency compiled Vite bundle loading | **Completed** |
-| **Mobile Application** | Native Android application built with Capacitor and direct `@capacitor/camera` integration | **Completed** |
-| **Automated PDF Reports** | Professional structural inspection PDF reports generated via ReportLab with embedded metrics | **Completed** |
-| **Multi-Source Training** | Fine-tuned on Mendeley DamSegment (1,500 dam images) + Roboflow Universe crack datasets | **Completed** |
-
-## Technology Stack
-
-| Component | Technology | Purpose |
-|---|---|---|
-| **Desktop Framework** | Electron 29 | Native desktop window and packaging |
-| **Mobile Framework** | Capacitor 8 (Android) | Cross-platform mobile runtime with native camera hardware |
-| **Frontend Framework** | React 18, Vite 5, TailwindCSS | High-performance responsive UI |
-| **Design Language** | Glassmorphic 6-Swatch Palette | `#06141B`, `#11212D`, `#253745`, `#4A5C6A`, `#9BA8AB`, `#CCD0CF` |
-| **Backend API** | FastAPI, Uvicorn, Python 3.11 | Asynchronous REST AI inference and report engine |
-| **Computer Vision** | OpenCV 4.10, Pillow | Morphological Blackhat filtering, CLAHE, NMS deduplication |
-| **Deep Learning** | PyTorch, Ultralytics YOLOv8, ResNet | Crack classification and bounding box localization |
-| **Cloud Database & Auth** | Supabase (PostgreSQL, Storage, Auth) | Multi-device cloud sync, auth users, image bucket hosting |
-| **Local Database** | SQLite (SQLAlchemy + aiosqlite) | Zero-latency offline edge persistence |
-| **Report Engine** | ReportLab | Automated PDF generation |
+---
 
 ## System Architecture
 
-CrackSense AI will follow a modular architecture with four primary components.
+```mermaid
+flowchart TD
+    subgraph Clients["Client Layer"]
+        Electron["Windows Desktop App\n(Electron 29 + React 18)"]
+        Mobile["Android Mobile App\n(Capacitor 8 + Camera)"]
+    end
 
-### 1. Desktop Application
+    subgraph Backend["FastAPI Backend (Port 8000)"]
+        Router["API Gateway / Routers\n(/analyze, /inspections, /health)"]
+        AuthMiddleware["Auth & Guest Middleware\n(Supabase JWT / Local Fallback)"]
+        AutoSpawn["Desktop Process Auto-Launcher\n(Electron background spawner)"]
+    end
 
-**Technologies:** Electron, React, TypeScript
+    subgraph AIEngine["AI Inference & Computer Vision"]
+        Tiler["High-Res Tiling Pipeline\n(512x512, 20% Overlap)"]
+        YOLO["YOLOv8 Detection Model\n(Crack Bounding Boxes)"]
+        NMS["OpenCV Seam-Merging NMS\n(Bounding Box Deduplication)"]
+        Morphology["OpenCV Morphology\n(CLAHE + Blackhat Filter)"]
+        Skeleton["Crack Metrics Engine\n(Length, Width, Severity)"]
+    end
 
-Responsibilities:
-- User authentication.
-- Image upload.
-- Inspection dashboard.
-- AI analysis interface.
-- Crack detection visualisation.
-- Inspection history.
-- Report management.
+    subgraph StorageLayer["Data & Storage Layer"]
+        SQLite[("Local Edge SQLite\ncracksense.db")]
+        SupabaseDB[("Supabase PostgreSQL\nInspections & Versions")]
+        Cloudinary[("Cloud Storage\nCloudinary / Supabase Storage")]
+    end
 
-### 2. Backend API
-
-**Technology:** Python + FastAPI
-
-Responsibilities:
-- Handle frontend requests.
-- Validate uploaded images.
-- Execute AI inference.
-- Manage inspection records.
-- Store prediction results.
-- Communicate with the database.
-
-### 3. AI Processing Engine
-
-**Technologies:** PyTorch + OpenCV
-
-Responsibilities:
-- Image preprocessing.
-- Crack classification.
-- Crack localisation.
-- Crack segmentation.
-- Confidence score generation.
-- Detection result visualisation.
-
-### 4. Database
-
-**Technology:** PostgreSQL
-
-Planned data storage:
-- User information.
-- Inspection records.
-- Uploaded image references.
-- AI prediction results.
-- Model information.
-- Report records.
-
-### Architecture Diagram
-
-```text
-                 USER
-                   |
-                   v
-          ELECTRON DESKTOP APP
-             React + TypeScript
-                   |
-                   v
-              FASTAPI
-              BACKEND
-                   |
-          +--------+--------+
-          |                 |
-          v                 v
-      AI ENGINE          DATABASE
-      PyTorch           PostgreSQL
-      OpenCV                |
-          |                 |
-          v                 |
-    CRACK ANALYSIS           |
-          |                 |
-          +--------+--------+
-                   |
-                   v
-            ANALYSIS RESULTS
-                   |
-                   v
-           DESKTOP DASHBOARD
+    Electron --> Router
+    Mobile --> Router
+    AutoSpawn -.-> Backend
+    Router --> AuthMiddleware
+    Router --> Tiler
+    Tiler --> YOLO
+    YOLO --> NMS
+    NMS --> Morphology
+    Morphology --> Skeleton
+    Router --> SQLite
+    Router --> SupabaseDB
+    Router --> Cloudinary
 ```
 
-## AI Models and Approach
+---
 
-The AI development will be divided into three major stages.
+## AI Engine & Computer Vision Pipeline
 
-### Stage 1: Crack Classification
+CrackSense AI processes inspection images through an optimized pipeline:
 
-**Proposed Model:** ResNet
+```
+[Raw Concrete Photograph]
+         │
+         ▼
+[EXIF Transposition & Normalization]
+         │
+         ├───► [Tiled YOLOv8 Inference (512×512, 20% Overlap)]
+         │             │
+         │             ▼
+         │      [OpenCV Seam-Merging NMS] ──► [Global Crack Bounding Boxes]
+         │
+         └───► [CLAHE Contrast Normalization]
+                       │
+                       ▼
+               [Blackhat Morphological Filter]
+                       │
+                       ▼
+               [Adaptive Thresholding & Skeletonization]
+                       │
+                       ├──► [Transparent RGBA Mask (Amber/Red Accent)]
+                       └──► [Metrics: Estimated Length, Max/Mean Width, Severity]
+```
 
-The initial model will classify concrete images into two categories:
+### 1. High-Resolution Overlapping Tiling
+To detect fine hairline fractures without downsampling blur, high-resolution photographs are partitioned into $512 \times 512$ pixel patches with a $20\%$ spatial stride overlap.
 
-- Positive: Concrete surface contains a crack.
-- Negative: Concrete surface does not contain a crack.
+### 2. Seam-Merging Non-Maximum Suppression (NMS)
+Crack bounding boxes predicted across adjacent tiles are translated back into global image coordinates and clustered using an intersection-over-union (IoU) threshold of $0.45$, merging split cracks into coherent detection boxes.
 
-Expected output:
-- Predicted class.
-- Confidence score.
-- Classification result.
+### 3. Morphological Crack Mask Extraction
+- **CLAHE (Contrast Limited Adaptive Histogram Equalization):** Amplifies subtle dark fissures against varying concrete textures.
+- **Blackhat Transform:** Isolates thin dark features narrower than the structuring element kernel.
+- **Morphological Skeletonization:** Traces the medial topological axis of detected cracks to measure total pixel length and calculate local cross-sectional widths.
 
-### Stage 2: Crack Localisation
+---
 
-**Proposed Model:** YOLO
+## Technology Stack
 
-The object detection model will identify and locate visible cracks within concrete images.
+| Layer | Component | Technologies |
+|---|---|---|
+| **Desktop Client** | Desktop Container | Electron 29, `electron-builder`, `electron-updater` |
+| **Mobile Client** | Android Runtime | Capacitor 8, Android SDK 34+, `@capacitor/camera`, `@capacitor/app` |
+| **Frontend UI** | Interface & Styling | React 18, TypeScript, Vite 5, TailwindCSS, Lucide Icons |
+| **Design Language** | Glassmorphism | Custom CSS Design Tokens (`#06141B`, `#11212D`, `#253745`, `#4A5C6A`) |
+| **Backend API** | REST AI Engine | Python 3.11, FastAPI, Uvicorn, Pydantic v2 |
+| **Computer Vision** | Image Processing | OpenCV 4.10, Pillow, NumPy |
+| **Deep Learning** | Models | Ultralytics YOLOv8 (Detection), PyTorch ResNet-18 (Classification) |
+| **Local Database** | Edge Persistence | SQLite (SQLAlchemy 2.0 Async, aiosqlite, Alembic) |
+| **Cloud Infrastructure** | Cloud Services | Supabase (PostgreSQL, GoTrue Auth, Storage), Cloudinary SDK |
+| **Report Generation** | Structural PDFs | ReportLab |
 
-Expected output:
-- Crack location.
-- Bounding box coordinates.
-- Detection confidence.
-- Annotated image.
+---
 
-This stage requires images with bounding-box annotations.
-
-### Stage 3: Crack Segmentation
-
-**Proposed Model:** U-Net
-
-The segmentation model will identify the pixel-level boundaries of cracks.
-
-Expected output:
-- Segmentation mask.
-- Highlighted crack regions.
-- Segmented image.
-- Pixel-level evaluation metrics.
-
-This stage requires pixel-level annotated images.
-
-**Note:** ResNet, YOLO, and U-Net are proposed models. They have not yet been implemented or trained.
-
-## Dataset
-
-### Initial Dataset
-
-The initial classification phase will use a concrete crack image dataset with the following specifications:
-
-| Property | Details |
-|---|---|
-| Total Images | 40,000 |
-| Positive Images | 20,000 |
-| Negative Images | 20,000 |
-| Image Dimensions | 227 × 227 |
-| Image Type | RGB |
-| Original Photographs | 458 |
-| Dataset Type | Binary Classification |
-
-The dataset contains cropped image patches derived from original concrete photographs.
-
-### Dataset Preparation
-
-The following preprocessing steps are planned:
-
-1. Load and inspect the dataset.
-2. Verify image dimensions and formats.
-3. Identify corrupted images.
-4. Check duplicate and highly similar images.
-5. Analyse class distribution.
-6. Prepare training, validation, and testing datasets.
-7. Apply appropriate image preprocessing.
-8. Train and evaluate the classification model.
-
-### Dataset Splitting
-
-The dataset will be divided into:
-- Training set.
-- Validation set.
-- Testing set.
-
-Exact split ratios will be finalised during experimentation.
-
-Care will be taken to minimise data leakage between related image patches. Since parent-image mapping is unavailable, image similarity grouping can only approximate source-image independence.
-
-### Future Dataset Requirements
-
-The initial dataset is suitable for binary classification.
-
-Additional annotated images will be required for:
-- YOLO-based crack localisation.
-- U-Net-based crack segmentation.
-- Evaluation across different concrete surfaces and environmental conditions.
-
-**Dataset Source:** [ADD DATASET LINK]
-
-## Project Structure
-
-The following is the proposed repository structure and may change during development.
+## Repository Structure
 
 ```text
-CrackSenseAI/
+CrackSense/
+├── CrackSense-Desktop.bat          # One-click Windows launcher (FastAPI + Electron)
+├── CrackSense-Mobile.bat           # One-click Mobile build & sync launcher
+├── README.md                       # Comprehensive project documentation
+├── RELEASING.md                    # Multi-platform release runbook
+├── alembic.ini                     # Database migration configuration
+├── docker-compose.yml              # Container orchestration
 │
-├── desktop/
-│   ├── electron/
-│   └── frontend/
-│       ├── src/
-│       │   ├── components/
-│       │   ├── pages/
-│       │   ├── layouts/
-│       │   ├── services/
-│       │   └── assets/
-│       └── package.json
+├── ai/                             # Machine Learning & Computer Vision
+│   ├── classification/             # ResNet-18 training, evaluation, & inference
+│   ├── detection/                  # YOLOv8 training, tiling, dataset merging, & NMS
+│   ├── evaluation/                 # Metrics calculation (mAP, F1, precision, recall)
+│   ├── export/                     # ONNX export, latency benchmarks, parity tests
+│   └── preprocessing/              # CLAHE transforms, image split, perceptual hashing
 │
-├── backend/
+├── backend/                        # FastAPI REST AI Application
 │   ├── app/
-│   │   ├── api/
-│   │   ├── core/
-│   │   ├── models/
-│   │   ├── schemas/
-│   │   ├── services/
-│   │   └── main.py
-│   │
-│   └── requirements.txt
+│   │   ├── api/endpoints/          # /analyze, /inspections, /health, /auth, /models
+│   │   ├── core/                   # config.py, database.py, security.py
+│   │   ├── models/                 # SQLAlchemy ORM models (Inspection, Prediction, User)
+│   │   ├── schemas/                # Pydantic request/response schemas
+│   │   ├── services/               # crack_detector.py, ai_engine.py, supabase_service.py
+│   │   └── main.py                 # FastAPI application root & CORS setup
+│   └── requirements.txt            # Python dependencies
 │
-├── ai/
-│   ├── classification/
-│   ├── detection/
-│   ├── segmentation/
-│   ├── preprocessing/
-│   ├── evaluation/
-│   └── notebooks/
+├── desktop/                        # Cross-Platform Clients
+│   ├── electron/
+│   │   ├── main.js                 # Electron main process + Python backend auto-spawner
+│   │   └── preload.js              # IPC contextBridge (auto-updater APIs)
+│   ├── build/                      # Windows executable application icons (.ico, .png)
+│   ├── package.json                # Electron & builder configuration
+│   └── frontend/                   # Shared React 18 + Capacitor Application
+│       ├── android/                # Native Android Studio Capacitor project
+│       ├── src/
+│       │   ├── components/         # GlassPanel, UpdateStatus, ServerConfigModal, Navbar
+│       │   ├── pages/              # Dashboard, UploadAnalyze, History, ResultView
+│       │   ├── services/           # api.ts (dynamic IP / native detection), supabase.ts, updater.ts
+│       │   └── App.tsx             # Routing & update initialization
+│       ├── capacitor.config.ts     # Capacitor app configuration
+│       └── vite.config.ts          # Vite build config with version injection
 │
-├── dataset/
-│   ├── raw/
-│   ├── processed/
-│   └── annotations/
+├── models/                         # Model Checkpoint Registry
+│   ├── onnx/model_meta.json        # ONNX export metadata
+│   └── .gitkeep                    # Model binaries (.pt, .pth, .onnx) gitignored
 │
-├── storage/
-│   ├── uploads/
-│   └── reports/
+├── reports/                        # Visual Training & Benchmark Outputs
+│   ├── confusion_matrix.png
+│   ├── loss_acc_curves.png
+│   ├── sample_detection_output.jpg
+│   └── yolo_metrics.json
 │
-├── docs/
-│   ├── architecture/
-│   ├── dataset/
-│   └── research/
+├── storage/                        # Edge File System Storage
+│   ├── uploads/.gitkeep            # Stored original concrete images
+│   └── reports/.gitkeep            # Stored generated PDF inspection reports
 │
-├── tests/
+├── supabase/                       # Cloud Migrations & Edge Functions
+│   ├── migrations/
+│   │   ├── 001_online_mode.sql     # PostgreSQL inspections, detections, RLS policies
+│   │   └── 002_app_versions.sql    # In-app update distribution & semver checking table
+│   └── schema.sql                  # Consolidated database schema
 │
-├── docker-compose.yml
-├── .env.example
-├── .gitignore
-└── README.md
+└── tests/                          # Automated Pytest Suite
+    ├── test_ai_engine.py           # Unit tests for inference & image preprocessing
+    ├── test_backend.py             # Integration tests for FastAPI endpoints
+    ├── test_detection.py           # Tiling, seam-merging NMS, & bbox tests
+    └── test_tiling_highlighting.py # OpenCV mask & skeletonization tests
 ```
 
-## Installation
+---
 
-The following instructions describe the intended development environment. Final commands and dependencies will be confirmed during implementation.
+## Getting Started
 
 ### Prerequisites
 
-Install the following:
+Ensure the following tools are installed:
+- **Python:** 3.10 or 3.11 ([python.org](https://www.python.org/downloads/))
+- **Node.js:** 18 LTS or 20 LTS ([nodejs.org](https://nodejs.org/))
+- **Git:** ([git-scm.com](https://git-scm.com/))
+- **Android Studio** *(for mobile development only)*: Hedgehog or newer with Android SDK 34+.
 
-- Python – https://www.python.org/downloads/
-- Node.js – https://nodejs.org/
-- PostgreSQL – https://www.postgresql.org/download/
-- Git – https://git-scm.com/
-- Visual Studio Code – https://code.visualstudio.com/
+---
 
-### 1. Clone the Repository
+### 1. Backend Setup
 
+Clone the repository:
 ```bash
-git clone [ADD REPOSITORY URL]
-cd CrackSenseAI
+git clone https://github.com/Omkarmahanandia36/CrackSense-.git
+cd CrackSense-
 ```
 
-### 2. Backend Setup
-
-Create a Python virtual environment:
-
+Create and activate a Python virtual environment:
 ```bash
+# Windows
 python -m venv venv
-```
-
-Activate the environment on Windows:
-
-```bash
 venv\Scripts\activate
+
+# macOS / Linux
+python3 -m venv venv
+source venv/bin/activate
 ```
 
 Install backend dependencies:
-
 ```bash
 pip install -r backend/requirements.txt
 ```
 
-### 3. Frontend Setup
-
-Navigate to the frontend directory:
-
+Verify backend installation:
 ```bash
-cd desktop/frontend
+python -m pytest tests/test_health.py
 ```
 
-Install dependencies:
+---
 
+### 2. Frontend & Desktop Setup
+
+Navigate to the frontend directory and install dependencies:
 ```bash
+cd desktop/frontend
 npm install
 ```
 
-### 4. Database Setup
-
-Install PostgreSQL and create the project database:
-
-```sql
-CREATE DATABASE cracksense_db;
+Navigate to the desktop Electron directory and install wrapper dependencies:
+```bash
+cd ../
+npm install
 ```
 
-Configure the database connection through the environment file.
+---
 
-Database initialisation and migration commands: [ADD DETAILS]
+### 3. Android Mobile Setup
 
-## Configuration
+Install Android build requirements in the frontend folder:
+```bash
+cd desktop/frontend
+npm run build
+npx cap sync android
+```
 
-Create a `.env` file using `.env.example` as a reference.
+To open the project in Android Studio:
+```bash
+npx cap open android
+```
 
-Example configuration:
+---
 
+### 4. Environment Configuration
+
+Create a `.env` file in the project root based on `.env.example`:
+```bash
+copy .env.example .env
+```
+
+Key environment configuration variables:
 ```env
-APP_NAME=CrackSense AI
+# Application Settings
+APP_NAME="CrackSense AI"
 APP_ENV=development
+SECRET_KEY=your_secure_secret_key_here
 
-DATABASE_URL=[ADD DATABASE CONNECTION STRING]
+# Server Bindings
+BACKEND_HOST=0.0.0.0
+BACKEND_PORT=8000
 
-SECRET_KEY=[ADD SECRET KEY]
-
+# Local Storage Paths
 UPLOAD_DIRECTORY=storage/uploads
 REPORT_DIRECTORY=storage/reports
 
-MODEL_PATH=[ADD TRAINED MODEL PATH]
+# Model Checkpoint Paths
+YOLO_MODEL_PATH=models/best_yolo.pt
+RESNET_MODEL_PATH=models/best_resnet18.pth
 
-CORS_ORIGINS=[ADD FRONTEND ORIGINS]
+# Supabase Cloud Synchronization (Optional for Online Mode)
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+SUPABASE_STORAGE_BUCKET=cracksense-images
+
+# Cloudinary Cloud Asset Delivery (Optional)
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
 ```
 
-### Configuration Notes
+---
 
-- Do not commit `.env` files.
-- Keep database credentials private.
-- Store trained model checkpoints separately where appropriate.
-- Configure image upload limits.
-- Use a secure secret key.
-- Ensure inference preprocessing matches the model training configuration.
+## Running the Applications
 
-## Running the Application
+### One-Click Windows Launchers
 
-### 1. One-Click Launchers (Windows)
-* **Desktop App:** Double-click [`CrackSense-Desktop.bat`](CrackSense-Desktop.bat) to launch the FastAPI backend (port 8000) and open the Electron desktop app.
-* **Mobile App Manager:** Double-click [`CrackSense-Mobile.bat`](CrackSense-Mobile.bat) to sync assets, launch an Android emulator, or open the native project in Android Studio.
+- **Desktop Application:** Double-click [`CrackSense-Desktop.bat`](CrackSense-Desktop.bat). It verifies the virtual environment, launches the FastAPI backend in the background on port 8000, and opens the Electron desktop app.
+- **Mobile Manager:** Double-click [`CrackSense-Mobile.bat`](CrackSense-Mobile.bat). Provides an interactive menu to sync assets, launch the Android emulator, or open Android Studio.
 
-### 2. Manual Commands
+---
 
-#### Start the AI Backend:
+### Manual Execution
+
+#### 1. Start the FastAPI AI Backend:
 ```bash
-python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
+venv\Scripts\activate
+python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
+*API documentation is available at `http://localhost:8000/docs`.*
 
-#### Start the Frontend (Vite Dev Server):
+#### 2. Start the Frontend Dev Server:
 ```bash
 cd desktop/frontend
 npm run dev
 ```
+*Access the web app at `http://localhost:5173`.*
 
-#### Run the Electron Desktop App:
+#### 3. Launch the Electron Desktop App:
 ```bash
 cd desktop
 npm start
 ```
+*Note: In production builds (`CrackSense AI.exe`), the Electron main process automatically detects port 8000 and auto-spawns the Python backend in the background.*
 
-#### Package Desktop Installer (Portable Windows Executable):
-```bash
-cd desktop
-npm run dist:win
-```
-
-#### Sync & Open Android Project in Android Studio:
-```bash
-cd desktop/frontend
-npm run mobile:sync
-npm run mobile:open
-```
-
-## Model Evaluation & Benchmarks
-
-| Model / Pipeline | Dataset | Key Metrics |
-|---|---|---|
-| **YOLOv8 Nano (Tiled Detection)** | Mendeley DamSegment (1,500 dam damage patches) | **mAP@50: 0.4090**, **Crack Precision: 0.5230**, **Recall: 0.4127** |
-| **ResNet-18 (Classification)** | Concrete Crack Binary Classification (40,000 patches) | **Accuracy: 99.8%**, **F1-Score: 0.998** |
-| **OpenCV Blackhat Morphology** | Adaptive CLAHE + Morphological Filter | Transparent RGBA PNG overlay with 60% amber/red crack accent |
-
-## Development Roadmap & Status
-
-| Phase | Milestone | Status |
-|---|---|---|
-| 1 | Project architecture and modular repository layout | **Completed** |
-| 2 | ResNet-18 binary classification engine & perceptual hash deduplication | **Completed** |
-| 3 | FastAPI asynchronous inference endpoints & health monitoring | **Completed** |
-| 4 | Glassmorphic 6-swatch UI design tokens, SVG viewer, zoom/pan | **Completed** |
-| 5 | Tiled YOLOv8 inference with 20% overlap & OpenCV NMS deduplication | **Completed** |
-| 6 | Mendeley DamSegment & Roboflow multi-source dataset integration | **Completed** |
-| 7 | Cross-platform Desktop packaging (Electron 29 + electron-builder) | **Completed** |
-| 8 | Mobile Application scaffolding (Capacitor 8 Android + Hardware Camera) | **Completed** |
-| 9 | Supabase Cloud Database (PostgreSQL), Storage bucket (`cracksense-images`), & Auth | **Completed** |
-| 10 | Automated PDF inspection report generation (ReportLab) | **Completed** |
-
-## Limitations
-
-CrackSense AI is designed as an image-based concrete crack inspection support tool.
-
-Important limitations include:
-
-- Image quality can affect detection accuracy.
-- Shadows, stains, joints, surface textures, and lighting variations may cause false detections.
-- General concrete crack datasets may not represent every real-world concrete surface.
-- Classification alone cannot identify the exact crack location.
-- Accurate crack-width measurement requires image calibration and known scale information.
-- Visual crack detection cannot independently establish structural severity or safety.
-
-AI-generated results should be reviewed by qualified professionals. CrackSense AI is not a replacement for professional structural inspection.
-
-## Troubleshooting
-
-| Issue | Suggested Check |
-|---|---|
-| Python dependency installation fails | Verify Python version and virtual environment |
-| Database connection error | Check PostgreSQL service and connection string |
-| Frontend dependency error | Verify Node.js and npm installation |
-| Model loading error | Verify model checkpoint path and architecture |
-| Image upload failure | Check file format, file size, and permissions |
-| API connection failure | Verify backend availability and CORS settings |
-
-For unresolved problems, open a GitHub issue with the error message and relevant environment details.
-
-## Contributing
-
-Contributions, suggestions, and technical discussions are welcome.
-
-To contribute:
-
-1. Fork the repository.
-2. Create a new feature branch.
-3. Implement your changes.
-4. Test the implementation.
-5. Commit your changes.
-6. Submit a pull request.
-
-Example:
-
-```bash
-git checkout -b feature/crack-detection
-git add .
-git commit -m "Add crack detection module"
-git push origin feature/crack-detection
-```
-
-For major changes, open an issue before starting development.
-
-## License
-
-No open-source license has been selected for this project yet.
-
-**License:** Not yet selected.
-
-Until a license is added, the repository should not be assumed to grant permission to reuse, modify, or distribute the source code.
-
-## Project Status
-
-**Current Stage: Initial Development**
-
-CrackSense AI is being developed as a desktop-based AI solution for concrete surface crack detection.
-
-The immediate development priorities are:
-
-1. Dataset exploration and preprocessing.
-2. Development of the initial crack classification model.
-3. Backend API development.
-4. Desktop application development.
-5. Integration of AI inference into the application.
-
-Further development will focus on crack localisation, segmentation, result visualisation, and inspection reporting.
+#### 4. Configure Mobile Connection:
+When running the Android APK on a physical phone:
+1. Ensure the phone and PC are connected to the same Wi-Fi network.
+2. Tap the **Server Status** badge in the mobile navigation bar to open the **Server Connection Settings** modal.
+3. Enter your PC's local network IP address (e.g. `http://192.168.1.100:8000`) and tap **Test Connection & Save**.
 
 ---
 
-**CrackSense AI – Concrete Crack Detection System**
+## Packaging & Releases
 
+Detailed release procedures are documented in [RELEASING.md](file:///D:/CrackSense/RELEASING.md).
+
+### Package Windows Desktop Installer:
+```bash
+cd desktop
+npm run release:win
+```
+Outputs installer and portable binaries in `desktop/dist-electron/`:
+- `CrackSense AI Setup 1.1.0.exe` (NSIS interactive installer)
+- `CrackSense AI 1.1.0.exe` (Portable executable)
+- `latest.yml` (Auto-update manifest)
+
+### Package Android Release APK:
+```bash
+cd desktop/frontend
+npm run release:android:build
+```
+Outputs release APK at `desktop/frontend/android/app/build/outputs/apk/release/app-release.apk`.
+
+---
+
+## In-App Update System
+
+CrackSense AI includes a synchronized in-app update mechanism across platforms:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Inspector
+    participant App as CrackSense App
+    participant Supa as Supabase (app_versions)
+    participant GH as GitHub Releases
+
+    App->>App: Launch & read local version (v1.1.0)
+    alt Android Platform
+        App->>Supa: SELECT latest_version, min_supported_version FROM app_versions
+        Supa-->>App: Return version record & apk_url
+        alt installed < min_supported_version
+            App->>User: Display blocking "Update Required" dialog
+        else installed < latest_version
+            App->>User: Display "Update Available" notification modal
+            User->>App: Click "Download APK"
+            App->>User: Open apk_url in browser for direct download
+        end
+    else Windows Desktop Platform
+        App->>GH: Check latest.yml via electron-updater
+        GH-->>App: New version available
+        App->>User: Show update badge & release notes
+        User->>App: Click "Download Update"
+        App->>GH: Download differential delta in background
+        App->>User: Prompt "Restart to Update"
+        User->>App: Click "Restart & Install"
+        App->>App: Quit and execute NSIS patch
+    end
+```
+
+### Version Update Database Schema
+The database tracks released versions in Supabase table `public.app_versions`:
+```sql
+CREATE TABLE IF NOT EXISTS public.app_versions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    platform TEXT NOT NULL CHECK (platform IN ('android', 'windows')),
+    latest_version TEXT NOT NULL,
+    min_supported_version TEXT NOT NULL,
+    apk_url TEXT,
+    release_notes TEXT,
+    published_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+```
+
+---
+
+## Evaluation & Benchmark Metrics
+
+| Model / Pipeline | Dataset / Domain | Metrics & Performance |
+|---|---|---|
+| **YOLOv8 Nano (Tiled Detection)** | Mendeley DamSegment (1,500 dam damage patches) + Roboflow | **mAP@50: 0.4090**, **Precision: 0.5230**, **Recall: 0.4127** |
+| **ResNet-18 (Classification)** | Concrete Crack Binary Classification (40,000 images) | **Accuracy: 99.8%**, **F1-Score: 0.998**, **Loss: 0.008** |
+| **Morphological Blackhat Mask** | Adaptive CLAHE + Blackhat Filter (512×512 tiles) | **Processing Latency: ~14ms/tile**, transparent RGBA alpha mask |
+| **Tiled Inference Latency** | Full $4000 \times 3000$ (12 MP) Image | **< 1.8 seconds** (NVIDIA RTX GPU) / **< 4.2 seconds** (Modern 8-Core CPU) |
+
+---
+
+## Testing & Quality Assurance
+
+Run the automated test suite across all modules:
+
+```bash
+# Run all backend and computer vision unit tests
+python -m pytest tests/
+
+# Run frontend semver comparison unit tests
+cd desktop/frontend
+npm run test:unit
+```
+
+Test coverage includes:
+- Tiled inference and coordinate translation.
+- Seam-merging Non-Maximum Suppression (NMS) box deduplication.
+- CLAHE enhancement, Blackhat filtering, and crack skeletonization.
+- FastAPI REST endpoint authentication, file validation, and error handling.
+- Semver string comparison, update badges, and offline resilience.
+
+---
+
+## Troubleshooting
+
+| Problem | Cause | Resolution |
+|---|---|---|
+| **Failed to connect (127.0.0.1:8000) on Android** | Phone connects to its own loopback instead of host PC | Open **Server Settings** modal in mobile app and enter host PC's Wi-Fi LAN IP (e.g. `http://192.168.1.X:8000`). |
+| **Desktop .exe shows backend offline** | Python backend failed to launch or port 8000 is occupied | Verify port 8000 is free (`netstat -ano \| findstr 8000`). Launch via `CrackSense-Desktop.bat` to see Python console output. |
+| **CUDA out of memory during tiled inference** | Image size exceeds GPU VRAM | The pipeline automatically downscales images $>12$ MP and enforces single-concurrency inference semaphore. |
+| **Camera not opening on Android** | Missing camera hardware permission | Grant camera permission in Android Settings > Apps > CrackSense > Permissions. |
+| **Supabase sync warnings in console** | Supabase credentials not set or bucket missing | Create bucket `cracksense-images` in Supabase Storage or inspect in local offline mode (SQLite). |
+
+---
+
+## Contributing
+
+1. Fork the repository.
+2. Create your feature branch (`git checkout -b feature/crack-analysis`).
+3. Commit your changes (`git commit -m "Add crack analysis enhancement"`).
+4. Push to the branch (`git push origin feature/crack-analysis`).
+5. Open a Pull Request.
+
+---
+
+## License
+
+Distributed under the MIT License.
+
+---
+
+**CrackSense AI – Concrete Crack Detection System**  
 *AI-powered visual analysis for concrete surface inspection.*
