@@ -67,19 +67,22 @@ export interface UserProfile {
 }
 
 const API_BASE =
-  typeof window !== 'undefined' && window.location.protocol === 'file:'
+  import.meta.env.VITE_API_BASE_URL ||
+  (typeof window !== 'undefined' && window.location.protocol === 'file:'
     ? 'http://127.0.0.1:8000'
-    : '';
+    : '');
 
 export function resolveImageUrl(url?: string): string {
   if (!url) return '';
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
-  const base = typeof window !== 'undefined' && window.location.protocol === 'file:' ? 'http://127.0.0.1:8000' : '';
+  const base =
+    import.meta.env.VITE_API_BASE_URL ||
+    (typeof window !== 'undefined' && window.location.protocol === 'file:' ? 'http://127.0.0.1:8000' : '');
   return `${base}${url}`;
 }
 
 function getAuthHeaders(): HeadersInit {
-  const token = localStorage.getItem('cracksense_token');
+  const token = localStorage.getItem('supabase_token') || localStorage.getItem('cracksense_token');
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 

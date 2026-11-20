@@ -115,7 +115,7 @@ class ReportGeneratorService:
         meta_data = [
             ["Record ID", str(record_id), "Inspection UUID", record_uuid[:18] + "..."],
             ["Target File", filename, "Inspection Date", str(created_at)],
-            ["Confidence Score", f"{confidence:.1%}", "Structural Severity", severity],
+            ["Confidence Score", f"{confidence:.1%}", "Structural Severity", f"{severity} (image-relative px)"],
             ["Estimated Crack Area", f"{crack_percentage:.2f}%", "AI Models Used", "ResNet + YOLO + U-Net"],
         ]
         meta_table = Table(meta_data, colWidths=[120, 150, 130, 140])

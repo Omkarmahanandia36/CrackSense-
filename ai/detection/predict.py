@@ -16,22 +16,22 @@ _CACHED_YOLO_MODEL = None
 
 
 def get_yolo_model(model_path: Optional[str] = None):
-    """Lazy-load and cache the YOLO model checkpoint."""
+    """Lazy-load and cache the CrackSense YOLO model checkpoint. Raises if checkpoint is missing."""
     global _CACHED_YOLO_MODEL
     from ultralytics import YOLO
 
     path_to_use = model_path or str(DEFAULT_MODEL_PATH)
 
     if _CACHED_YOLO_MODEL is None:
-        if os.path.exists(path_to_use):
-            try:
-                _CACHED_YOLO_MODEL = YOLO(path_to_use)
-            except Exception as e:
-                print(f"[!] Warning: Failed loading custom YOLO model '{path_to_use}': {e}. Using yolov8n.pt")
-                _CACHED_YOLO_MODEL = YOLO("yolov8n.pt")
-        else:
-            # Fallback to pretrained nano model if custom weights not yet trained
-            _CACHED_YOLO_MODEL = YOLO("yolov8n.pt")
+        if not os.path.exists(path_to_use):
+            raise FileNotFoundError(
+                f"CrackSense YOLO weights file not found at '{path_to_use}'. "
+                "Ensure trained weights are in place before inference."
+            )
+        try:
+            _CACHED_YOLO_MODEL = YOLO(path_to_use)
+        except Exception as e:
+            raise RuntimeError(f"Failed loading CrackSense YOLO checkpoint '{path_to_use}': {e}")
 
     return _CACHED_YOLO_MODEL
 

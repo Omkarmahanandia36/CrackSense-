@@ -2,14 +2,18 @@
 
 import os
 import base64
+import logging
 from io import BytesIO
 from typing import List, Dict, Any, Tuple, Optional
 import numpy as np
 import cv2
 from PIL import Image
+from skimage.morphology import skeletonize
 
 from ai.detection.predict import get_yolo_model, render_bounding_boxes
 from backend.app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 def tile_image_generator(
@@ -78,11 +82,21 @@ def apply_nms(
 
 def merge_adjacent_crack_boxes(
     boxes: List[Dict[str, Any]],
+    tile_size: int = 512,
+    overlap: float = 0.20,
     max_gap_px: float = 16.0,
 ) -> List[Dict[str, Any]]:
-    """Merge elongated bounding boxes that touch or overlap across tile seams."""
+    """Merge elongated bounding boxes only if they touch a tile seam and their coordinates line up across the seam."""
     if len(boxes) <= 1:
         return boxes
+
+    step = max(64, int(tile_size * (1.0 - overlap)))
+
+    def touches_seam(b: Dict[str, Any]) -> Tuple[bool, bool]:
+        # Check proximity to tile boundaries (multiples of step)
+        near_v = any(abs(b["x1"] - k * step) <= max_gap_px or abs(b["x2"] - k * step) <= max_gap_px for k in range(1, 40))
+        near_h = any(abs(b["y1"] - k * step) <= max_gap_px or abs(b["y2"] - k * step) <= max_gap_px for k in range(1, 40))
+        return near_v, near_h
 
     merged = list(boxes)
     has_merged = True
@@ -96,17 +110,25 @@ def merge_adjacent_crack_boxes(
             if i in skip_indices:
                 continue
             box_a = dict(merged[i])
+            v_a, h_a = touches_seam(box_a)
+
             for j in range(i + 1, len(merged)):
                 if j in skip_indices:
                     continue
                 box_b = merged[j]
+                v_b, h_b = touches_seam(box_b)
 
-                # Check proximity / adjacency
-                x_overlap = (box_a["x1"] <= box_b["x2"] + max_gap_px) and (box_b["x1"] <= box_a["x2"] + max_gap_px)
-                y_overlap = (box_a["y1"] <= box_b["y2"] + max_gap_px) and (box_b["y1"] <= box_a["y2"] + max_gap_px)
+                # Vertical seam alignment: boxes line up along X across a vertical seam and overlap in Y
+                can_merge_v = (v_a or v_b) and (
+                    abs(box_a["x2"] - box_b["x1"]) <= max_gap_px or abs(box_b["x2"] - box_a["x1"]) <= max_gap_px
+                ) and (min(box_a["y2"], box_b["y2"]) - max(box_a["y1"], box_b["y1"]) >= -max_gap_px)
 
-                if x_overlap and y_overlap:
-                    # Merge box_b into box_a
+                # Horizontal seam alignment: boxes line up along Y across a horizontal seam and overlap in X
+                can_merge_h = (h_a or h_b) and (
+                    abs(box_a["y2"] - box_b["y1"]) <= max_gap_px or abs(box_b["y2"] - box_a["y1"]) <= max_gap_px
+                ) and (min(box_a["x2"], box_b["x2"]) - max(box_a["x1"], box_b["x1"]) >= -max_gap_px)
+
+                if can_merge_v or can_merge_h:
                     box_a["x1"] = min(box_a["x1"], box_b["x1"])
                     box_a["y1"] = min(box_a["y1"], box_b["y1"])
                     box_a["x2"] = max(box_a["x2"], box_b["x2"])
@@ -204,51 +226,59 @@ def generate_morphological_crack_mask(
 
 
 def compute_crack_metrics(full_mask: np.ndarray) -> Dict[str, Any]:
-    """Calculate physical crack metrics: skeleton length, max width, mean width, and severity."""
+    """Calculate physical crack metrics: skeleton length, 95th percentile width, mean width, and top-down severity."""
     if full_mask is None or cv2.countNonZero(full_mask) == 0:
         return {
             "estimated_length_px": 0.0,
             "max_width_px": 0.0,
             "mean_width_px": 0.0,
             "severity": "None",
+            "severity_unit": "image-relative (px)",
         }
 
-    # 1. Morphological skeletonization to calculate centerline length
-    skeleton = np.zeros(full_mask.shape, dtype=np.uint8)
-    eroded = full_mask.copy()
-    element = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
-    while True:
-        opened = cv2.morphologyEx(eroded, cv2.MORPH_OPEN, element)
-        temp = cv2.subtract(eroded, opened)
-        skeleton = cv2.bitwise_or(skeleton, temp)
-        eroded = cv2.erode(eroded, element)
-        if cv2.countNonZero(eroded) == 0:
-            break
+    # 1. Fast skeletonization using scikit-image on binary boolean mask
+    binary_bool = (full_mask > 0)
+    skeleton = skeletonize(binary_bool)
+    estimated_length = float(np.count_nonzero(skeleton))
 
-    estimated_length = float(cv2.countNonZero(skeleton))
+    if estimated_length == 0:
+        return {
+            "estimated_length_px": 0.0,
+            "max_width_px": 0.0,
+            "mean_width_px": 0.0,
+            "severity": "None",
+            "severity_unit": "image-relative (px)",
+        }
 
-    # 2. Euclidean Distance Transform to compute crack width profile
+    # 2. Euclidean Distance Transform: calculate crack width profile along skeleton centerline
     dist = cv2.distanceTransform(full_mask, cv2.DIST_L2, 5)
-    max_w = round(float(np.max(dist) * 2.0), 2) if np.any(dist > 0) else 0.0
-    mean_w = round(float(np.mean(dist[full_mask > 0]) * 2.0), 2) if np.any(full_mask > 0) else 0.0
+    skeleton_widths = dist[skeleton] * 2.0  # Diameter in pixels along crack centerline
 
-    # 3. Structural Severity Grade based on crack width and length
+    if len(skeleton_widths) > 0:
+        p95_w = round(float(np.percentile(skeleton_widths, 95)), 2)
+        mean_w = round(float(np.mean(skeleton_widths)), 2)
+    else:
+        p95_w = 0.0
+        mean_w = 0.0
+
+    # 3. Structural Severity Grade (checked top-down to prevent severe cracks being downgraded)
     if estimated_length == 0:
         severity = "None"
-    elif max_w <= 2.5 and estimated_length < 150:
-        severity = "Low"
-    elif max_w <= 6.0 or estimated_length < 600:
-        severity = "Medium"
-    elif max_w > 12.0 or estimated_length > 1500:
+    elif p95_w > 12.0 or estimated_length > 1500:
         severity = "Critical"
-    else:
+    elif p95_w > 6.0 or estimated_length > 600:
         severity = "High"
+    elif p95_w > 2.5 or estimated_length > 150:
+        severity = "Medium"
+    else:
+        severity = "Low"
 
     return {
         "estimated_length_px": estimated_length,
-        "max_width_px": max_w,
+        "max_width_px": p95_w,
         "mean_width_px": mean_w,
         "severity": severity,
+        "severity_unit": "image-relative (px)",
     }
 
 
@@ -267,6 +297,7 @@ def detect_cracks_tiled(
             "image_height": int,
             "verdict": "crack_detected" | "no_crack",
             "confidence": float,
+            "engine": "yolo" | "fallback",
             "detections": list of {"id": int, "confidence": float, "bbox": [x, y, w, h]},
             "boxes": list of {"x1": float, "y1": float, "x2": float, "y2": float, "confidence": float, "label": str},
             "mask_png_base64": str,
@@ -274,21 +305,40 @@ def detect_cracks_tiled(
         }
     """
     img_w, img_h = pil_image.size
-    yolo_model = get_yolo_model(checkpoint_path or settings.YOLO_MODEL_PATH)
     raw_boxes: List[Dict[str, Any]] = []
+    engine_used = "yolo"
 
     tiles = tile_image_generator(img_w, img_h, tile_size=tile_size, overlap=overlap)
 
-    for (tx1, ty1, tx2, ty2) in tiles:
-        tile_crop = pil_image.crop((tx1, ty1, tx2, ty2))
-        try:
-            results = yolo_model.predict(
-                tile_crop,
-                conf=max(0.15, conf_threshold - 0.10),  # slightly lower per tile before NMS
-                iou=0.45,
-                verbose=False,
-            )
-            for r in results:
+    # 1. Attempt YOLO model loading
+    yolo_model = None
+    try:
+        yolo_model = get_yolo_model(checkpoint_path or settings.YOLO_MODEL_PATH)
+    except Exception as e:
+        logger.warning(f"CrackSense YOLO checkpoint unavailable ({e}). Engaging morphological fallback engine.")
+        engine_used = "fallback"
+
+    # 2. Execute inference
+    if yolo_model is not None:
+        # Run YOLO in batches for speedup and avoid blocking
+        batch_size = 8
+        for i in range(0, len(tiles), batch_size):
+            tile_batch_coords = tiles[i:i + batch_size]
+            tile_batch_crops = [pil_image.crop(coords) for coords in tile_batch_coords]
+
+            try:
+                results = yolo_model.predict(
+                    tile_batch_crops,
+                    conf=max(0.15, conf_threshold - 0.10),
+                    iou=0.45,
+                    verbose=False,
+                    batch=len(tile_batch_crops),
+                )
+            except Exception as e:
+                logger.error(f"Inference failure during tile batch execution (CUDA OOM or model crash): {e}")
+                raise RuntimeError(f"GPU/Model inference execution failure on tile batch: {e}") from e
+
+            for (tx1, ty1, tx2, ty2), r in zip(tile_batch_coords, results):
                 if r.boxes is not None:
                     for b in r.boxes:
                         coords = b.xyxy[0].tolist()
@@ -296,7 +346,6 @@ def detect_cracks_tiled(
                         cls_id = int(b.cls[0].item())
                         label = yolo_model.names.get(cls_id, "Crack") if hasattr(yolo_model, "names") else "Crack"
 
-                        # Translate to global coordinates
                         gx1 = round(tx1 + coords[0], 1)
                         gy1 = round(ty1 + coords[1], 1)
                         gx2 = round(tx1 + coords[2], 1)
@@ -310,12 +359,8 @@ def detect_cracks_tiled(
                             "confidence": round(conf, 4),
                             "label": label,
                         })
-        except Exception as e:
-            # Continue scanning other tiles
-            continue
-
-    # Fallback to CV morphological detector per tile if YOLO found nothing
-    if len(raw_boxes) == 0:
+    else:
+        # Morphological fallback runs ONLY if model failed to load, NEVER on legitimate clean images
         for (tx1, ty1, tx2, ty2) in tiles:
             tile_crop = pil_image.crop((tx1, ty1, tx2, ty2))
             crop_np = np.array(tile_crop)
@@ -357,7 +402,7 @@ def detect_cracks_tiled(
     merged_boxes = apply_nms(filtered_boxes, iou_threshold=0.35)
 
     # 2. Merge elongated boxes that touch or cross tile seams
-    merged_boxes = merge_adjacent_crack_boxes(merged_boxes, max_gap_px=16.0)
+    merged_boxes = merge_adjacent_crack_boxes(merged_boxes, tile_size=tile_size, overlap=overlap, max_gap_px=16.0)
 
     # Sort boxes by confidence descending, keep top 25 regions
     merged_boxes.sort(key=lambda b: b["confidence"], reverse=True)
@@ -398,6 +443,7 @@ def detect_cracks_tiled(
         "image_height": img_h,
         "verdict": verdict,
         "confidence": overall_confidence,
+        "engine": engine_used,
         "detections": detections,
         "boxes": merged_boxes,
         "mask_png_base64": mask_png_base64,

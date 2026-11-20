@@ -23,7 +23,15 @@ from backend.app.api.endpoints import auth, health, analyze, inspections
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialize database tables on application startup."""
+    """Initialize database tables on application startup and enforce security invariants."""
+    # Refuse to start if default SECRET_KEY is used in production
+    if settings.APP_ENV == "production" and (
+        not settings.SECRET_KEY or settings.SECRET_KEY == "cracksense-super-secret-jwt-key-2026"
+    ):
+        raise RuntimeError(
+            "FATAL: Application refusing to start with default SECRET_KEY. "
+            "Configure a secure SECRET_KEY in your .env before launching in production."
+        )
     await init_db()
     yield
 
@@ -37,11 +45,14 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# CORS configuration
+# CORS configuration: ensure wildcard does not conflict with credentials
+cors_origins = settings.CORS_ORIGINS if isinstance(settings.CORS_ORIGINS, list) else [str(settings.CORS_ORIGINS)]
+use_credentials = "*" not in cors_origins
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS if isinstance(settings.CORS_ORIGINS, list) else ["*"],
-    allow_credentials=True,
+    allow_origins=cors_origins,
+    allow_credentials=use_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )

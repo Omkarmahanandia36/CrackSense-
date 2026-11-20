@@ -1,6 +1,6 @@
 """Pydantic V2 schemas for user registration, authentication, and tokens."""
 
-from typing import Optional
+from typing import Optional, Union
 from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
 
@@ -17,11 +17,11 @@ class UserLogin(BaseModel):
 
 
 class UserResponse(BaseModel):
-    id: int
+    id: Union[int, str]
     email: EmailStr
     full_name: Optional[str] = None
-    is_active: bool
-    created_at: datetime
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
     model_config = ConfigDict(from_attributes=True)
 

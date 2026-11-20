@@ -19,8 +19,9 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgrespassword@localhost:5432/cracksense_db"
     SQLITE_FALLBACK_URL: str = f"sqlite+aiosqlite:///{BASE_DIR}/cracksense.db"
 
-    # JWT Authentication
+    # JWT Authentication (Local fallback and Supabase Cloud JWT Secret)
     SECRET_KEY: str = "cracksense-super-secret-jwt-key-2026"
+    SUPABASE_JWT_SECRET: str = ""
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
 
@@ -45,19 +46,31 @@ class Settings(BaseSettings):
     UNET_MODEL_PATH: str = ""
 
     # CORS Allowed Origins
-    CORS_ORIGINS: Union[List[str], str] = ["*"]
+    CORS_ORIGINS: Union[List[str], str] = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+        "http://localhost",
+        "https://localhost",
+        "capacitor://localhost",
+    ]
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def parse_cors_origins(cls, v: Union[List[str], str]) -> List[str]:
         if isinstance(v, str) and not v.startswith("["):
-            return [i.strip() for i in v.split(",")]
+            origins = [i.strip() for i in v.split(",") if i.strip()]
+            return origins if origins else ["*"]
         elif isinstance(v, str):
             import json
             try:
-                return json.loads(v)
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return parsed
             except Exception:
-                return ["*"]
+                pass
+            return ["*"]
         return v
 
     model_config = SettingsConfigDict(

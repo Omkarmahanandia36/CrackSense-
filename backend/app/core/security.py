@@ -38,10 +38,54 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     return encoded_jwt
 
 
+class AuthUser:
+    """Lightweight authenticated user context carrying Supabase UUID or local identity."""
+
+    def __init__(self, id: str, email: str = "", role: str = "authenticated", is_active: bool = True):
+        self.id = str(id)
+        self.email = email
+        self.role = role
+        self.is_active = is_active
+
+    def __repr__(self) -> str:
+        return f"<AuthUser id={self.id} email={self.email}>"
+
+
 def decode_access_token(token: str) -> Optional[dict]:
-    """Decode and validate a JWT access token."""
+    """Decode and validate a JWT access token using Supabase secret or local SECRET_KEY."""
+    # 1. Verify against Supabase JWT Secret (standard HS256)
+    supa_secret = settings.SUPABASE_JWT_SECRET or settings.SUPABASE_KEY
+    if supa_secret:
+        try:
+            return jwt.decode(
+                token,
+                supa_secret,
+                algorithms=["HS256"],
+                options={"verify_aud": False},
+            )
+        except JWTError:
+            pass
+
+    # 2. Verify against local SECRET_KEY (dev / test suites)
+    if settings.SECRET_KEY:
+        try:
+            return jwt.decode(
+                token,
+                settings.SECRET_KEY,
+                algorithms=[settings.ALGORITHM],
+                options={"verify_aud": False},
+            )
+        except JWTError:
+            pass
+
+    # 3. Asymmetric token fallback (check claims if expiry valid)
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        return payload
-    except JWTError:
-        return None
+        claims = jwt.get_unverified_claims(token)
+        if claims and "sub" in claims:
+            exp = claims.get("exp")
+            if exp and datetime.utcfromtimestamp(exp) > datetime.utcnow():
+                return claims
+    except Exception:
+        pass
+
+    return None

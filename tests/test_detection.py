@@ -8,6 +8,7 @@ from httpx import AsyncClient, ASGITransport
 
 from backend.app.main import app
 from backend.app.core.database import init_db
+from backend.app.core.security import create_access_token
 from ai.detection.prepare_yolo_dataset import convert_voc_bbox_to_yolo
 from ai.detection.predict import predict_crack_boxes, render_bounding_boxes
 
@@ -81,8 +82,10 @@ async def test_backend_analyze_includes_yolo_boxes():
     img_bytes = buf.getvalue()
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        token = create_access_token({"sub": "test-inspector-uuid", "id": "test-inspector-uuid"})
+        auth_headers = {"Authorization": f"Bearer {token}"}
         files = {"file": ("crack_test_sample.jpg", img_bytes, "image/jpeg")}
-        res = await client.post("/analyze", files=files)
+        res = await client.post("/analyze", files=files, headers=auth_headers)
 
         assert res.status_code == 201
         data = res.json()
