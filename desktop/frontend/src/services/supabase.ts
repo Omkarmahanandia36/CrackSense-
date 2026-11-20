@@ -142,6 +142,72 @@ export const getUserProfile = async (
 };
 
 /**
+ * Update user profile details (full name and username) across Supabase Auth metadata and profiles table.
+ */
+export const updateUserProfile = async (
+  userId: string,
+  updates: { full_name?: string; username?: string }
+): Promise<{ success: boolean; error?: string; profile?: UserProfileData }> => {
+  if (!isSupabaseConfigured() || !userId) {
+    return { success: false, error: 'Supabase configuration is missing' };
+  }
+
+  try {
+    const trimmedName = updates.full_name?.trim();
+    const trimmedUsername = updates.username?.trim();
+
+    // 1. Update Supabase Auth user metadata
+    const { data: authData, error: authErr } = await supabase.auth.updateUser({
+      data: {
+        ...(trimmedName ? { full_name: trimmedName } : {}),
+        ...(trimmedUsername ? { username: trimmedUsername } : {}),
+      },
+    });
+
+    if (authErr) {
+      console.warn('Auth user metadata update warning:', authErr.message);
+    }
+
+    // 2. Update public.profiles row
+    if (trimmedName) {
+      const { error: profileErr } = await supabase
+        .from('profiles')
+        .update({ full_name: trimmedName })
+        .eq('id', userId);
+
+      if (profileErr) {
+        console.warn('Profiles table update warning:', profileErr.message);
+      }
+    }
+
+    // 3. Assemble and persist refreshed cached profile
+    const cached = getCachedUserProfile();
+    const refreshed = await getUserProfile(userId);
+
+    const updatedProfile: UserProfileData = {
+      id: userId,
+      email: refreshed?.email || cached?.email || authData.user?.email || '',
+      full_name: trimmedName || refreshed?.full_name || cached?.full_name || 'Inspector',
+      role: refreshed?.role || cached?.role || 'user',
+      username: trimmedUsername || cached?.username,
+      created_at: refreshed?.created_at || cached?.created_at,
+    };
+
+    setCachedUserProfile(updatedProfile);
+
+    return {
+      success: true,
+      profile: updatedProfile,
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err.message || 'Failed to update profile',
+    };
+  }
+};
+
+/**
  * Record a login audit event in login_events.
  * Collects only platform, app version, and device model. No IP or location.
  */

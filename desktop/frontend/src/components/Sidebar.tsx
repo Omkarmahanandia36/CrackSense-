@@ -13,6 +13,8 @@ import {
   Sparkles,
   Shield,
   Settings,
+  UserCog,
+  RefreshCw,
 } from 'lucide-react';
 import { HealthData, UserProfile } from '../services/api';
 import { UpdateStatus } from './UpdateStatus';
@@ -26,6 +28,7 @@ interface SidebarProps {
   user: UserProfile | null;
   onOpenLogin: () => void;
   onLogout: () => void;
+  onOpenEditProfile?: () => void;
   collapsed: boolean;
   onToggleCollapse: () => void;
   theme: 'dark' | 'light';
@@ -50,6 +53,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   user,
   onOpenLogin,
   onLogout,
+  onOpenEditProfile,
   collapsed,
   onToggleCollapse,
   theme,
@@ -297,21 +301,35 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* User profile / Sign in button */}
         {user ? (
           <div
-            className="flex items-center gap-2 p-2 rounded-xl"
+            className="flex items-center gap-1.5 p-2 rounded-xl"
             style={{
               background: 'var(--glass-sunken-bg)',
               border: '1px solid var(--glass-sunken-border)',
             }}
           >
             {!collapsed && (
-              <div className="flex-1 min-w-0">
+              <button
+                type="button"
+                onClick={onOpenEditProfile}
+                className="flex-1 min-w-0 text-left hover:opacity-85 transition-opacity cursor-pointer"
+                title="Click to edit profile"
+              >
                 <span className="block text-[12px] font-medium truncate" style={{ color: 'var(--text-1)' }}>
                   {user.full_name || 'Field Inspector'}
                 </span>
                 <span className="block text-[10px] truncate" style={{ color: 'var(--text-3)' }}>
                   {user.email}
                 </span>
-              </div>
+              </button>
+            )}
+            {!collapsed && onOpenEditProfile && (
+              <button
+                onClick={onOpenEditProfile}
+                className="p-1.5 rounded-lg transition-colors hover:bg-[--hover-bg] flex-shrink-0 cursor-pointer text-cyan-400"
+                title="Edit profile"
+              >
+                <UserCog className="w-3.5 h-3.5" strokeWidth={1.5} />
+              </button>
             )}
             <button
               onClick={onLogout}
@@ -339,11 +357,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         )}
 
-        {/* App Version Info */}
+        {/* App Version Info & Check for updates button */}
         {!collapsed && (
           <div className="pt-1 flex items-center justify-between text-[10px] font-mono text-slate-500 px-1 select-none">
-            <span>CrackSense AI</span>
             <span>v{import.meta.env.APP_VERSION || '1.0.0'}</span>
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent('cracksense:check_updates'))}
+              className="flex items-center gap-1 text-[10px] text-cyan-400 hover:text-cyan-300 transition-colors cursor-pointer"
+              title="Check for application updates"
+            >
+              <RefreshCw className="w-2.5 h-2.5" />
+              <span>Check update</span>
+            </button>
           </div>
         )}
       </div>
