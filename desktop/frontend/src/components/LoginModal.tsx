@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, AlertCircle, Mail, Lock, User } from 'lucide-react';
 import { loginUser, registerUser, UserProfile } from '../services/api';
+import { supabase, isSupabaseConfigured } from '../services/supabase';
 import { Button, Input } from './ui';
 
 interface LoginModalProps {
@@ -25,6 +26,30 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
     setLoading(true);
 
     try {
+      // 1. Supabase Auth if configured
+      if (isSupabaseConfigured()) {
+        try {
+          if (isRegister) {
+            const { error: supaSignUpErr } = await supabase.auth.signUp({
+              email,
+              password,
+              options: { data: { full_name: fullName } },
+            });
+            if (supaSignUpErr) console.warn('Supabase sign-up notice:', supaSignUpErr.message);
+          }
+          const { data: supaLoginData, error: supaLoginErr } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+          if (supaLoginData?.session) {
+            localStorage.setItem('supabase_token', supaLoginData.session.access_token);
+          }
+        } catch (supaErr) {
+          console.warn('Supabase auth fallback:', supaErr);
+        }
+      }
+
+      // 2. Local Backend Auth
       if (isRegister) {
         await registerUser(email, password, fullName || undefined);
       }

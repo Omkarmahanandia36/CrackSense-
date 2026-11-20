@@ -33,6 +33,12 @@ class Settings(BaseSettings):
     MAX_FILE_SIZE_MB: int = 15
     ALLOWED_EXTENSIONS: List[str] = ["jpg", "jpeg", "png", "bmp", "webp"]
 
+    # Supabase Cloud Integration
+    SUPABASE_URL: str = ""
+    SUPABASE_KEY: str = ""
+    SUPABASE_SERVICE_ROLE_KEY: str = ""
+    SUPABASE_STORAGE_BUCKET: str = "cracksense-images"
+
     # Trained Model Checkpoint Path
     RESNET_MODEL_PATH: str = str(BASE_DIR / "models" / "best_resnet18.pth")
     YOLO_MODEL_PATH: str = str(BASE_DIR / "models" / "best_yolo.pt")

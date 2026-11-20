@@ -30,6 +30,7 @@ dataset/detection/*
 !dataset/detection/data.yaml
 dataset/damsegment*
 dataset/detection_damsegment/
+dataset/detection_combined/
 dataset/roboflow/
 
 # Storage
