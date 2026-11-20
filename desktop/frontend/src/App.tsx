@@ -14,10 +14,11 @@ import {
   signOutSupabase,
   getUserProfile,
   getValidSession,
+  getCachedUserProfile,
+  setCachedUserProfile,
 } from './services/supabase';
 import {
   getSystemHealth,
-  getCurrentUser,
   fetchInspections,
   HealthData,
   AnalyzeResult,
@@ -29,10 +30,39 @@ export default function App() {
   const [currentResult, setCurrentResult] = useState<AnalyzeResult | null>(null);
   const [recentInspections, setRecentInspections] = useState<AnalyzeResult[]>([]);
   const [health, setHealth] = useState<HealthData | null>(null);
-  const [user, setUser] = useState<UserProfile | null>(null);
+
+  // Initialize directly from persisted local cache so user remains logged in across app restarts
+  const [user, setUser] = useState<UserProfile | null>(() => {
+    const cached = getCachedUserProfile();
+    if (!cached) return null;
+    return {
+      id: cached.id,
+      email: cached.email,
+      full_name: cached.full_name,
+      role: cached.role,
+      is_active: true,
+      created_at: cached.created_at,
+    };
+  });
+
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [initialFileForUpload, setInitialFileForUpload] = useState<File | null>(null);
+
+  const handleSetUser = useCallback((newUser: UserProfile | null) => {
+    setUser(newUser);
+    if (newUser) {
+      setCachedUserProfile({
+        id: String(newUser.id),
+        email: newUser.email,
+        full_name: newUser.full_name || 'Inspector',
+        role: newUser.role || 'user',
+        created_at: newUser.created_at,
+      });
+    } else {
+      setCachedUserProfile(null);
+    }
+  }, []);
 
   // Theme: read from <html data-theme>, toggle between dark/light
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
@@ -87,54 +117,43 @@ export default function App() {
     loadRecentHistory();
   }, []);
 
-  // Check persisted user session (Supabase Cloud + Local backend fallback)
+  // Check active Supabase cloud session on app start & subscribe to auth updates
   useEffect(() => {
     const checkUser = async () => {
-      // 1. Check active Supabase session
-      if (isSupabaseConfigured()) {
-        try {
-          const session = await getValidSession();
-          if (session?.user) {
-            const profile = await getUserProfile(session.user.id);
-            setUser({
-              id: session.user.id,
-              email: session.user.email || '',
-              full_name:
-                profile?.full_name ||
-                session.user.user_metadata?.full_name ||
-                session.user.user_metadata?.username ||
-                session.user.email?.split('@')[0] ||
-                'Inspector',
-              role: profile?.role || 'user',
-              is_active: true,
-              created_at: session.user.created_at,
-            });
-            return;
-          }
-        } catch (supaErr) {
-          console.warn('Supabase session check error:', supaErr);
-        }
-      }
-
-      // 2. Local token fallback
+      if (!isSupabaseConfigured()) return;
       try {
-        const currentUser = await getCurrentUser();
-        setUser(currentUser);
-      } catch {
-        setUser(null);
+        const session = await getValidSession();
+        if (session?.user) {
+          const profile = await getUserProfile(session.user.id);
+          handleSetUser({
+            id: session.user.id,
+            email: session.user.email || '',
+            full_name:
+              profile?.full_name ||
+              session.user.user_metadata?.full_name ||
+              session.user.user_metadata?.username ||
+              session.user.email?.split('@')[0] ||
+              'Inspector',
+            role: profile?.role || 'user',
+            is_active: true,
+            created_at: session.user.created_at,
+          });
+        }
+      } catch (supaErr) {
+        console.warn('Supabase session check error:', supaErr);
+        // Do NOT log out on temporary network blips; retained cached profile stays active
       }
     };
 
     checkUser();
 
-    // 3. Supabase Auth state listener for instant UI updates on login/logout
     if (isSupabaseConfigured()) {
       const {
         data: { subscription },
       } = supabase.auth.onAuthStateChange(async (event, session) => {
         if (session?.user) {
           const profile = await getUserProfile(session.user.id);
-          setUser({
+          handleSetUser({
             id: session.user.id,
             email: session.user.email || '',
             full_name:
@@ -148,7 +167,7 @@ export default function App() {
             created_at: session.user.created_at,
           });
         } else if (event === 'SIGNED_OUT') {
-          setUser(null);
+          handleSetUser(null);
         }
       });
 
@@ -156,7 +175,7 @@ export default function App() {
         subscription.unsubscribe();
       };
     }
-  }, []);
+  }, [handleSetUser]);
 
   const handleAnalysisSuccess = (result: AnalyzeResult) => {
     setCurrentResult(result);
@@ -176,9 +195,8 @@ export default function App() {
   };
 
   const handleLogout = async () => {
-    localStorage.removeItem('cracksense_token');
+    handleSetUser(null);
     await signOutSupabase();
-    setUser(null);
   };
 
   return (
@@ -296,7 +314,7 @@ export default function App() {
       <LoginModal
         isOpen={isLoginOpen}
         onClose={() => setIsLoginOpen(false)}
-        onLoginSuccess={(loggedInUser) => setUser(loggedInUser)}
+        onLoginSuccess={(loggedInUser) => handleSetUser(loggedInUser)}
       />
     </div>
   );

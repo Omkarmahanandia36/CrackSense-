@@ -123,7 +123,7 @@ export function resolveImageUrl(url?: string): string {
 }
 
 function getAuthHeaders(): HeadersInit {
-  const token = localStorage.getItem('supabase_token') || localStorage.getItem('cracksense_token');
+  const token = localStorage.getItem('supabase_token');
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
