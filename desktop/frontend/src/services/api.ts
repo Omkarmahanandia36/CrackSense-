@@ -68,18 +68,38 @@ export interface UserProfile {
   created_at?: string;
 }
 
-const API_BASE =
-  import.meta.env.VITE_API_BASE_URL ||
-  (typeof window !== 'undefined' && window.location.protocol === 'file:'
-    ? 'http://127.0.0.1:8000'
-    : '');
+export function getApiBase(): string {
+  if (typeof window !== 'undefined') {
+    // 1. User manual override in localStorage
+    const stored = localStorage.getItem('cracksense_api_base');
+    if (stored && stored.trim()) return stored.trim().replace(/\/+$/, '');
+
+    // 2. Electron desktop app or local browser running on desktop
+    const isElectron =
+      window.navigator.userAgent.includes('Electron') ||
+      (window as any).electronAPI !== undefined;
+    const isLocalhost =
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1' ||
+      window.location.protocol === 'file:';
+
+    if (isElectron || isLocalhost) {
+      return 'http://127.0.0.1:8000';
+    }
+  }
+
+  // 3. Mobile / LAN environment variable configured in .env
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, '');
+  }
+
+  return 'http://127.0.0.1:8000';
+}
 
 export function resolveImageUrl(url?: string): string {
   if (!url) return '';
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
-  const base =
-    import.meta.env.VITE_API_BASE_URL ||
-    (typeof window !== 'undefined' && window.location.protocol === 'file:' ? 'http://127.0.0.1:8000' : '');
+  const base = getApiBase();
   return `${base}${url}`;
 }
 
@@ -89,16 +109,18 @@ function getAuthHeaders(): HeadersInit {
 }
 
 export async function getSystemHealth(): Promise<HealthData> {
-  const res = await fetch(`${API_BASE}/health`);
+  const base = getApiBase();
+  const res = await fetch(`${base}/health`);
   if (!res.ok) throw new Error(`Health check failed: ${res.status}`);
   return res.json();
 }
 
 export async function uploadAndAnalyzeImage(file: File, threshold: number = 0.35): Promise<AnalyzeResult> {
+  const base = getApiBase();
   const formData = new FormData();
   formData.append('file', file);
 
-  const res = await fetch(`${API_BASE}/analyze?threshold=${threshold}`, {
+  const res = await fetch(`${base}/analyze?threshold=${threshold}`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: formData,
@@ -113,7 +135,8 @@ export async function uploadAndAnalyzeImage(file: File, threshold: number = 0.35
 }
 
 export async function fetchInspections(skip: number = 0, limit: number = 50): Promise<InspectionListItem[]> {
-  const res = await fetch(`${API_BASE}/inspections?skip=${skip}&limit=${limit}`, {
+  const base = getApiBase();
+  const res = await fetch(`${base}/inspections?skip=${skip}&limit=${limit}`, {
     headers: getAuthHeaders(),
   });
   if (!res.ok) throw new Error('Failed to load inspection history');
@@ -121,7 +144,8 @@ export async function fetchInspections(skip: number = 0, limit: number = 50): Pr
 }
 
 export async function deleteInspection(id: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/inspections/${id}`, {
+  const base = getApiBase();
+  const res = await fetch(`${base}/inspections/${id}`, {
     method: 'DELETE',
     headers: getAuthHeaders(),
   });
@@ -129,7 +153,8 @@ export async function deleteInspection(id: number): Promise<void> {
 }
 
 export async function loginUser(email: string, password: string): Promise<{ access_token: string; user: UserProfile }> {
-  const res = await fetch(`${API_BASE}/auth/login`, {
+  const base = getApiBase();
+  const res = await fetch(`${base}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
@@ -142,7 +167,8 @@ export async function loginUser(email: string, password: string): Promise<{ acce
 }
 
 export async function registerUser(email: string, password: string, full_name?: string): Promise<UserProfile> {
-  const res = await fetch(`${API_BASE}/auth/register`, {
+  const base = getApiBase();
+  const res = await fetch(`${base}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password, full_name }),
@@ -157,7 +183,8 @@ export async function registerUser(email: string, password: string, full_name?: 
 export async function getCurrentUser(): Promise<UserProfile | null> {
   const token = localStorage.getItem('cracksense_token');
   if (!token) return null;
-  const res = await fetch(`${API_BASE}/auth/me`, {
+  const base = getApiBase();
+  const res = await fetch(`${base}/auth/me`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) {
