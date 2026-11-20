@@ -46,12 +46,12 @@ async def test_health_endpoints():
 
 
 @pytest.mark.asyncio
-async def test_analyze_unauthenticated_rejected():
+async def test_analyze_unauthenticated_accepted_guest():
+    """Unauthenticated guest inspections are allowed in Phase 5 / Online Mode."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         files = {"file": ("sample.jpg", make_dummy_jpeg(), "image/jpeg")}
         res = await client.post("/analyze", files=files)
-        assert res.status_code == 401
-        assert "authentication" in res.json()["detail"].lower() or "missing" in res.json()["detail"].lower()
+        assert res.status_code == 201
 
 
 @pytest.mark.asyncio
