@@ -1,5 +1,12 @@
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
 import { Capacitor } from '@capacitor/core';
+import { downscaleImageForUpload } from './imageUtils';
+import {
+  requestCloudinarySignature,
+  uploadImageToCloudinary,
+  getSignedDeliveryUrl,
+  deleteCloudinaryInspectionAssets,
+} from './cloudinary';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -154,7 +161,10 @@ export interface SupabaseInspection {
   user_id?: string;
   client_id?: string;
   filename: string;
-  image_url: string;
+  image_public_id?: string;
+  annotated_public_id?: string;
+  image_bytes?: number;
+  image_url?: string;
   annotated_image_url?: string;
   mask_png_base64?: string;
   verdict: 'crack_detected' | 'no_crack';
@@ -175,7 +185,10 @@ export interface LocalInspection {
   clientId: string; // Idempotency UUID
   userId: string;
   filename: string;
-  imageUrl: string;
+  imagePublicId?: string;
+  annotatedPublicId?: string;
+  imageBytes?: number;
+  imageUrl?: string;
   annotatedImageUrl?: string;
   maskPngBase64?: string;
   verdict: 'crack_detected' | 'no_crack';
@@ -239,37 +252,26 @@ export const deleteLocalInspection = (clientId: string): void => {
 };
 
 /**
- * Generate a signed URL for a file stored in private 'cracksense-images' bucket.
+ * Generate a signed URL for display.
+ * For Cloudinary assets (stored with type 'authenticated'), requests an HMAC delivery URL.
  */
 export const getSignedImageUrl = async (
-  path: string,
+  pathOrPublicId: string,
   expiresIn = 3600
 ): Promise<string | null> => {
-  if (!isSupabaseConfigured() || !path) return null;
-  // If already an absolute http/blob/data URL, check if it contains storage path
-  if (path.startsWith('data:') || path.startsWith('blob:')) {
-    return path;
-  }
-  let cleanPath = path;
-  const bucketPrefix = 'cracksense-images/';
-  if (cleanPath.includes(bucketPrefix)) {
-    cleanPath = cleanPath.substring(cleanPath.indexOf(bucketPrefix) + bucketPrefix.length);
+  if (!pathOrPublicId) return null;
+  // If already an absolute http/blob/data URL, check if it's a Cloudinary public ID
+  if (pathOrPublicId.startsWith('data:') || pathOrPublicId.startsWith('blob:')) {
+    return pathOrPublicId;
   }
 
-  try {
-    const { data, error } = await supabase.storage
-      .from('cracksense-images')
-      .createSignedUrl(cleanPath, expiresIn);
-
-    if (error) {
-      console.warn('Failed to obtain signed URL for image:', error.message);
-      return null;
-    }
-    return data?.signedUrl || null;
-  } catch (err) {
-    console.warn('Signed URL resolution error:', err);
-    return null;
+  // Cloudinary authenticated public ID (cracksense/<uid>/<id>)
+  if (pathOrPublicId.startsWith('cracksense/') || !pathOrPublicId.startsWith('http')) {
+    const deliveryUrl = await getSignedDeliveryUrl(pathOrPublicId);
+    if (deliveryUrl) return deliveryUrl;
   }
+
+  return pathOrPublicId;
 };
 
 /**
@@ -363,21 +365,27 @@ export const syncInspection = async (
   saveLocalInspection(item);
 
   try {
-    let cloudImagePath = item.imageUrl;
+    let imagePublicId = item.imagePublicId;
+    let annotatedPublicId = item.annotatedPublicId;
+    let imageBytes = item.imageBytes || 0;
+    let imageWidth = item.imageWidth || 0;
+    let imageHeight = item.imageHeight || 0;
 
-    // Upload image if image file or blob provided and not already uploaded
-    if (imageBlob && (!cloudImagePath || cloudImagePath.startsWith('blob:') || cloudImagePath.startsWith('data:'))) {
-      const uploadedPath = await uploadImageToSupabaseStorage(
-        imageBlob,
-        item.filename,
-        session.user.id
-      );
-      if (uploadedPath) {
-        cloudImagePath = uploadedPath;
-      }
+    // 1. Upload original image to Cloudinary if provided and not yet uploaded
+    if (imageBlob && !imagePublicId) {
+      // Downscale to max 2000px, JPEG quality ~85%
+      const processed = await downscaleImageForUpload(imageBlob, 2000, 0.85);
+      imageBytes = processed.bytes;
+      imageWidth = processed.width;
+      imageHeight = processed.height;
+
+      // Request signed upload parameters from edge function
+      const signData = await requestCloudinarySignature(item.clientId, 'original');
+      const cldRes = await uploadImageToCloudinary(processed.blob, signData);
+      imagePublicId = cldRes.public_id;
     }
 
-    // Insert inspection record into Supabase (idempotent on client_id)
+    // 2. Insert inspection record into Supabase (idempotent on client_id)
     const { data: inserted, error: insertError } = await supabase
       .from('inspections')
       .upsert(
@@ -385,14 +393,17 @@ export const syncInspection = async (
           client_id: item.clientId,
           user_id: session.user.id,
           filename: item.filename,
-          image_url: cloudImagePath,
+          image_public_id: imagePublicId || null,
+          annotated_public_id: annotatedPublicId || null,
+          image_bytes: imageBytes,
+          image_width: imageWidth,
+          image_height: imageHeight,
+          image_url: item.imageUrl || null,
           annotated_image_url: item.annotatedImageUrl || null,
           mask_png_base64: item.maskPngBase64 || null,
           verdict: item.verdict,
           confidence: item.confidence,
           box_count: item.boxCount,
-          image_width: item.imageWidth,
-          image_height: item.imageHeight,
           detections: item.detections,
           metadata: item.metadata,
           sync_status: 'synced',
@@ -406,7 +417,7 @@ export const syncInspection = async (
       throw insertError;
     }
 
-    // Insert detection boxes if any
+    // 3. Insert detection boxes if any
     if (inserted?.id && item.detections && item.detections.length > 0) {
       const boxesToInsert = item.detections.map((d, idx) => ({
         inspection_id: inserted.id,
@@ -431,7 +442,11 @@ export const syncInspection = async (
 
     item.syncStatus = 'synced';
     item.syncError = undefined;
-    item.imageUrl = cloudImagePath;
+    item.imagePublicId = imagePublicId;
+    item.annotatedPublicId = annotatedPublicId;
+    item.imageBytes = imageBytes;
+    item.imageWidth = imageWidth;
+    item.imageHeight = imageHeight;
     item.supabaseId = inserted?.id;
     saveLocalInspection(item);
     return item;

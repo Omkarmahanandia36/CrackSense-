@@ -12,8 +12,10 @@ import {
   fetchSupabaseInspections,
   getLocalInspections,
   syncPendingInspections,
+  getSignedImageUrl,
   supabase,
 } from '../services/supabase';
+import { deleteCloudinaryInspectionAssets } from '../services/cloudinary';
 import {
   GlassPanel,
   Button,
@@ -27,6 +29,30 @@ interface HistoryProps {
   onSelectResult: (result: AnalyzeResult) => void;
   onNavigateUpload: () => void;
 }
+
+const HistoryThumbnail: React.FC<{ url?: string; filename: string }> = ({ url, filename }) => {
+  const [src, setSrc] = useState(() => resolveImageUrl(url));
+
+  useEffect(() => {
+    let active = true;
+    if (url && (url.startsWith('cracksense/') || !url.startsWith('http'))) {
+      getSignedImageUrl(url).then((signed) => {
+        if (active && signed) setSrc(signed);
+      });
+    } else {
+      setSrc(resolveImageUrl(url));
+    }
+    return () => {
+      active = false;
+    };
+  }, [url]);
+
+  if (!url) {
+    return <FileImage className="w-4 h-4" style={{ color: 'var(--text-3)' }} strokeWidth={1.5} />;
+  }
+
+  return <img src={src} alt={filename} className="w-full h-full object-cover" />;
+};
 
 export const History: React.FC<HistoryProps> = ({
   onSelectResult,
@@ -65,7 +91,7 @@ export const History: React.FC<HistoryProps> = ({
               is_crack: s.verdict === 'crack_detected',
               predicted_class: s.verdict === 'crack_detected' ? 'crack' : 'clear',
               confidence: s.confidence,
-              image_url: s.image_url,
+              image_url: s.image_public_id || s.image_url || '',
               created_at: s.created_at,
               sync_status: s.sync_status || 'synced',
             }));
@@ -128,10 +154,14 @@ export const History: React.FC<HistoryProps> = ({
 
   const handleDelete = async (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
+    const targetItem = inspections.find((item) => item.id === id);
     if (!window.confirm(`Permanently delete inspection #${id}?`)) return;
 
     try {
       setDeletingId(id);
+      if (isSupabaseConfigured() && targetItem?.uuid) {
+        await deleteCloudinaryInspectionAssets(targetItem.uuid);
+      }
       await deleteInspection(id);
       setInspections((prev) => prev.filter((item) => item.id !== id));
     } catch (err: any) {
@@ -324,15 +354,7 @@ export const History: React.FC<HistoryProps> = ({
                           border: '1px solid var(--glass-sunken-border)',
                         }}
                       >
-                        {item.image_url ? (
-                          <img
-                            src={resolveImageUrl(item.image_url)}
-                            alt="Thumbnail"
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <FileImage className="w-4 h-4" style={{ color: 'var(--text-3)' }} strokeWidth={1.5} />
-                        )}
+                        <HistoryThumbnail url={item.image_url} filename={item.filename} />
                       </div>
                       <span className="font-mono text-xs font-medium truncate max-w-xs" style={{ color: 'var(--text-1)' }}>
                         {item.filename}
