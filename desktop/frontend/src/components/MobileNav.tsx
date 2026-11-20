@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { HealthData, UserProfile } from '../services/api';
 import { UpdateStatus } from './UpdateStatus';
+import { ServerConfigModal } from './ServerConfigModal';
 
 interface MobileNavProps {
   currentPage: 'dashboard' | 'upload' | 'result' | 'history' | 'dev' | 'admin';
@@ -37,43 +38,51 @@ export const MobileHeader: React.FC<MobileNavProps> = ({
   onNavigate,
 }) => {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [isServerModalOpen, setIsServerModalOpen] = useState(false);
   const isHealthy = health?.status === 'healthy';
   const deviceName = health?.device ? health.device.toUpperCase() : 'CPU';
 
   return (
-    <header className="md:hidden sticky top-0 z-40 w-full pt-safe px-4 py-2.5 bg-[#06141B]/85 backdrop-blur-xl border-b border-white/10 flex items-center justify-between">
-      {/* Brand Logo & Name */}
-      <div
-        onClick={() => onNavigate('dashboard')}
-        className="flex items-center gap-2 cursor-pointer active:opacity-80"
-      >
-        <span
-          className="w-2.5 h-2.5 rounded-full"
-          style={{ background: 'var(--accent)' }}
-        />
-        <span
-          className="font-semibold text-base tracking-tight"
-          style={{ color: 'var(--text-1)' }}
-        >
-          CrackSense
-        </span>
-
-        {/* Backend health pill */}
+    <>
+      <header className="md:hidden sticky top-0 z-40 w-full pt-safe px-4 py-2.5 bg-[#06141B]/85 backdrop-blur-xl border-b border-white/10 flex items-center justify-between">
+        {/* Brand Logo & Name */}
         <div
-          className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono ml-1"
-          style={{
-            background: isHealthy ? 'var(--success-tint)' : 'rgba(255, 159, 10, 0.12)',
-            color: isHealthy ? 'var(--success)' : 'var(--warning)',
-            border: `1px solid ${isHealthy ? 'rgba(48, 209, 88, 0.25)' : 'rgba(255, 159, 10, 0.25)'}`,
-          }}
+          onClick={() => onNavigate('dashboard')}
+          className="flex items-center gap-2 cursor-pointer active:opacity-80"
         >
-          <span
-            className={`w-1.5 h-1.5 rounded-full ${isHealthy ? 'animate-status-pulse' : ''}`}
-            style={{ background: isHealthy ? 'var(--success)' : 'var(--warning)' }}
+          <img
+            src="/logo.png"
+            alt="CrackSense Logo"
+            className="w-6 h-6 rounded-md object-contain shadow-sm flex-shrink-0"
           />
-          <span>{isHealthy ? deviceName : 'Connecting'}</span>
+          <span
+            className="font-semibold text-base tracking-tight"
+            style={{ color: 'var(--text-1)' }}
+          >
+            CrackSense
+          </span>
+
+          {/* Backend health pill - clickable to configure server IP */}
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsServerModalOpen(true);
+            }}
+            className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono ml-1 cursor-pointer active:scale-95 transition-transform"
+            style={{
+              background: isHealthy ? 'var(--success-tint)' : 'rgba(255, 159, 10, 0.12)',
+              color: isHealthy ? 'var(--success)' : 'var(--warning)',
+              border: `1px solid ${isHealthy ? 'rgba(48, 209, 88, 0.25)' : 'rgba(255, 159, 10, 0.25)'}`,
+            }}
+            title="Tap to configure server IP"
+          >
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${isHealthy ? 'animate-status-pulse' : ''}`}
+              style={{ background: isHealthy ? 'var(--success)' : 'var(--warning)' }}
+            />
+            <span>{isHealthy ? deviceName : 'Connecting…'}</span>
+          </div>
         </div>
-      </div>
 
       {/* Action Buttons: Update Indicator, Theme Toggle & User Auth */}
       <div className="flex items-center gap-1.5">
@@ -168,6 +177,13 @@ export const MobileHeader: React.FC<MobileNavProps> = ({
         )}
       </div>
     </header>
+
+    <ServerConfigModal
+      isOpen={isServerModalOpen}
+      onClose={() => setIsServerModalOpen(false)}
+      onConfigSaved={() => window.location.reload()}
+    />
+  </>
   );
 };
 

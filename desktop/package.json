@@ -1,6 +1,6 @@
 {
   "name": "cracksense-desktop",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "CrackSense AI - Concrete Surface Inspection Desktop App",
   "main": "electron/main.js",
   "scripts": {
@@ -28,6 +28,7 @@
       "repo": "YOUR_GITHUB_REPO"
     },
     "win": {
+      "icon": "build/icon.ico",
       "target": [
         "nsis",
         "portable"

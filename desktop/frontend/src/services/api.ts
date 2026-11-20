@@ -68,13 +68,32 @@ export interface UserProfile {
   created_at?: string;
 }
 
+import { Capacitor } from '@capacitor/core';
+
+export const isNativeMobile = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  return (
+    Capacitor.isNativePlatform() ||
+    Boolean((window as any).Capacitor?.isNativePlatform?.()) ||
+    /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+  );
+};
+
 export function getApiBase(): string {
   if (typeof window !== 'undefined') {
     // 1. User manual override in localStorage
     const stored = localStorage.getItem('cracksense_api_base');
     if (stored && stored.trim()) return stored.trim().replace(/\/+$/, '');
 
-    // 2. Electron desktop app or local browser running on desktop
+    // 2. Mobile devices MUST NOT connect to 127.0.0.1 (phone loopback)
+    if (isNativeMobile()) {
+      if (import.meta.env.VITE_API_BASE_URL) {
+        return import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, '');
+      }
+      return 'http://10.57.2.244:8000';
+    }
+
+    // 3. Electron desktop app or local PC browser
     const isElectron =
       window.navigator.userAgent.includes('Electron') ||
       (window as any).electronAPI !== undefined;
@@ -88,7 +107,7 @@ export function getApiBase(): string {
     }
   }
 
-  // 3. Mobile / LAN environment variable configured in .env
+  // 4. Configured environment variable
   if (import.meta.env.VITE_API_BASE_URL) {
     return import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, '');
   }
