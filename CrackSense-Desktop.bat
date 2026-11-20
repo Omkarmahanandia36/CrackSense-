@@ -8,7 +8,7 @@ echo.
 cd /d "%~dp0"
 
 echo [*] Checking Python AI Backend service (port 8000)...
-powershell -Command "try { $r = Invoke-WebRequest -Uri 'http://127.0.0.1:8000/health' -TimeoutSec 1; exit 0 } catch { exit 1 }" >nul 2>&1
+powershell -Command "try { $r = Invoke-WebRequest -Uri 'http://127.0.0.1:8000/health' -UseBasicParsing -TimeoutSec 1; exit 0 } catch { exit 1 }" >nul 2>&1
 if %ERRORLEVEL% equ 0 (
     echo [+] AI Engine is already running.
 ) else (

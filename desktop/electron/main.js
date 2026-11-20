@@ -1,6 +1,9 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
 
+// Disable GPU disk cache to avoid Windows cache permission locks
+app.commandLine.appendSwitch('disable-gpu-cache');
+
 function createWindow() {
   const mainWindow = new BrowserWindow({
     width: 1280,
@@ -8,6 +11,7 @@ function createWindow() {
     minWidth: 1024,
     minHeight: 700,
     title: 'CrackSense AI – Concrete Surface Inspection',
+    backgroundColor: '#06141B', // Match glass dark theme background
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
