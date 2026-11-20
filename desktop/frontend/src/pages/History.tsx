@@ -302,139 +302,196 @@ export const History: React.FC<HistoryProps> = ({
           onAction={searchQuery ? () => setSearchQuery('') : onNavigateUpload}
         />
       ) : (
-        /* Table on a sunken-glass surface */
-        <div
-          className="w-full overflow-x-auto"
-          style={{
-            background: 'var(--glass-sunken-bg)',
-            border: '1px solid var(--glass-sunken-border)',
-            borderRadius: 'var(--r-panel)',
-          }}
-        >
-          <table className="w-full text-left text-xs">
-            <thead
-              className="border-b font-medium"
-              style={{
-                borderColor: 'var(--glass-sunken-border)',
-                color: 'var(--text-3)',
-              }}
-            >
-              <tr>
-                <th className="py-3 px-4 w-16">ID</th>
-                <th className="py-3 px-4">Surface / File</th>
-                <th className="py-3 px-4">Verdict</th>
-                <th className="py-3 px-4">Confidence</th>
-                <th className="py-3 px-4">Cloud Sync</th>
-                <th className="py-3 px-4">Timestamp</th>
-                <th className="py-3 px-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody
-              className="divide-y"
-              style={{
-                borderColor: 'var(--glass-sunken-border)',
-                color: 'var(--text-2)',
-              }}
-            >
-              {filtered.map((item) => (
-                <tr
-                  key={item.id}
-                  onClick={() => handleView(item)}
-                  className="hover:bg-[--hover-bg] cursor-pointer transition-colors duration-150 group"
-                >
-                  <td className="py-3 px-4 font-mono text-[11px]" style={{ color: 'var(--text-3)' }}>
-                    #{item.id}
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0"
+        <>
+          {/* Desktop Table View */}
+          <div
+            className="hidden md:block w-full overflow-x-auto"
+            style={{
+              background: 'var(--glass-sunken-bg)',
+              border: '1px solid var(--glass-sunken-border)',
+              borderRadius: 'var(--r-panel)',
+            }}
+          >
+            <table className="w-full text-left text-xs">
+              <thead
+                className="border-b font-medium"
+                style={{
+                  borderColor: 'var(--glass-sunken-border)',
+                  color: 'var(--text-3)',
+                }}
+              >
+                <tr>
+                  <th className="py-3 px-4 w-16">ID</th>
+                  <th className="py-3 px-4">Surface / File</th>
+                  <th className="py-3 px-4">Verdict</th>
+                  <th className="py-3 px-4">Confidence</th>
+                  <th className="py-3 px-4">Cloud Sync</th>
+                  <th className="py-3 px-4">Timestamp</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody
+                className="divide-y"
+                style={{
+                  borderColor: 'var(--glass-sunken-border)',
+                  color: 'var(--text-2)',
+                }}
+              >
+                {filtered.map((item) => (
+                  <tr
+                    key={item.id}
+                    onClick={() => handleView(item)}
+                    className="hover:bg-[--hover-bg] cursor-pointer transition-colors duration-150 group"
+                  >
+                    <td className="py-3 px-4 font-mono text-[11px]" style={{ color: 'var(--text-3)' }}>
+                      #{item.id}
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0"
+                          style={{
+                            background: 'var(--glass-sunken-bg)',
+                            border: '1px solid var(--glass-sunken-border)',
+                          }}
+                        >
+                          <HistoryThumbnail url={item.image_url} filename={item.filename} />
+                        </div>
+                        <span className="font-mono text-xs font-medium truncate max-w-xs" style={{ color: 'var(--text-1)' }}>
+                          {item.filename}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      {item.is_crack ? (
+                        <span
+                          className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium"
+                          style={{
+                            background: 'var(--crack-tint)',
+                            color: 'var(--crack)',
+                            border: '1px solid rgba(255, 69, 58, 0.25)',
+                          }}
+                        >
+                          Crack detected
+                        </span>
+                      ) : (
+                        <span
+                          className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium"
+                          style={{
+                            background: 'var(--success-tint)',
+                            color: 'var(--success)',
+                            border: '1px solid rgba(48, 209, 88, 0.25)',
+                          }}
+                        >
+                          Clear surface
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 font-mono text-xs" style={{ color: 'var(--text-1)' }}>
+                      {(item.confidence * 100).toFixed(1)}%
+                    </td>
+                    <td className="py-3 px-4">
+                      {item.sync_status === 'synced' ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 font-medium">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          Synced
+                        </span>
+                      ) : item.sync_status === 'pending' || item.sync_status === 'failed' ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] text-amber-400 font-medium">
+                          <Clock className="w-3.5 h-3.5" />
+                          Pending
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[11px] text-white/40">
+                          Local
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 font-mono text-[11px]" style={{ color: 'var(--text-3)' }}>
+                      {new Date(item.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                    </td>
+                    <td className="py-3 px-4 text-right space-x-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleView(item);
+                        }}
+                        className="text-xs font-medium transition-colors"
+                        style={{ color: 'var(--accent)' }}
+                      >
+                        View
+                      </button>
+                      <button
+                        onClick={(e) => handleDelete(item.id, e)}
+                        disabled={deletingId === item.id}
+                        className="p-1 rounded-md transition-colors hover:bg-[--hover-bg] ml-2"
+                        style={{ color: 'var(--text-3)' }}
+                        title="Delete record"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 inline" strokeWidth={1.5} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Card List View */}
+          <div className="md:hidden space-y-2.5 pb-16">
+            {filtered.map((item) => (
+              <div
+                key={item.id}
+                onClick={() => handleView(item)}
+                className="p-3.5 rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-md flex items-center justify-between gap-3 active:scale-[0.98] transition-all cursor-pointer"
+                style={{
+                  background: 'var(--glass-sunken-bg)',
+                  borderColor: 'var(--glass-sunken-border)',
+                }}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 bg-black/40 border border-white/10 flex items-center justify-center">
+                    <HistoryThumbnail url={item.image_url} filename={item.filename} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-mono font-medium truncate max-w-[150px]" style={{ color: 'var(--text-1)' }}>
+                      {item.filename}
+                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span
+                        className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
                         style={{
-                          background: 'var(--glass-sunken-bg)',
-                          border: '1px solid var(--glass-sunken-border)',
+                          background: item.is_crack ? 'var(--crack-tint)' : 'var(--success-tint)',
+                          color: item.is_crack ? 'var(--crack)' : 'var(--success)',
+                          border: `1px solid ${item.is_crack ? 'rgba(255, 69, 58, 0.3)' : 'rgba(48, 209, 88, 0.3)'}`,
                         }}
                       >
-                        <HistoryThumbnail url={item.image_url} filename={item.filename} />
-                      </div>
-                      <span className="font-mono text-xs font-medium truncate max-w-xs" style={{ color: 'var(--text-1)' }}>
-                        {item.filename}
+                        {item.is_crack ? 'Crack detected' : 'Clear'}
+                      </span>
+                      <span className="text-[10px] font-mono" style={{ color: 'var(--text-3)' }}>
+                        {(item.confidence * 100).toFixed(0)}%
                       </span>
                     </div>
-                  </td>
-                  <td className="py-3 px-4">
-                    {item.is_crack ? (
-                      <span
-                        className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium"
-                        style={{
-                          background: 'var(--crack-tint)',
-                          color: 'var(--crack)',
-                          border: '1px solid rgba(255, 69, 58, 0.25)',
-                        }}
-                      >
-                        Crack detected
-                      </span>
-                    ) : (
-                      <span
-                        className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium"
-                        style={{
-                          background: 'var(--success-tint)',
-                          color: 'var(--success)',
-                          border: '1px solid rgba(48, 209, 88, 0.25)',
-                        }}
-                      >
-                        Clear surface
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-3 px-4 font-mono text-xs" style={{ color: 'var(--text-1)' }}>
-                    {(item.confidence * 100).toFixed(1)}%
-                  </td>
-                  <td className="py-3 px-4">
-                    {item.sync_status === 'synced' ? (
-                      <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 font-medium">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        Synced
-                      </span>
-                    ) : item.sync_status === 'pending' || item.sync_status === 'failed' ? (
-                      <span className="inline-flex items-center gap-1 text-[11px] text-amber-400 font-medium">
-                        <Clock className="w-3.5 h-3.5" />
-                        Pending
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-[11px] text-white/40">
-                        Local
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-3 px-4 font-mono text-[11px]" style={{ color: 'var(--text-3)' }}>
-                    {new Date(item.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
-                  </td>
-                  <td className="py-3 px-4 text-right space-x-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleView(item);
-                      }}
-                      className="text-xs font-medium transition-colors"
-                      style={{ color: 'var(--accent)' }}
-                    >
-                      View
-                    </button>
-                    <button
-                      onClick={(e) => handleDelete(item.id, e)}
-                      disabled={deletingId === item.id}
-                      className="p-1 rounded-md transition-colors hover:bg-[--hover-bg] ml-2"
-                      style={{ color: 'var(--text-3)' }}
-                      title="Delete record"
-                    >
-                      <Trash2 className="w-3.5 h-3.5 inline" strokeWidth={1.5} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className="text-[10px] font-mono" style={{ color: 'var(--text-3)' }}>
+                    {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                  <button
+                    onClick={(e) => handleDelete(item.id, e)}
+                    disabled={deletingId === item.id}
+                    className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 active:scale-95"
+                    title="Delete inspection"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

@@ -36,6 +36,17 @@
   }
 }
 
+/* ── Mobile Safe Area Padding Utilities ── */
+.pt-safe {
+  padding-top: max(env(safe-area-inset-top, 0px), 8px);
+}
+.pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px);
+}
+.pb-safe-nav {
+  padding-bottom: calc(max(env(safe-area-inset-bottom, 0px), 8px) + 64px);
+}
+
 /* ── Custom Scrollbar ── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }

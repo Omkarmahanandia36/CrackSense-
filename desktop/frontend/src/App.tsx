@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Sidebar } from './components/Sidebar';
+import { MobileHeader, MobileBottomBar } from './components/MobileNav';
 import { Dashboard } from './pages/Dashboard';
 import { UploadAnalyze } from './pages/UploadAnalyze';
 import { ResultView } from './pages/ResultView';
@@ -190,9 +191,22 @@ export default function App() {
         <div className="ambient-noise" />
       </div>
 
-      {/* ── App Shell: Floating Sidebar + Viewport ── */}
-      <div className="relative z-10 flex h-full" style={{ padding: 16 }}>
-        {/* Floating glass sidebar */}
+      {/* ── App Shell: Responsive Mobile Header + Main + Floating Sidebar ── */}
+      <div className="relative z-10 flex flex-col md:flex-row h-full p-0 md:p-4 overflow-hidden">
+        {/* Mobile top header (phones only) */}
+        <MobileHeader
+          currentPage={currentPage}
+          onNavigate={setCurrentPage}
+          health={health}
+          hasResult={currentResult !== null}
+          user={user}
+          onOpenLogin={() => setIsLoginOpen(true)}
+          onLogout={handleLogout}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+        />
+
+        {/* Floating glass sidebar (tablets & desktop only) */}
         <Sidebar
           currentPage={currentPage}
           onNavigate={setCurrentPage}
@@ -209,10 +223,10 @@ export default function App() {
 
         {/* Main content — scrolls independently */}
         <main
-          className="flex-1 overflow-y-auto ml-4"
+          className="flex-1 overflow-y-auto ml-0 md:ml-4 pb-20 md:pb-0"
           style={{ borderRadius: 'var(--r-panel)' }}
         >
-          <div className={currentPage === 'result' ? 'flex flex-col h-full' : 'p-8 max-w-6xl w-full mx-auto'}>
+          <div className={currentPage === 'result' ? 'flex flex-col h-full' : 'p-3.5 sm:p-6 md:p-8 max-w-6xl w-full mx-auto'}>
             {currentPage === 'dashboard' && (
               <Dashboard
                 onStartUpload={() => {
@@ -264,6 +278,19 @@ export default function App() {
             {currentPage === 'dev' && <DevComponents />}
           </div>
         </main>
+
+        {/* Mobile bottom navigation bar (phones only) */}
+        <MobileBottomBar
+          currentPage={currentPage}
+          onNavigate={setCurrentPage}
+          health={health}
+          hasResult={currentResult !== null}
+          user={user}
+          onOpenLogin={() => setIsLoginOpen(true)}
+          onLogout={handleLogout}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+        />
       </div>
 
       <LoginModal

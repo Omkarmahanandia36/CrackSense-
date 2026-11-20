@@ -74,9 +74,18 @@ def record_inspection_in_supabase(inspection_data: Dict[str, Any]) -> Optional[D
         return None
 
     try:
+        user_id = inspection_data.get("user_id")
+        if not user_id or str(user_id).lower() in ("anonymous", "guest", "null", "undefined"):
+            logger.info("Skipping Supabase cloud sync for unauthenticated scan.")
+            return None
+
+        client_id = inspection_data.get("client_id") or inspection_data.get("id")
+
         # 1. Insert into public.inspections
         payload = {
             "id": str(inspection_data.get("id")),
+            "client_id": str(client_id),
+            "user_id": str(user_id),
             "filename": inspection_data.get("filename", "unknown.jpg"),
             "image_url": inspection_data.get("image_url", ""),
             "annotated_image_url": inspection_data.get("annotated_image_url"),
@@ -88,6 +97,7 @@ def record_inspection_in_supabase(inspection_data: Dict[str, Any]) -> Optional[D
             "image_height": int(inspection_data.get("image_height", 0)),
             "detections": inspection_data.get("detections", []),
             "metadata": inspection_data.get("metadata", {}),
+            "sync_status": "synced",
         }
 
         response = client.table("inspections").insert(payload).execute()

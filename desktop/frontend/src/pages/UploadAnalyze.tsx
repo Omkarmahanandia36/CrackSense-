@@ -182,7 +182,7 @@ export const UploadAnalyze: React.FC<UploadAnalyzeProps> = ({ initialFile, onAna
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
           className={`
-            glass-base p-16 text-center cursor-pointer select-none transition-all duration-200 group border border-dashed
+            glass-base p-6 sm:p-10 md:p-16 text-center cursor-pointer select-none transition-all duration-200 group border border-dashed
             ${isDragging ? 'scale-[1.01] shadow-2xl' : 'hover:bg-[--hover-bg]'}
           `}
           style={{
@@ -216,20 +216,38 @@ export const UploadAnalyze: React.FC<UploadAnalyzeProps> = ({ initialFile, onAna
             JPG, PNG, BMP, WebP &bull; Auto-analyzes on drop
           </p>
 
-          {/* Mobile & Tablet Camera Action */}
-          <div className="mt-5 flex items-center justify-center gap-3">
+          {/* Mobile & Tablet Quick Actions */}
+          <div className="mt-5 flex flex-col sm:flex-row items-center justify-center gap-3 max-w-sm mx-auto">
             <button
               type="button"
-              onClick={handleCapturePhoto}
-              className="px-4 py-2 rounded-xl text-xs font-medium flex items-center gap-2 transition-all duration-200 cursor-pointer shadow-lg hover:scale-105 active:scale-95"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCapturePhoto();
+              }}
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95"
               style={{
-                background: 'var(--btn-primary-bg)',
-                color: 'var(--btn-primary-text)',
-                border: '1px solid var(--glass-sunken-border)',
+                background: 'linear-gradient(135deg, #0A84FF 0%, #0066CC 100%)',
+                color: '#FFFFFF',
               }}
             >
-              <CameraIcon className="w-3.5 h-3.5" strokeWidth={2} />
-              Take Photo with Camera
+              <CameraIcon className="w-4 h-4" strokeWidth={2} />
+              <span>Snap with Camera</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                fileInputRef.current?.click();
+              }}
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-medium flex items-center justify-center gap-2 transition-all cursor-pointer border border-white/10 hover:bg-white/10 active:scale-95"
+              style={{
+                background: 'var(--glass-sunken-bg)',
+                color: 'var(--text-1)',
+              }}
+            >
+              <UploadCloud className="w-4 h-4 text-cyan-400" strokeWidth={1.8} />
+              <span>Choose from Photos</span>
             </button>
           </div>
         </div>

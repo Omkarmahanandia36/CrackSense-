@@ -1,6 +1,7 @@
 """FastAPI route dependencies for database sessions and JWT authentication."""
 
 import os
+import logging
 from typing import Optional, Union
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -11,6 +12,7 @@ from backend.app.core.database import get_db
 from backend.app.core.security import decode_access_token, AuthUser
 from backend.app.models.user import User
 
+logger = logging.getLogger(__name__)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
 
 
@@ -19,7 +21,8 @@ async def get_current_user(
     db: AsyncSession = Depends(get_db),
 ) -> Union[AuthUser, User]:
     """Extract and validate Supabase or local JWT token, returning authenticated user identity."""
-    if not token:
+    logger.info(f"[AUTH] Received token: {'Present (' + token[:15] + '...)' if token else 'None'}")
+    if not token or token == "null" or token == "undefined":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication token is missing. Please sign in to access this resource.",
@@ -28,6 +31,7 @@ async def get_current_user(
 
     payload = decode_access_token(token)
     if not payload or "sub" not in payload:
+        logger.warning(f"[AUTH] decode_access_token returned invalid payload: {payload}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired authentication token.",

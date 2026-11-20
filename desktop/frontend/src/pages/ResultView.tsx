@@ -348,44 +348,46 @@ export const ResultView: React.FC<ResultViewProps> = ({
       )}
 
       {/* Top Header / Breadcrumb Bar */}
-      <GlassPanel variant="base" className="h-12 px-5 flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-3">
+      <GlassPanel variant="base" className="h-auto py-2.5 sm:h-12 px-3.5 sm:px-5 flex items-center justify-between flex-shrink-0 gap-2">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <Button
             variant="ghost"
             size="sm"
             icon={ArrowLeft}
             onClick={onBackToDashboard}
           >
-            Dashboard
+            <span className="hidden sm:inline">Dashboard</span>
+            <span className="sm:hidden">Back</span>
           </Button>
           <span style={{ color: 'var(--text-3)' }}>/</span>
-          <span className="text-xs font-mono font-medium truncate max-w-sm" style={{ color: 'var(--text-1)' }}>
+          <span className="text-xs font-mono font-medium truncate max-w-[140px] sm:max-w-sm" style={{ color: 'var(--text-1)' }}>
             {result.filename}
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <Button
             variant="secondary"
             size="sm"
             icon={UploadCloud}
             onClick={onNewInspection}
           >
-            Analyze another image
+            <span className="hidden sm:inline">Analyze another image</span>
+            <span className="sm:hidden">New Scan</span>
           </Button>
         </div>
       </GlassPanel>
 
-      {/* Main Split Workbench: 65% Image Viewer / 35% Inspector Panel */}
-      <div className="flex flex-1 min-h-0 gap-4">
-        {/* Left Column: Glass Image Viewer (~65% width) */}
+      {/* Main Split Workbench: Responsive Stack (Mobile Column / Desktop Row) */}
+      <div className="flex flex-col md:flex-row flex-1 min-h-0 gap-4 overflow-y-auto md:overflow-hidden pb-16 md:pb-0">
+        {/* Left Column: Glass Image Viewer */}
         <GlassPanel
           variant="base"
-          className="flex-1 flex flex-col min-w-0 overflow-hidden relative"
+          className="flex-1 flex flex-col min-w-0 overflow-hidden relative h-[360px] sm:h-[420px] md:h-auto flex-shrink-0 md:flex-shrink"
         >
           {/* Viewer Toolbar */}
           <div
-            className="h-12 px-4 flex items-center justify-between border-b flex-shrink-0"
+            className="h-auto py-2 sm:h-12 px-3 sm:px-4 flex items-center justify-between border-b flex-shrink-0 gap-2 overflow-x-auto"
             style={{ borderColor: 'var(--glass-sunken-border)' }}
           >
             {/* Segmented Control: Original | Boxes | Mask | Both (default: Both) */}
@@ -561,10 +563,10 @@ export const ResultView: React.FC<ResultViewProps> = ({
           </div>
         </GlassPanel>
 
-        {/* Right Column: Glass Inspector Panel (~35% width, 380px) */}
+        {/* Right Column: Glass Inspector Panel (Full width on mobile, 380px on desktop) */}
         <GlassPanel
           variant="base"
-          className="w-96 flex-shrink-0 flex flex-col justify-between overflow-y-auto p-6 space-y-6"
+          className="w-full md:w-96 flex-shrink-0 flex flex-col justify-between overflow-y-visible md:overflow-y-auto p-4 sm:p-6 space-y-6"
         >
           <div className="space-y-6">
             {/* Section 1: Plain Verdict Headline & Thin Confidence Bar */}
