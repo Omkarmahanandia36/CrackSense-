@@ -1,13 +1,32 @@
 {
   "name": "cracksense-desktop",
   "version": "1.0.0",
+  "description": "CrackSense AI - Concrete Surface Inspection Desktop App",
   "main": "electron/main.js",
   "scripts": {
     "start": "electron .",
     "dev:frontend": "cd frontend && npm run dev",
-    "build:frontend": "cd frontend && npm run build"
+    "build:frontend": "cd frontend && npm run build",
+    "pack": "electron-builder --dir",
+    "dist:win": "electron-builder --win"
+  },
+  "build": {
+    "appId": "ai.cracksense.desktop",
+    "productName": "CrackSense AI",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "win": {
+      "target": ["portable"]
+    },
+    "files": [
+      "electron/**/*",
+      "frontend/dist/**/*",
+      "package.json"
+    ]
   },
   "devDependencies": {
-    "electron": "^29.1.0"
+    "electron": "^29.1.0",
+    "electron-builder": "^26.7.1"
   }
 }

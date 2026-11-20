@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { UploadCloud, ArrowRight, FileImage } from 'lucide-react';
+import { UploadCloud, ArrowRight, FileImage, Camera as CameraIcon } from 'lucide-react';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { HealthData, AnalyzeResult, resolveImageUrl } from '../services/api';
 import { GlassPanel, Button, EmptyState } from '../components/ui';
 
@@ -86,6 +87,37 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
   };
 
+  const handleCapturePhoto = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const image = await Camera.getPhoto({
+        quality: 90,
+        allowEditing: false,
+        resultType: CameraResultType.Uri,
+        source: CameraSource.Camera,
+      });
+
+      if (image.webPath) {
+        const response = await fetch(image.webPath);
+        const blob = await response.blob();
+        const file = new File(
+          [blob],
+          `inspection_crack_${Date.now()}.${image.format || 'jpg'}`,
+          { type: `image/${image.format || 'jpeg'}` }
+        );
+        if (onStartUploadWithFile) {
+          onStartUploadWithFile(file);
+        } else {
+          onStartUpload();
+        }
+      }
+    } catch (err: any) {
+      if (!err?.message?.includes('User cancelled')) {
+        console.warn('Camera notice:', err);
+      }
+    }
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -159,6 +191,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <p className="text-xs" style={{ color: 'var(--text-3)' }}>
             Drop concrete photograph here, or click to browse
           </p>
+          <div className="pt-2 flex items-center justify-center">
+            <button
+              type="button"
+              onClick={handleCapturePhoto}
+              className="px-3.5 py-1.5 rounded-xl text-xs font-medium flex items-center gap-2 transition-all duration-200 cursor-pointer shadow-md hover:scale-105 active:scale-95"
+              style={{
+                background: 'var(--btn-primary-bg)',
+                color: 'var(--btn-primary-text)',
+                border: '1px solid var(--glass-sunken-border)',
+              }}
+            >
+              <CameraIcon className="w-3.5 h-3.5" strokeWidth={2} />
+              Snap with Camera
+            </button>
+          </div>
         </div>
       </div>
 

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { UploadCloud, AlertCircle, X, Check, FileImage } from 'lucide-react';
+import { UploadCloud, AlertCircle, X, Check, FileImage, Camera as CameraIcon } from 'lucide-react';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { uploadAndAnalyzeImage, AnalyzeResult } from '../services/api';
 import { GlassPanel, Button } from '../components/ui';
 
@@ -97,6 +98,34 @@ export const UploadAnalyze: React.FC<UploadAnalyzeProps> = ({ initialFile, onAna
     }
   };
 
+  const handleCapturePhoto = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const image = await Camera.getPhoto({
+        quality: 90,
+        allowEditing: false,
+        resultType: CameraResultType.Uri,
+        source: CameraSource.Camera,
+      });
+
+      if (image.webPath) {
+        const response = await fetch(image.webPath);
+        const blob = await response.blob();
+        const file = new File(
+          [blob],
+          `inspection_crack_${Date.now()}.${image.format || 'jpg'}`,
+          { type: `image/${image.format || 'jpeg'}` }
+        );
+        processFile(file);
+      }
+    } catch (err: any) {
+      // User cancelled camera dialog or camera permission denied
+      if (!err?.message?.includes('User cancelled')) {
+        console.warn('Camera capture notice:', err);
+      }
+    }
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       processFile(e.target.files[0]);
@@ -186,6 +215,23 @@ export const UploadAnalyze: React.FC<UploadAnalyzeProps> = ({ initialFile, onAna
           <p className="text-xs mt-1 font-mono" style={{ color: 'var(--text-3)' }}>
             JPG, PNG, BMP, WebP &bull; Auto-analyzes on drop
           </p>
+
+          {/* Mobile & Tablet Camera Action */}
+          <div className="mt-5 flex items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={handleCapturePhoto}
+              className="px-4 py-2 rounded-xl text-xs font-medium flex items-center gap-2 transition-all duration-200 cursor-pointer shadow-lg hover:scale-105 active:scale-95"
+              style={{
+                background: 'var(--btn-primary-bg)',
+                color: 'var(--btn-primary-text)',
+                border: '1px solid var(--glass-sunken-border)',
+              }}
+            >
+              <CameraIcon className="w-3.5 h-3.5" strokeWidth={2} />
+              Take Photo with Camera
+            </button>
+          </div>
         </div>
       ) : (
         /* Selected File Preview & Automated Analysis Progress */

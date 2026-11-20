@@ -17,7 +17,7 @@ load_dotenv(PROJECT_ROOT / ".env")
 
 TARGET_PROJECTS = [
     {"workspace": "google-colab-cmvo4", "project": "cracks-detection-ojrlk", "version": 1},
-    {"workspace": "kamar", "project": "crack-tddj8", "version": 1},
+    {"workspace": "kamar", "project": "crack-tddj8", "version": 2},
 ]
 
 

@@ -25,6 +25,7 @@ from backend.app.schemas.analyze import (
 from backend.app.api.deps import get_optional_user
 from backend.app.services.storage import inspection_repo
 from backend.app.services.crack_detector import detect_cracks_tiled
+from backend.app.services.supabase_service import record_inspection_in_supabase, upload_image_to_supabase
 from ai.classification.predict import predict_image
 
 router = APIRouter()
@@ -211,4 +212,30 @@ async def analyze_concrete_image(
         created_at=inspection.created_at,
     )
     inspection_repo.save(resp)
+
+    # 8. Asynchronous Supabase Cloud Synchronization (if configured)
+    try:
+        supabase_img_url = upload_image_to_supabase(
+            file_bytes=content,
+            filename=f"{upload_uuid}.{ext}",
+            content_type=file.content_type or "image/jpeg",
+        )
+        record_inspection_in_supabase({
+            "id": inspection.uuid,
+            "filename": inspection.filename,
+            "image_url": supabase_img_url or f"/storage/uploads/{saved_filename}",
+            "annotated_image_url": annotated_url,
+            "mask_png_base64": detection_result["mask_png_base64"],
+            "verdict": verdict,
+            "confidence": final_confidence,
+            "box_count": len(detections_models),
+            "image_width": img_w,
+            "image_height": img_h,
+            "detections": [d.model_dump() for d in detections_models],
+            "metadata": {"device": "cuda", "threshold": threshold},
+        })
+    except Exception as e:
+        # Non-blocking logging if Supabase is unconfigured or offline
+        pass
+
     return resp
