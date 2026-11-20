@@ -7,10 +7,12 @@ __pycache__/
 *.sqlite3
 *.db
 
-# Node
+# Node & Electron Builds
 node_modules/
 dist/
 build/
+dist-electron/
+desktop/dist-electron/
 .npm
 
 # Machine Learning Artifacts
