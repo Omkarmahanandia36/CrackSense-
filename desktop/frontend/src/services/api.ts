@@ -59,11 +59,11 @@ export interface InspectionListItem {
 }
 
 export interface UserProfile {
-  id: number;
+  id: number | string;
   email: string;
   full_name?: string;
-  is_active: boolean;
-  created_at: string;
+  is_active?: boolean;
+  created_at?: string;
 }
 
 const API_BASE =
