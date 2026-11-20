@@ -4,7 +4,9 @@ An AI-powered concrete crack detection system using deep learning and computer v
 
 CrackSense AI aims to simplify concrete surface inspection through automated image analysis. Users will be able to upload concrete images, analyse them using trained AI models, visualise detected cracks, and maintain inspection records through a desktop application.
 
-**Project Status:** Production-Ready (Desktop + Mobile + Cloud)
+**Target Platforms:** Windows Desktop (`.exe` / portable) & Android Mobile (`.apk` / Capacitor)  
+**Cloud Infrastructure:** Supabase (PostgreSQL Database, Cloud Image Storage, User Auth)  
+**Project Status:** Production-Ready & Verified
 
 ---
 
