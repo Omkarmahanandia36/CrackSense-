@@ -1,0 +1,5 @@
+onnx==1.23.2
+onnxruntime==1.31.0
+onnxslim==0.1.99
+ml_dtypes==0.7.0
+sympy>=1.13.3
