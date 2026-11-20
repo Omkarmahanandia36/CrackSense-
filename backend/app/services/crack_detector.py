@@ -76,6 +76,51 @@ def apply_nms(
     return [boxes[i] for i in kept_indices]
 
 
+def merge_adjacent_crack_boxes(
+    boxes: List[Dict[str, Any]],
+    max_gap_px: float = 16.0,
+) -> List[Dict[str, Any]]:
+    """Merge elongated bounding boxes that touch or overlap across tile seams."""
+    if len(boxes) <= 1:
+        return boxes
+
+    merged = list(boxes)
+    has_merged = True
+
+    while has_merged:
+        has_merged = False
+        new_merged = []
+        skip_indices = set()
+
+        for i in range(len(merged)):
+            if i in skip_indices:
+                continue
+            box_a = dict(merged[i])
+            for j in range(i + 1, len(merged)):
+                if j in skip_indices:
+                    continue
+                box_b = merged[j]
+
+                # Check proximity / adjacency
+                x_overlap = (box_a["x1"] <= box_b["x2"] + max_gap_px) and (box_b["x1"] <= box_a["x2"] + max_gap_px)
+                y_overlap = (box_a["y1"] <= box_b["y2"] + max_gap_px) and (box_b["y1"] <= box_a["y2"] + max_gap_px)
+
+                if x_overlap and y_overlap:
+                    # Merge box_b into box_a
+                    box_a["x1"] = min(box_a["x1"], box_b["x1"])
+                    box_a["y1"] = min(box_a["y1"], box_b["y1"])
+                    box_a["x2"] = max(box_a["x2"], box_b["x2"])
+                    box_a["y2"] = max(box_a["y2"], box_b["y2"])
+                    box_a["confidence"] = max(box_a["confidence"], box_b["confidence"])
+                    skip_indices.add(j)
+                    has_merged = True
+
+            new_merged.append(box_a)
+        merged = new_merged
+
+    return merged
+
+
 def generate_morphological_crack_mask(
     pil_image: Image.Image,
     boxes: List[Dict[str, Any]],
@@ -156,6 +201,55 @@ def generate_morphological_crack_mask(
         mask_png_base64 = base64.b64encode(png_buffer).decode("utf-8")
 
     return full_mask, mask_png_base64
+
+
+def compute_crack_metrics(full_mask: np.ndarray) -> Dict[str, Any]:
+    """Calculate physical crack metrics: skeleton length, max width, mean width, and severity."""
+    if full_mask is None or cv2.countNonZero(full_mask) == 0:
+        return {
+            "estimated_length_px": 0.0,
+            "max_width_px": 0.0,
+            "mean_width_px": 0.0,
+            "severity": "None",
+        }
+
+    # 1. Morphological skeletonization to calculate centerline length
+    skeleton = np.zeros(full_mask.shape, dtype=np.uint8)
+    eroded = full_mask.copy()
+    element = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
+    while True:
+        opened = cv2.morphologyEx(eroded, cv2.MORPH_OPEN, element)
+        temp = cv2.subtract(eroded, opened)
+        skeleton = cv2.bitwise_or(skeleton, temp)
+        eroded = cv2.erode(eroded, element)
+        if cv2.countNonZero(eroded) == 0:
+            break
+
+    estimated_length = float(cv2.countNonZero(skeleton))
+
+    # 2. Euclidean Distance Transform to compute crack width profile
+    dist = cv2.distanceTransform(full_mask, cv2.DIST_L2, 5)
+    max_w = round(float(np.max(dist) * 2.0), 2) if np.any(dist > 0) else 0.0
+    mean_w = round(float(np.mean(dist[full_mask > 0]) * 2.0), 2) if np.any(full_mask > 0) else 0.0
+
+    # 3. Structural Severity Grade based on crack width and length
+    if estimated_length == 0:
+        severity = "None"
+    elif max_w <= 2.5 and estimated_length < 150:
+        severity = "Low"
+    elif max_w <= 6.0 or estimated_length < 600:
+        severity = "Medium"
+    elif max_w > 12.0 or estimated_length > 1500:
+        severity = "Critical"
+    else:
+        severity = "High"
+
+    return {
+        "estimated_length_px": estimated_length,
+        "max_width_px": max_w,
+        "mean_width_px": mean_w,
+        "severity": severity,
+    }
 
 
 def detect_cracks_tiled(
@@ -259,15 +353,21 @@ def detect_cracks_tiled(
     # Filter by user confidence threshold
     filtered_boxes = [b for b in raw_boxes if b["confidence"] >= conf_threshold]
 
-    # Non-Maximum Suppression to merge overlapping boxes across tiles
+    # 1. Non-Maximum Suppression to filter duplicate tile detections
     merged_boxes = apply_nms(filtered_boxes, iou_threshold=0.35)
+
+    # 2. Merge elongated boxes that touch or cross tile seams
+    merged_boxes = merge_adjacent_crack_boxes(merged_boxes, max_gap_px=16.0)
 
     # Sort boxes by confidence descending, keep top 25 regions
     merged_boxes.sort(key=lambda b: b["confidence"], reverse=True)
     merged_boxes = merged_boxes[:25]
 
-    # Generate OpenCV morphological crack mask inside the boxes
+    # 3. Generate OpenCV morphological crack mask exclusively inside the detected boxes
     full_mask, mask_png_base64 = generate_morphological_crack_mask(pil_image, merged_boxes)
+
+    # 4. Calculate physical crack dimensions and severity metrics
+    metrics = compute_crack_metrics(full_mask)
 
     # Verdict derived from detections: if any box above threshold -> crack_detected
     verdict = "crack_detected" if len(merged_boxes) > 0 else "no_crack"
@@ -301,5 +401,6 @@ def detect_cracks_tiled(
         "detections": detections,
         "boxes": merged_boxes,
         "mask_png_base64": mask_png_base64,
+        "metrics": metrics,
         "annotated_image": annotated_image,
     }

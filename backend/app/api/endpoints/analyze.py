@@ -2,6 +2,7 @@
 
 import os
 import uuid
+import asyncio
 from io import BytesIO
 from pathlib import Path
 from typing import Optional
@@ -21,6 +22,7 @@ from backend.app.schemas.analyze import (
     ClassProbabilities,
     BoundingBox,
     DetectionItem,
+    CrackMetrics,
 )
 from backend.app.api.deps import get_optional_user
 from backend.app.services.storage import inspection_repo
@@ -109,8 +111,9 @@ async def analyze_concrete_image(
 
     img_w, img_h = pil_image.size
 
-    # 5. Execute Tiled Detection, NMS, and Morphological Mask Generation
-    detection_result = detect_cracks_tiled(
+    # 5. Execute Tiled Detection, NMS, and Morphological Mask Generation in Thread Pool (Non-Blocking)
+    detection_result = await asyncio.to_thread(
+        detect_cracks_tiled,
         pil_image=pil_image,
         conf_threshold=threshold,
         tile_size=512,
@@ -207,13 +210,14 @@ async def analyze_concrete_image(
         boxes=boxes_models,
         detections=detections_models,
         mask_png_base64=detection_result["mask_png_base64"],
+        metrics=CrackMetrics(**detection_result.get("metrics", {})),
         image_width=img_w,
         image_height=img_h,
         created_at=inspection.created_at,
     )
     inspection_repo.save(resp)
 
-    # 8. Asynchronous Supabase Cloud Synchronization (if configured)
+    # 8. Asynchronous Supabase Cloud Synchronization (Single Writer Authority)
     try:
         supabase_img_url = upload_image_to_supabase(
             file_bytes=content,
@@ -232,7 +236,11 @@ async def analyze_concrete_image(
             "image_width": img_w,
             "image_height": img_h,
             "detections": [d.model_dump() for d in detections_models],
-            "metadata": {"device": "cuda", "threshold": threshold},
+            "metadata": {
+                "device": "cuda",
+                "threshold": threshold,
+                "metrics": detection_result.get("metrics", {}),
+            },
         })
     except Exception as e:
         # Non-blocking logging if Supabase is unconfigured or offline

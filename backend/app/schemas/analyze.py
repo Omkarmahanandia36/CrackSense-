@@ -40,6 +40,15 @@ class DetectionItem(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class CrackMetrics(BaseModel):
+    estimated_length_px: float = Field(default=0.0, description="Estimated crack centerline length in pixels")
+    max_width_px: float = Field(default=0.0, description="Maximum estimated crack width in pixels")
+    mean_width_px: float = Field(default=0.0, description="Mean estimated crack width in pixels")
+    severity: str = Field(default="None", description="Severity grade: 'None' | 'Low' | 'Medium' | 'High' | 'Critical'")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class AnalyzeResponse(BaseModel):
     id: str = Field(..., description="Unique inspection identifier (UUID)")
     filename: str = Field(..., description="Original image filename")
@@ -53,6 +62,7 @@ class AnalyzeResponse(BaseModel):
     boxes: List[BoundingBox] = Field(default=[], description="Detected bounding boxes for localized cracks")
     detections: List[DetectionItem] = Field(default=[], description="Detections list with [x, y, w, h]")
     mask_png_base64: Optional[str] = Field(default=None, description="Transparent PNG mask encoded as base64")
+    metrics: Optional[CrackMetrics] = Field(default=None, description="Estimated physical dimensions and severity metrics")
     image_width: Optional[int] = Field(default=None, description="Width of the inspected image in pixels")
     image_height: Optional[int] = Field(default=None, description="Height of the inspected image in pixels")
     created_at: datetime = Field(default_factory=datetime.utcnow)
