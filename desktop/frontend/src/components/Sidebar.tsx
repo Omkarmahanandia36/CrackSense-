@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   LayoutDashboard,
   UploadCloud,
@@ -12,9 +12,11 @@ import {
   Moon,
   Sparkles,
   Shield,
+  Settings,
 } from 'lucide-react';
 import { HealthData, UserProfile } from '../services/api';
 import { UpdateStatus } from './UpdateStatus';
+import { ServerConfigModal } from './ServerConfigModal';
 
 interface SidebarProps {
   currentPage: 'dashboard' | 'upload' | 'result' | 'history' | 'dev' | 'admin';
@@ -53,6 +55,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   theme,
   onToggleTheme,
 }) => {
+  const [isServerModalOpen, setIsServerModalOpen] = useState(false);
   const isHealthy = health?.status === 'healthy';
   const deviceName = health?.device || 'CPU';
 
@@ -65,17 +68,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="flex flex-col min-h-0">
         {/* Brand Wordmark */}
         <div
-          className="flex items-center px-5 h-14 border-b flex-shrink-0"
+          className="flex items-center px-4 h-14 border-b flex-shrink-0"
           style={{
             borderColor: 'var(--glass-sunken-border)',
             justifyContent: collapsed ? 'center' : 'space-between',
           }}
         >
-          {!collapsed && (
+          {!collapsed ? (
             <div className="flex items-center gap-2.5">
-              <span
-                className="w-2.5 h-2.5 rounded-full"
-                style={{ background: 'var(--accent)' }}
+              <img
+                src="/logo.png"
+                alt="CrackSense Logo"
+                className="w-7 h-7 rounded-lg object-contain shadow-sm flex-shrink-0"
               />
               <span
                 className="font-semibold text-[15px] tracking-tight whitespace-nowrap"
@@ -84,19 +88,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 CrackSense
               </span>
             </div>
+          ) : (
+            <img
+              src="/logo.png"
+              alt="CrackSense Logo"
+              className="w-7 h-7 rounded-lg object-contain shadow-sm cursor-pointer"
+              onClick={onToggleCollapse}
+              title="Expand sidebar"
+            />
           )}
-          <button
-            onClick={onToggleCollapse}
-            className="p-1.5 rounded-lg transition-colors hover:bg-[--hover-bg] cursor-pointer"
-            style={{ color: 'var(--text-3)' }}
-            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            {collapsed ? (
-              <PanelLeftOpen className="w-[18px] h-[18px]" strokeWidth={1.5} />
-            ) : (
+          {!collapsed && (
+            <button
+              onClick={onToggleCollapse}
+              className="p-1.5 rounded-lg transition-colors hover:bg-[--hover-bg] cursor-pointer"
+              style={{ color: 'var(--text-3)' }}
+              title="Collapse sidebar"
+            >
               <PanelLeftClose className="w-[18px] h-[18px]" strokeWidth={1.5} />
-            )}
-          </button>
+            </button>
+          )}
         </div>
 
         {/* Primary Navigation */}
@@ -227,35 +237,42 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div
             className={`flex items-center ${collapsed ? 'justify-center' : 'justify-between'}`}
           >
-            <div className="flex items-center gap-1.5">
-            <span
-              className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                isHealthy ? 'animate-status-pulse' : 'animate-pulse'
-              }`}
-              style={{ background: isHealthy ? 'var(--success)' : 'var(--crack-amber)' }}
-            />
+            <div
+              onClick={() => setIsServerModalOpen(true)}
+              className="flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity"
+              title="Click to configure backend server connection"
+            >
+              <span
+                className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                  isHealthy ? 'animate-status-pulse' : 'animate-pulse'
+                }`}
+                style={{ background: isHealthy ? 'var(--success)' : 'var(--crack-amber)' }}
+              />
+              {!collapsed && (
+                <span className="text-[11px]" style={{ color: 'var(--text-2)' }}>
+                  {health ? 'Online' : 'Connecting…'}
+                </span>
+              )}
+            </div>
+
             {!collapsed && (
-              <span className="text-[11px]" style={{ color: 'var(--text-2)' }}>
-                {health ? 'Online' : 'Connecting…'}
-              </span>
+              <button
+                type="button"
+                onClick={() => setIsServerModalOpen(true)}
+                className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-mono uppercase font-semibold hover:border-cyan-500/40 cursor-pointer transition-colors"
+                style={{
+                  background: 'var(--glass-sunken-bg)',
+                  border: '1px solid var(--glass-sunken-border)',
+                  color: 'var(--text-2)',
+                }}
+                title="Server connection settings"
+              >
+                <Cpu className="w-3 h-3" style={{ color: 'var(--text-2)' }} strokeWidth={1.5} />
+                {deviceName}
+              </button>
             )}
           </div>
-
-          {!collapsed && (
-            <div
-              className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-mono uppercase font-semibold"
-              style={{
-                background: 'var(--glass-sunken-bg)',
-                border: '1px solid var(--glass-sunken-border)',
-                color: 'var(--text-2)',
-              }}
-            >
-              <Cpu className="w-3 h-3" style={{ color: 'var(--text-2)' }} strokeWidth={1.5} />
-              {deviceName}
-            </div>
-          )}
         </div>
-      </div>
 
         {/* Theme toggle */}
         <button
@@ -330,6 +347,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         )}
       </div>
+
+      <ServerConfigModal
+        isOpen={isServerModalOpen}
+        onClose={() => setIsServerModalOpen(false)}
+        onConfigSaved={() => window.location.reload()}
+      />
     </aside>
   );
 };

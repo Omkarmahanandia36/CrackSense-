@@ -38,6 +38,14 @@ export const UpdateStatus: React.FC = () => {
       if (newProgress !== undefined) setProgress(newProgress);
       if (newError !== undefined) setError(newError);
       setInstalledVersion(updateService.getInstalledVersion());
+
+      // Prompt user with update dialog on app launch if an update is available
+      if (newState === 'available' && newInfo?.version) {
+        const dismissed = sessionStorage.getItem(`cracksense_update_dismissed_${newInfo.version}`);
+        if (!dismissed) {
+          setIsModalOpen(true);
+        }
+      }
     });
 
     return unsubscribe;
@@ -151,7 +159,12 @@ export const UpdateStatus: React.FC = () => {
                 </div>
               </div>
               <button
-                onClick={() => setIsModalOpen(false)}
+                onClick={() => {
+                  if (info?.version) {
+                    sessionStorage.setItem(`cracksense_update_dismissed_${info.version}`, 'true');
+                  }
+                  setIsModalOpen(false);
+                }}
                 className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10"
               >
                 <X className="w-4 h-4" />
@@ -208,7 +221,12 @@ export const UpdateStatus: React.FC = () => {
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 type="button"
-                onClick={() => setIsModalOpen(false)}
+                onClick={() => {
+                  if (info?.version) {
+                    sessionStorage.setItem(`cracksense_update_dismissed_${info.version}`, 'true');
+                  }
+                  setIsModalOpen(false);
+                }}
                 className="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-white/10"
               >
                 Remind me later
