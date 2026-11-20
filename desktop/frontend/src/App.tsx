@@ -6,6 +6,7 @@ import { ResultView } from './pages/ResultView';
 import { History } from './pages/History';
 import { DevComponents } from './pages/DevComponents';
 import { LoginModal } from './components/LoginModal';
+import { supabase, isSupabaseConfigured, signOutSupabase } from './services/supabase';
 import {
   getSystemHealth,
   getCurrentUser,
@@ -78,9 +79,33 @@ export default function App() {
     loadRecentHistory();
   }, []);
 
-  // Check persisted user session
+  // Check persisted user session (Supabase Cloud + Local backend fallback)
   useEffect(() => {
     const checkUser = async () => {
+      // 1. Check active Supabase session
+      if (isSupabaseConfigured()) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            setUser({
+              id: session.user.id,
+              email: session.user.email || '',
+              full_name:
+                session.user.user_metadata?.full_name ||
+                session.user.user_metadata?.username ||
+                session.user.email?.split('@')[0] ||
+                'Inspector',
+              is_active: true,
+              created_at: session.user.created_at,
+            });
+            return;
+          }
+        } catch (supaErr) {
+          console.warn('Supabase session check error:', supaErr);
+        }
+      }
+
+      // 2. Local token fallback
       try {
         const currentUser = await getCurrentUser();
         setUser(currentUser);
@@ -88,7 +113,35 @@ export default function App() {
         setUser(null);
       }
     };
+
     checkUser();
+
+    // 3. Supabase Auth state listener for instant UI updates on login/logout
+    if (isSupabaseConfigured()) {
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((event, session) => {
+        if (session?.user) {
+          setUser({
+            id: session.user.id,
+            email: session.user.email || '',
+            full_name:
+              session.user.user_metadata?.full_name ||
+              session.user.user_metadata?.username ||
+              session.user.email?.split('@')[0] ||
+              'Inspector',
+            is_active: true,
+            created_at: session.user.created_at,
+          });
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+        }
+      });
+
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
   }, []);
 
   const handleAnalysisSuccess = (result: AnalyzeResult) => {
@@ -108,8 +161,9 @@ export default function App() {
     setCurrentPage('upload');
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     localStorage.removeItem('cracksense_token');
+    await signOutSupabase();
     setUser(null);
   };
 

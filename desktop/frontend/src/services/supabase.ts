@@ -100,3 +100,139 @@ export const subscribeToInspections = (onNewInspection: (record: SupabaseInspect
     supabase.removeChannel(channel);
   };
 };
+
+/**
+ * Supabase Authentication Service
+ */
+export interface SupabaseAuthResult {
+  success: boolean;
+  user?: {
+    id: string;
+    email: string;
+    full_name?: string;
+    username?: string;
+  };
+  error?: string;
+  message?: string;
+}
+
+export const signUpWithSupabase = async (
+  email: string,
+  password: string,
+  fullName: string,
+  username?: string
+): Promise<SupabaseAuthResult> => {
+  if (!isSupabaseConfigured()) {
+    return { success: false, error: 'Supabase is not configured' };
+  }
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: fullName,
+          username: username || email.split('@')[0],
+        },
+      },
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    const supaUser = data.user;
+    if (!supaUser) {
+      return { success: false, error: 'Failed to create user account' };
+    }
+
+    // Notice if email confirmation is required
+    const needsEmailConfirm = supaUser.identities && supaUser.identities.length > 0 && !data.session;
+    return {
+      success: true,
+      user: {
+        id: supaUser.id,
+        email: supaUser.email || email,
+        full_name: fullName,
+        username: username || email.split('@')[0],
+      },
+      message: needsEmailConfirm
+        ? 'Account registered! Please check your email to confirm your account.'
+        : undefined,
+    };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Registration failed' };
+  }
+};
+
+export const signInWithSupabase = async (
+  email: string,
+  password: string
+): Promise<SupabaseAuthResult> => {
+  if (!isSupabaseConfigured()) {
+    return { success: false, error: 'Supabase is not configured' };
+  }
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    const supaUser = data.user;
+    if (data.session) {
+      localStorage.setItem('supabase_token', data.session.access_token);
+    }
+
+    return {
+      success: true,
+      user: supaUser ? {
+        id: supaUser.id,
+        email: supaUser.email || email,
+        full_name: supaUser.user_metadata?.full_name || supaUser.user_metadata?.username || supaUser.email?.split('@')[0],
+        username: supaUser.user_metadata?.username,
+      } : undefined,
+    };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Sign in failed' };
+  }
+};
+
+export const resetPasswordWithSupabase = async (
+  email: string
+): Promise<{ success: boolean; message?: string; error?: string }> => {
+  if (!isSupabaseConfigured()) {
+    return { success: false, error: 'Supabase is not configured' };
+  }
+  try {
+    const redirectUrl = typeof window !== 'undefined' ? window.location.origin : undefined;
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: redirectUrl,
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return {
+      success: true,
+      message: 'Password reset link sent! Check your email inbox.',
+    };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Password reset request failed' };
+  }
+};
+
+export const signOutSupabase = async (): Promise<void> => {
+  localStorage.removeItem('supabase_token');
+  if (isSupabaseConfigured()) {
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.warn('Sign out warning:', err);
+    }
+  }
+};
