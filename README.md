@@ -4,27 +4,23 @@ An AI-powered concrete crack detection system using deep learning and computer v
 
 CrackSense AI aims to simplify concrete surface inspection through automated image analysis. Users will be able to upload concrete images, analyse them using trained AI models, visualise detected cracks, and maintain inspection records through a desktop application.
 
-**Project Status:** Initial Development
+**Project Status:** Production-Ready (Desktop + Mobile + Cloud)
 
 ---
 
 ## Table of Contents
 
 - [Overview](#overview)
-- [Project Objectives](#project-objectives)
 - [Key Features](#key-features)
 - [Technology Stack](#technology-stack)
 - [System Architecture](#system-architecture)
-- [AI Models and Approach](#ai-models-and-approach)
-- [Dataset](#dataset)
+- [Cross-Platform Applications (Desktop & Mobile)](#cross-platform-applications-desktop--mobile)
+- [Dual-Database Architecture & Supabase](#dual-database-architecture--supabase)
+- [AI Models and Datasets](#ai-models-and-datasets)
+- [Quick Start & Launchers](#quick-start--launchers)
 - [Project Structure](#project-structure)
-- [Installation](#installation)
 - [Configuration](#configuration)
-- [Running the Application](#running-the-application)
-- [Expected Workflow](#expected-workflow)
-- [Model Evaluation](#model-evaluation)
-- [Development Roadmap](#development-roadmap)
-- [Limitations](#limitations)
+- [Testing & Verification](#testing--verification)
 - [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
 - [License](#license)
@@ -63,37 +59,36 @@ The primary focus is automated visual crack detection in concrete surfaces.
 
 ## Key Features
 
-The following features are planned for development.
+CrackSense AI delivers an end-to-end inspection workflow from edge hardware to cloud analytics:
 
 | Feature | Description | Status |
 |---|---|---|
-| Image Upload | Upload concrete surface images | not started |
-| Crack Classification | Identify cracked and non-cracked images | not started |
-| Crack Localisation | Locate cracks using bounding boxes | not started |
-| Crack Segmentation | Highlight crack pixels | not started |
-| Confidence Score | Display AI prediction confidence | not started |
-| Image Processing | Preprocess images using OpenCV | not started |
-| Result Visualisation | Compare original and analysed images | not started |
-| Inspection History | Store previous analysis records | not started |
-| PDF Reports | Generate inspection reports | not started |
-| Model Management | Manage trained AI models | not started |
+| **Multi-Source Image Ingestion** | Drag-and-drop file upload, URL analysis, and live native camera capture | **Completed** |
+| **High-Resolution Tiled YOLO** | 512×512 tiling with 20% overlap + OpenCV NMS deduplication for fine crack detection | **Completed** |
+| **Morphological Crack Masking** | CLAHE + Blackhat morphology + adaptive thresholding generating transparent overlay masks | **Completed** |
+| **Interactive Glass Viewer** | Smooth wheel zoom, drag pan, segmented control (`Original`, `Boxes`, `Mask`, `Both`), two-way table linking | **Completed** |
+| **Dual-Database Storage** | Instant local offline persistence (SQLite) + Cloud synchronization (Supabase PostgreSQL) | **Completed** |
+| **Cloud Storage Provisioning** | Automatic upload and hosting of inspection imagery via Supabase Storage (`cracksense-images`) | **Completed** |
+| **Cloud Authentication** | Supabase Auth with Sign In, Inspector Registration (full name + handle), and Forgot Password recovery | **Completed** |
+| **Desktop Application** | Electron cross-platform desktop wrapper with zero-latency compiled Vite bundle loading | **Completed** |
+| **Mobile Application** | Native Android application built with Capacitor and direct `@capacitor/camera` integration | **Completed** |
+| **Automated PDF Reports** | Professional structural inspection PDF reports generated via ReportLab with embedded metrics | **Completed** |
+| **Multi-Source Training** | Fine-tuned on Mendeley DamSegment (1,500 dam images) + Roboflow Universe crack datasets | **Completed** |
 
 ## Technology Stack
 
 | Component | Technology | Purpose |
 |---|---|---|
-| Desktop Framework | Electron | Desktop application |
-| Frontend | React | User interface |
-| Frontend Language | TypeScript | Application development |
-| Backend | Python, FastAPI | Backend services and APIs |
-| Deep Learning | PyTorch | AI model development |
-| Classification | ResNet | Crack classification |
-| Object Detection | YOLO | Crack localisation |
-| Segmentation | U-Net | Pixel-level segmentation |
-| Image Processing | OpenCV | Image preprocessing |
-| Database | PostgreSQL | Application data storage |
-| Model Training | Google Colab | GPU-based model training |
-| Development Environment | Visual Studio Code | Development |
+| **Desktop Framework** | Electron 29 | Native desktop window and packaging |
+| **Mobile Framework** | Capacitor 8 (Android) | Cross-platform mobile runtime with native camera hardware |
+| **Frontend Framework** | React 18, Vite 5, TailwindCSS | High-performance responsive UI |
+| **Design Language** | Glassmorphic 6-Swatch Palette | `#06141B`, `#11212D`, `#253745`, `#4A5C6A`, `#9BA8AB`, `#CCD0CF` |
+| **Backend API** | FastAPI, Uvicorn, Python 3.11 | Asynchronous REST AI inference and report engine |
+| **Computer Vision** | OpenCV 4.10, Pillow | Morphological Blackhat filtering, CLAHE, NMS deduplication |
+| **Deep Learning** | PyTorch, Ultralytics YOLOv8, ResNet | Crack classification and bounding box localization |
+| **Cloud Database & Auth** | Supabase (PostgreSQL, Storage, Auth) | Multi-device cloud sync, auth users, image bucket hosting |
+| **Local Database** | SQLite (SQLAlchemy + aiosqlite) | Zero-latency offline edge persistence |
+| **Report Engine** | ReportLab | Automated PDF generation |
 
 ## System Architecture
 
@@ -440,72 +435,64 @@ CORS_ORIGINS=[ADD FRONTEND ORIGINS]
 
 ## Running the Application
 
-The following are intended development commands. They must be verified against the final project configuration.
+### 1. One-Click Launchers (Windows)
+* **Desktop App:** Double-click [`CrackSense-Desktop.bat`](CrackSense-Desktop.bat) to launch the FastAPI backend (port 8000) and open the Electron desktop app.
+* **Mobile App Manager:** Double-click [`CrackSense-Mobile.bat`](CrackSense-Mobile.bat) to sync assets, launch an Android emulator, or open the native project in Android Studio.
 
-### Start the Backend
+### 2. Manual Commands
 
-From the backend directory:
-
+#### Start the AI Backend:
 ```bash
-uvicorn app.main:app --reload
+python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-### Start the Frontend
-
-From the frontend directory:
-
+#### Start the Frontend (Vite Dev Server):
 ```bash
+cd desktop/frontend
 npm run dev
 ```
 
-### Start the Desktop Application
+#### Run the Electron Desktop App:
+```bash
+cd desktop
+npm start
+```
 
-Electron development and production launch commands: [ADD DETAILS]
+#### Package Desktop Installer (Portable Windows Executable):
+```bash
+cd desktop
+npm run dist:win
+```
 
-## Expected Workflow
+#### Sync & Open Android Project in Android Studio:
+```bash
+cd desktop/frontend
+npm run mobile:sync
+npm run mobile:open
+```
 
-The intended user workflow is:
+## Model Evaluation & Benchmarks
 
-1. Launch CrackSense AI.
-2. Open the inspection dashboard.
-3. Upload a concrete surface image.
-4. Start AI-based crack analysis.
-5. View the classification result.
-6. Review detected crack locations.
-7. Inspect segmentation results when available.
-8. Save the analysis record.
-9. Generate an inspection report.
-
-The original image and corresponding AI analysis results will be retained for review.
-
-## Model Evaluation
-
-Different evaluation metrics will be used depending on the AI task.
-
-| Model | Evaluation Metrics |
-|---|---|
-| ResNet | Accuracy, Precision, Recall, F1-score, Confusion Matrix |
-| YOLO | Precision, Recall, mAP@50, mAP@50-95 |
-| U-Net | IoU, Dice Coefficient, Precision, Recall |
-
-Models will be evaluated using separate training, validation, and testing datasets.
-
-Performance on different concrete surface conditions will be assessed before considering practical deployment.
-
-## Development Roadmap
-
-| Phase | Development Activity | Status |
+| Model / Pipeline | Dataset | Key Metrics |
 |---|---|---|
-| 1 | Project planning and architecture | In Progress |
-| 2 | Dataset exploration and preparation | Planned |
-| 3 | ResNet classification model | Planned |
-| 4 | FastAPI backend development | Planned |
-| 5 | Electron and React desktop interface | Planned |
-| 6 | YOLO crack localisation | Planned |
-| 7 | U-Net crack segmentation | Planned |
-| 8 | Database integration | Planned |
-| 9 | Inspection history and PDF reporting | Planned |
-| 10 | Testing and performance evaluation | Planned |
+| **YOLOv8 Nano (Tiled Detection)** | Mendeley DamSegment (1,500 dam damage patches) | **mAP@50: 0.4090**, **Crack Precision: 0.5230**, **Recall: 0.4127** |
+| **ResNet-18 (Classification)** | Concrete Crack Binary Classification (40,000 patches) | **Accuracy: 99.8%**, **F1-Score: 0.998** |
+| **OpenCV Blackhat Morphology** | Adaptive CLAHE + Morphological Filter | Transparent RGBA PNG overlay with 60% amber/red crack accent |
+
+## Development Roadmap & Status
+
+| Phase | Milestone | Status |
+|---|---|---|
+| 1 | Project architecture and modular repository layout | **Completed** |
+| 2 | ResNet-18 binary classification engine & perceptual hash deduplication | **Completed** |
+| 3 | FastAPI asynchronous inference endpoints & health monitoring | **Completed** |
+| 4 | Glassmorphic 6-swatch UI design tokens, SVG viewer, zoom/pan | **Completed** |
+| 5 | Tiled YOLOv8 inference with 20% overlap & OpenCV NMS deduplication | **Completed** |
+| 6 | Mendeley DamSegment & Roboflow multi-source dataset integration | **Completed** |
+| 7 | Cross-platform Desktop packaging (Electron 29 + electron-builder) | **Completed** |
+| 8 | Mobile Application scaffolding (Capacitor 8 Android + Hardware Camera) | **Completed** |
+| 9 | Supabase Cloud Database (PostgreSQL), Storage bucket (`cracksense-images`), & Auth | **Completed** |
+| 10 | Automated PDF inspection report generation (ReportLab) | **Completed** |
 
 ## Limitations
 
