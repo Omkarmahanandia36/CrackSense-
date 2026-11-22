@@ -174,7 +174,7 @@ export async function waitForBackendAwake(
   return false;
 }
 
-export async function uploadAndAnalyzeImage(file: File, threshold: number = 0.15): Promise<AnalyzeResult> {
+export async function uploadAndAnalyzeImage(file: File, threshold: number = 0.06): Promise<AnalyzeResult> {
   const base = getApiBase();
   const formData = new FormData();
   formData.append('file', file);
@@ -196,7 +196,7 @@ export async function uploadAndAnalyzeImage(file: File, threshold: number = 0.15
 export async function predictWithFile(
   file: File | Blob,
   filename: string = 'inspection.jpg',
-  threshold: number = 0.12
+  threshold: number = 0.06
 ): Promise<AnalyzeResult> {
   const base = getApiBase();
   const formData = new FormData();
@@ -251,7 +251,7 @@ export async function predictWithFile(
   };
 }
 
-export async function predictWithImageUrl(imageUrl: string, threshold: number = 0.12): Promise<AnalyzeResult> {
+export async function predictWithImageUrl(imageUrl: string, threshold: number = 0.06): Promise<AnalyzeResult> {
   const base = getApiBase();
   const res = await fetch(`${base}/predict?threshold=${threshold}`, {
     method: 'POST',

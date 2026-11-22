@@ -6,8 +6,8 @@ def packageJsonFile = file("../../../package.json")
 if (!packageJsonFile.exists()) {
     packageJsonFile = file("../../package.json")
 }
-def appVersion = "1.3.0"
-def appVersionCode = 10300
+def appVersion = "1.3.1"
+def appVersionCode = 10301
 
 if (packageJsonFile.exists()) {
     try {
