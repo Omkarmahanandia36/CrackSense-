@@ -79,7 +79,7 @@ export const UploadAnalyze: React.FC<UploadAnalyzeProps> = ({ initialFile, onAna
       // 4. Run AI model inference with the uploaded image URL
       let result: AnalyzeResult;
       try {
-        result = await predictWithImageUrl(cld.secure_url || '', 0.35);
+        result = await predictWithImageUrl(cld.secure_url || '', 0.15);
       } catch (predErr: any) {
         if (predErr?.message?.includes('503') || predErr?.message?.includes('504')) {
           setStage('waking');
@@ -88,11 +88,11 @@ export const UploadAnalyze: React.FC<UploadAnalyzeProps> = ({ initialFile, onAna
             setStatusDetail(`Cloud AI engine spinning up (${secs}s)... Running detection.`);
           });
           setStage('detecting');
-          result = await predictWithImageUrl(cld.secure_url || '', 0.35);
+          result = await predictWithImageUrl(cld.secure_url || '', 0.15);
         } else {
           console.warn('Predict by URL failed, falling back to direct multipart analysis:', predErr);
           const compressedFile = new File([compressedBlob], file.name, { type: 'image/jpeg' });
-          result = await uploadAndAnalyzeImage(compressedFile, 0.35);
+          result = await uploadAndAnalyzeImage(compressedFile, 0.15);
         }
       }
 
