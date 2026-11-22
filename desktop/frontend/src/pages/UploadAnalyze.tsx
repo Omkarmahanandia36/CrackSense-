@@ -53,25 +53,13 @@ export const UploadAnalyze: React.FC<UploadAnalyzeProps> = ({ initialFile, onAna
       try {
         sigData = await getUploadSignature(userId);
       } catch (sigErr: any) {
-        if (
-          sigErr?.message?.includes('503') ||
-          sigErr?.message?.includes('504') ||
-          sigErr?.message?.includes('waking') ||
-          sigErr?.message?.includes('Ensure backend is online')
-        ) {
-          setStage('waking');
-          setStatusDetail('Cloud AI server is waking up from standby... Checking status (~30s)...');
-          const isAwake = await waitForBackendAwake(60, (secs) => {
-            setStatusDetail(`Cloud AI server waking up from standby (${secs}s elapsed)... Please wait.`);
-          });
-          if (isAwake) {
-            setStage('uploading');
-            sigData = await getUploadSignature(userId);
-          } else {
-            throw sigErr;
-          }
-        } else {
-          throw sigErr;
+        // Automatic retry once after 1.5s for cold start or mobile network transitions
+        try {
+          setStatusDetail('Connecting to AWS Cloud AI...');
+          await new Promise((r) => setTimeout(r, 1500));
+          sigData = await getUploadSignature(userId);
+        } catch (retryErr: any) {
+          throw new Error('Could not connect to Cloud AI. Please check your internet connection and try again.');
         }
       }
 
