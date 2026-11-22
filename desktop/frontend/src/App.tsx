@@ -136,6 +136,9 @@ export default function App() {
             negative_clear: i.is_crack ? 1 - i.confidence : i.confidence,
           },
           image_url: i.image_url,
+          boxes: i.boxes,
+          detections: i.detections,
+          mask_png_base64: i.mask_png_base64,
           created_at: i.created_at,
         }));
         setRecentInspections(mapped);

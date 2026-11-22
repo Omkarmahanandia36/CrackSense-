@@ -63,6 +63,9 @@ export interface InspectionListItem {
   image_url: string;
   created_at: string;
   sync_status?: string;
+  boxes?: BoundingBox[];
+  detections?: DetectionItem[];
+  mask_png_base64?: string;
 }
 
 export interface UserProfile {

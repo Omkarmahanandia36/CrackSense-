@@ -94,6 +94,16 @@ export const History: React.FC<HistoryProps> = ({
               image_url: s.image_public_id || s.image_url || '',
               created_at: s.created_at,
               sync_status: s.sync_status || 'synced',
+              detections: s.detections,
+              mask_png_base64: s.mask_png_base64,
+              boxes: s.detections?.map((d: any) => ({
+                x: d.bbox ? d.bbox[0] : 0,
+                y: d.bbox ? d.bbox[1] : 0,
+                width: d.bbox ? d.bbox[2] : 0,
+                height: d.bbox ? d.bbox[3] : 0,
+                confidence: d.confidence,
+                label: 'crack',
+              })),
             }));
           }
         } catch (supaErr) {
@@ -124,6 +134,16 @@ export const History: React.FC<HistoryProps> = ({
             image_url: loc.imageUrl,
             created_at: loc.createdAt,
             sync_status: loc.syncStatus,
+            detections: loc.detections,
+            mask_png_base64: loc.maskPngBase64,
+            boxes: loc.detections?.map((d: any) => ({
+              x: d.bbox ? d.bbox[0] : 0,
+              y: d.bbox ? d.bbox[1] : 0,
+              width: d.bbox ? d.bbox[2] : 0,
+              height: d.bbox ? d.bbox[3] : 0,
+              confidence: d.confidence,
+              label: 'crack',
+            })),
           });
         }
       }
@@ -186,6 +206,9 @@ export const History: React.FC<HistoryProps> = ({
         negative_clear: Number(clearProb.toFixed(4)),
       },
       image_url: item.image_url,
+      boxes: item.boxes,
+      detections: item.detections,
+      mask_png_base64: item.mask_png_base64,
       created_at: item.created_at,
     };
     onSelectResult(result);
