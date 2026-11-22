@@ -47,7 +47,8 @@ export const MobileHeader: React.FC<MobileNavProps> = ({
 }) => {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
-  const isHealthy = health?.status === 'healthy';
+  const isHealthy = health?.status === 'healthy' || health?.status === 'ok';
+  const isWakingUp = health?.status === 'waking_up' || health?.is_waking_up;
   const deviceName = health?.device ? health.device.toUpperCase() : 'CPU';
 
   return (
@@ -103,7 +104,7 @@ export const MobileHeader: React.FC<MobileNavProps> = ({
               className={`w-1.5 h-1.5 rounded-full ${isHealthy ? 'animate-status-pulse' : ''}`}
               style={{ background: isHealthy ? 'var(--success)' : 'var(--warning)' }}
             />
-            <span>{isHealthy ? deviceName : 'Connecting…'}</span>
+            <span>{isHealthy ? deviceName : isWakingUp ? 'Waking up…' : 'Connecting…'}</span>
           </div>
         </div>
 

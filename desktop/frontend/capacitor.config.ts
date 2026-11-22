@@ -16,6 +16,13 @@ const config: CapacitorConfig = {
     Camera: {
       presentationStyle: 'fullscreen',
     },
+    SplashScreen: {
+      launchShowDuration: 1500,
+      launchAutoHide: true,
+      backgroundColor: '#06141B',
+      androidScaleType: 'CENTER_CROP',
+      showSpinner: false,
+    },
   },
 };
 

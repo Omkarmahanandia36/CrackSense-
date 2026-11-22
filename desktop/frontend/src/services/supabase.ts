@@ -806,3 +806,104 @@ export const signOutSupabase = async (): Promise<void> => {
     }
   }
 };
+
+export interface SaveInspectionPayload {
+  imageUrl: string;
+  cloudinaryPublicId: string;
+  result: string;
+  confidence: number;
+  boxes?: Array<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    label?: string;
+    confidence: number;
+  }>;
+  maskData?: string;
+  imageWidth?: number;
+  imageHeight?: number;
+  filename?: string;
+}
+
+/**
+ * Phase 3: Insert 1 row in 'inspections' and N rows in 'detection_boxes'
+ * strictly under active Supabase RLS session with the ANON key.
+ */
+export async function saveCompleteInspection(
+  payload: SaveInspectionPayload
+): Promise<{ inspectionId: string; savedToSupabase: boolean; error?: string }> {
+  const session = await getValidSession().catch(() => null);
+
+  if (session?.user?.id) {
+    try {
+      const isCrack = payload.result === 'crack' || payload.result === 'crack_detected';
+      const verdictStr = isCrack ? 'crack_detected' : 'no_crack';
+      const nowIso = new Date().toISOString();
+
+      // 1. Insert 1 row into 'inspections' table
+      const { data: inserted, error: insertError } = await supabase
+        .from('inspections')
+        .insert({
+          user_id: session.user.id,
+          image_url: payload.imageUrl,
+          cloudinary_public_id: payload.cloudinaryPublicId,
+          result: isCrack ? 'crack' : 'no crack',
+          confidence: payload.confidence,
+          created_at: nowIso,
+          filename: payload.filename || 'inspection.jpg',
+          image_public_id: payload.cloudinaryPublicId,
+          verdict: verdictStr,
+          box_count: payload.boxes?.length || 0,
+          image_width: payload.imageWidth || 0,
+          image_height: payload.imageHeight || 0,
+          mask_png_base64: payload.maskData || null,
+          detections: payload.boxes?.map((b, idx) => ({
+            id: idx + 1,
+            confidence: b.confidence,
+            bbox: [b.x, b.y, b.width, b.height],
+          })) || [],
+          sync_status: 'synced',
+        })
+        .select('id')
+        .single();
+
+      if (insertError) {
+        console.error('Supabase inspections insert error:', insertError);
+        throw insertError;
+      }
+
+      const inspectionId = inserted?.id;
+
+      // 2. Insert N rows into 'detection_boxes' table
+      if (inspectionId && payload.boxes && payload.boxes.length > 0) {
+        const boxesToInsert = payload.boxes.map((b, idx) => ({
+          inspection_id: inspectionId,
+          user_id: session.user.id,
+          box_index: idx,
+          x: b.x,
+          y: b.y,
+          width: b.width,
+          height: b.height,
+          label: b.label || 'crack',
+          confidence: b.confidence,
+        }));
+
+        const { error: boxError } = await supabase
+          .from('detection_boxes')
+          .insert(boxesToInsert);
+
+        if (boxError) {
+          console.warn('Could not insert detection_boxes:', boxError.message);
+        }
+      }
+
+      return { inspectionId: String(inspectionId), savedToSupabase: true };
+    } catch (err: any) {
+      console.warn('Direct Supabase insert failed, falling back to local inspection cache:', err.message);
+    }
+  }
+
+  const localId = `local_${Date.now()}`;
+  return { inspectionId: localId, savedToSupabase: false };
+}

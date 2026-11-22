@@ -18,7 +18,7 @@ from fastapi.staticfiles import StaticFiles
 from backend.app.core.config import settings
 from backend.app.core.database import init_db
 from backend.app.api.api_v1 import api_router
-from backend.app.api.endpoints import auth, health, analyze, inspections
+from backend.app.api.endpoints import auth, health, analyze, inspections, hf_compatible
 
 
 @asynccontextmanager
@@ -67,6 +67,7 @@ app.include_router(auth.router, tags=["Authentication"])
 app.include_router(health.router, tags=["Health"])
 app.include_router(analyze.router, tags=["Analysis"])
 app.include_router(inspections.router, tags=["Inspections"])
+app.include_router(hf_compatible.router, tags=["Hugging Face Space Compatible"])
 
 
 @app.get("/", tags=["Root"])

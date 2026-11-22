@@ -75,3 +75,10 @@ keystore.properties
 local.properties
 .gradle/
 
+# Cloud Packaging & Deployment Temporary Files
+build.zip
+build_pkg/
+hf_clone/
+*.log
+
+

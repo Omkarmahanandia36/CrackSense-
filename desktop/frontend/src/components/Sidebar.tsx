@@ -60,7 +60,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onToggleTheme,
 }) => {
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
-  const isHealthy = health?.status === 'healthy';
+  const isHealthy = health?.status === 'healthy' || health?.status === 'ok';
+  const isWakingUp = health?.status === 'waking_up' || health?.is_waking_up;
   const deviceName = health?.device || 'CPU';
 
   return (
@@ -254,7 +255,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               />
               {!collapsed && (
                 <span className="text-[11px]" style={{ color: 'var(--text-2)' }}>
-                  {health ? 'Online' : 'Connecting…'}
+                  {isHealthy ? 'Online' : isWakingUp ? 'Waking up…' : 'Connecting…'}
                 </span>
               )}
             </div>

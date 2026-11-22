@@ -1,15 +1,16 @@
 # CrackSense AI – Concrete Crack Detection System
 
-[![Version](https://img.shields.io/badge/version-1.1.0-teal.svg)](https://github.com/Omkarmahanandia36/CrackSense-/releases)
+[![Version](https://img.shields.io/badge/version-1.3.0-teal.svg)](https://github.com/Omkarmahanandia36/CrackSense-/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Android-blue.svg)](https://github.com/Omkarmahanandia36/CrackSense-)
+[![Cloud](https://img.shields.io/badge/AWS%20Cloud-24%2F7%20Serverless%20Lambda-FF9900.svg)](https://aws.amazon.com)
 [![Backend](https://img.shields.io/badge/backend-FastAPI%20%7C%20Python%203.11-009688.svg)](https://fastapi.tiangolo.com)
 [![Frontend](https://img.shields.io/badge/frontend-React%2018%20%7C%20Vite%20%7C%20TailwindCSS-61DAFB.svg)](https://react.dev)
 [![Deep Learning](https://img.shields.io/badge/AI-YOLOv8%20%7C%20ResNet--18%20%7C%20OpenCV-EE4C2C.svg)](https://ultralytics.com)
 [![Cloud](https://img.shields.io/badge/cloud-Supabase%20%7C%20Cloudinary-3ECF8E.svg)](https://supabase.com)
 
-An AI-powered concrete crack detection system using deep learning and computer vision to identify, localise, and visualise cracks in concrete surfaces.
+An AI-powered concrete crack detection system using deep learning and computer vision to identify, localise, and visualise cracks in concrete surfaces. 
 
-CrackSense AI aims to simplify concrete surface inspection through automated image analysis. Users will be able to upload concrete images, analyse them using trained AI models, visualise detected cracks, and maintain inspection records through a desktop application and mobile app.
+CrackSense AI simplifies concrete surface inspection through automated image analysis. Users can upload concrete images, analyse them using trained AI models hosted 24/7 on AWS Lambda, visualise detected cracks, and maintain synchronized inspection records across Windows Desktop and Android Mobile.
 
 ---
 
@@ -171,6 +172,7 @@ Crack bounding boxes predicted across adjacent tiles are translated back into gl
 | **Backend API** | REST AI Engine | Python 3.11, FastAPI, Uvicorn, Pydantic v2 |
 | **Computer Vision** | Image Processing | OpenCV 4.10, Pillow, NumPy |
 | **Deep Learning** | Models | Ultralytics YOLOv8 (Detection), PyTorch ResNet-18 (Classification) |
+| **Cloud AI Hosting** | 24/7 Managed Serverless | AWS Lambda Container (ap-southeast-2), AWS Lambda Web Adapter, ECR, CodeBuild |
 | **Local Database** | Edge Persistence | SQLite (SQLAlchemy 2.0 Async, aiosqlite, Alembic) |
 | **Cloud Infrastructure** | Cloud Services | Supabase (PostgreSQL, GoTrue Auth, Storage), Cloudinary SDK |
 | **Report Generation** | Structural PDFs | ReportLab |
