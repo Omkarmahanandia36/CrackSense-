@@ -1,59 +1,10 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, session } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const http = require('http');
-const { spawn, execSync } = require('child_process');
 const { autoUpdater } = require('electron-updater');
 
 // Disable GPU disk cache to avoid Windows cache permission locks
 app.commandLine.appendSwitch('disable-gpu-cache');
-
-let pyBackendProcess = null;
-
-function checkBackendHealth(callback) {
-  const req = http.get('http://127.0.0.1:8000/health', (res) => {
-    callback(res.statusCode === 200);
-  });
-  req.on('error', () => callback(false));
-  req.setTimeout(1000, () => {
-    req.destroy();
-    callback(false);
-  });
-}
-
-function startBackendIfNeeded() {
-  checkBackendHealth((isRunning) => {
-    if (isRunning) {
-      console.log('AI Engine is already running on port 8000.');
-      return;
-    }
-
-    console.log('Spawning AI Backend service on port 8000...');
-    let projectDir = path.resolve(__dirname, '../..');
-    if (!fs.existsSync(path.join(projectDir, 'backend/app/main.py'))) {
-      projectDir = process.cwd();
-    }
-
-    const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
-    try {
-      pyBackendProcess = spawn(
-        pythonCmd,
-        ['-m', 'uvicorn', 'backend.app.main:app', '--host', '0.0.0.0', '--port', '8000'],
-        {
-          cwd: projectDir,
-          stdio: 'ignore',
-          detached: false,
-          shell: true,
-        }
-      );
-      pyBackendProcess.on('error', (err) => {
-        console.warn('Backend process error:', err.message);
-      });
-    } catch (err) {
-      console.warn('Could not launch backend process:', err);
-    }
-  });
-}
 
 // Configure autoUpdater
 autoUpdater.autoDownload = false;
@@ -214,7 +165,19 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  startBackendIfNeeded();
+  // Explicitly permit camera / media access for live snapshot capture
+  if (session && session.defaultSession) {
+    session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
+      if (permission === 'media') {
+        return callback(true);
+      }
+      callback(false);
+    });
+    session.defaultSession.setPermissionCheckHandler((webContents, permission) => {
+      return permission === 'media';
+    });
+  }
+
   createWindow();
 
   app.on('activate', function () {
@@ -223,15 +186,7 @@ app.whenReady().then(() => {
 });
 
 app.on('will-quit', () => {
-  if (pyBackendProcess && pyBackendProcess.pid) {
-    try {
-      if (process.platform === 'win32') {
-        execSync(`taskkill /pid ${pyBackendProcess.pid} /T /F`);
-      } else {
-        pyBackendProcess.kill('SIGTERM');
-      }
-    } catch (e) {}
-  }
+  // App cleanup
 });
 
 app.on('window-all-closed', function () {
