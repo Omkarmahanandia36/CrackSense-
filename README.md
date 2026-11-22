@@ -46,33 +46,28 @@ Concrete cracks develop naturally across buildings, bridges, roadways, tunnels, 
 
 Traditional manual inspection requires physical scaffolding, manual measurement, and subjective visual judgment—making it hazardous, labor-intensive, and prone to human inconsistency.
 
-**CrackSense AI** automates this workflow with an end-to-end multi-platform application:
-1. **Ingest:** Inspect via drag-and-drop file upload, direct camera snap on mobile, or batch imports.
-2. **Detect & Localize:** Execute tiled high-resolution YOLOv8 inference with OpenCV Non-Maximum Suppression (NMS) to detect hairline and structural cracks without downsampling distortion.
-3. **Segment & Quantify:** Compute pixel-precise morphological crack masks using adaptive CLAHE and Blackhat transforms, providing quantitative metrics (estimated length, max/mean width, severity index).
-4. **Inspect & Interact:** View results in a responsive glassmorphic multi-mode viewer (`Original`, `Boxes`, `Mask`, `Both`) with real-time zoom/pan.
-5. **Persist & Sync:** Maintain inspection records locally on SQLite with automatic background synchronization to Supabase PostgreSQL and secure cloud imagery storage.
-6. **Report:** Generate professional structural inspection PDF reports with embedded metrics and visual comparisons in a single click.
+**CrackSense AI** automates and modernizes this workflow with an end-to-end multi-platform application backed by 24/7 cloud intelligence:
+1. **Ingest & Stream:** Capture concrete surfaces via direct mobile camera snaps or desktop drag-and-drop. Images are automatically pre-scaled client-side (1600px Lanczos) and streamed directly to Cloudinary via signed HMAC-SHA1 tokens without bottlenecking the API gateway.
+2. **Serverless AI Detection:** Cloud-hosted Ultralytics YOLOv8 runs 24/7 inside an AWS Lambda container (`ap-southeast-2`), localizing hairline and structural cracks with sub-second response times.
+3. **Telemetry & Mask Overlays:** Returns normalized pixel bounding box telemetry, confidence scores, and visual overlays rendered smoothly in the responsive client UI.
+4. **Inspect & Interact:** View results in a responsive glassmorphic multi-mode viewer (`Original`, `Boxes`, `Mask`, `Both`) with real-time zoom, pan, and animated detection chips.
+5. **Persist & Sync:** Maintain inspections in a dual-table schema on Supabase PostgreSQL (`inspections` and `detection_boxes`) with strict Row-Level Security (RLS) policies.
+6. **Edge & Offline Freedom:** Seamlessly switch between the 24/7 AWS Cloud API and local edge mode (FastAPI + SQLite) for inspections in remote areas without internet access.
 
 ---
 
 ## Key Features
 
-- **High-Resolution Tiling YOLOv8 Detection:** Splits large ultra-high-resolution photographs into 512×512 patches with 20% overlap, running local YOLOv8 inference and seam-merging bounding boxes via OpenCV NMS.
-- **Deep ResNet-18 Classification:** Binary surface verification trained on 40,000 concrete image patches achieving 99.8% validation accuracy.
-- **Morphological Crack Masking:** CLAHE contrast normalization followed by Blackhat morphological filtering generates transparent alpha masks with 60% amber/red crack highlighting.
-- **Crack Metric Quantification:** Morphological skeletonization extracts estimated crack length in pixels, maximum crack width, mean crack width, and assigns a structural severity grade (`None`, `Minor`, `Moderate`, `Severe`).
+- **24/7 Serverless Cloud AI (AWS Lambda):** Managed containerized backend powered by AWS Lambda Web Adapter in Sydney (`ap-southeast-2`). Zero idle cost, instant multi-concurrency scaling, and 100% VPS-free maintenance.
+- **Client-Direct CDN Offloading:** High-resolution photographs stream directly from mobile and desktop clients to Cloudinary using signed upload parameters, eliminating heavy binary uploads through the application server.
+- **Deep YOLOv8 Crack Localization:** Deep learning crack detection trained on extensive structural datasets to pinpoint microscopic fractures and major structural faults with precision bounding boxes.
+- **Dual-Table Telemetry Storage:** Supabase PostgreSQL architecture separating high-level inspection records (`inspections`) from granular spatial telemetry (`detection_boxes`) with enforced Row-Level Security (RLS).
 - **Interactive Multi-Mode Inspection Viewer:** Smooth scroll zoom, drag-to-pan, 1-click fit-to-view, and segmented switching across `Original`, `Boxes`, `Mask`, and `Both`.
 - **Cross-Platform Native Builds:**
-  - **Windows Desktop:** Electron 29 NSIS installer and portable executable with background Python AI auto-launcher (launches the backend silently when `.exe` starts).
-  - **Android Mobile:** Capacitor 8 native Android application with hardware camera integration (`@capacitor/camera`) and configurable LAN backend connectivity.
-- **In-App Auto-Update System (v1.1.0):**
-  - **Desktop:** Integrated `electron-updater` checking GitHub Releases (`latest.yml`) with user-prompted background downloads and 1-click restart-to-install.
-  - **Android:** Supabase-backed version checking (`app_versions` table) with semver comparison, prompt modal, and direct APK download link.
-- **Dual-Database Architecture:**
-  - **Local Edge:** Offline-first SQLite database (SQLAlchemy async) for zero-latency local persistence.
-  - **Cloud Sync:** Supabase PostgreSQL for multi-inspector cloud synchronization, user authentication, and Cloudinary/Supabase media hosting.
-- **Automated PDF Inspection Reports:** Standardized engineering inspection reports generated using ReportLab, complete with summary tables, detected bounding boxes, severity analysis, and inspector credentials.
+  - **Windows Desktop:** Electron 29 NSIS installer (`CrackSense-AI-Setup.exe`) and portable executable with glassmorphic dashboard and offline/cloud backend toggle.
+  - **Android Mobile:** Capacitor 8 native Android application (`CrackSense-AI-Mobile.apk`) with hardware camera integration (`@capacitor/camera`) and direct cloud synchronization.
+- **Automated Container CI/CD:** Built with Amazon Elastic Container Registry (ECR) and AWS CodeBuild, compiling Docker images directly in the cloud.
+- **Offline Edge Fallback:** Built-in SQLite database (`cracksense.db`) and local FastAPI server for continuous operation on remote construction sites without internet connectivity.
 
 ---
 
@@ -80,44 +75,85 @@ Traditional manual inspection requires physical scaffolding, manual measurement,
 
 ```mermaid
 flowchart TD
-    subgraph Clients["Client Layer"]
-        Electron["Windows Desktop App\n(Electron 29 + React 18)"]
-        Mobile["Android Mobile App\n(Capacitor 8 + Camera)"]
+    subgraph Clients["1. Cross-Platform Client Layer"]
+        Mobile["Android Mobile Application\n(Capacitor 8 + Hardware Camera)"]
+        Desktop["Windows Desktop Application\n(Electron 29 + React 18 + Vite)"]
     end
 
-    subgraph Backend["FastAPI Backend (Port 8000)"]
-        Router["API Gateway / Routers\n(/analyze, /inspections, /health)"]
-        AuthMiddleware["Auth & Guest Middleware\n(Supabase JWT / Local Fallback)"]
-        AutoSpawn["Desktop Process Auto-Launcher\n(Electron background spawner)"]
+    subgraph Ingestion["2. Edge Preprocessing & CDN Storage"]
+        PreProcess["Client-Side Image Processing\n(1600px Auto-Resize + JPEG Lanczos)"]
+        Cloudinary[("Cloudinary Global CDN\n(Signed Direct HTTPS Uploads)")]
     end
 
-    subgraph AIEngine["AI Inference & Computer Vision"]
-        Tiler["High-Res Tiling Pipeline\n(512x512, 20% Overlap)"]
-        YOLO["YOLOv8 Detection Model\n(Crack Bounding Boxes)"]
-        NMS["OpenCV Seam-Merging NMS\n(Bounding Box Deduplication)"]
-        Morphology["OpenCV Morphology\n(CLAHE + Blackhat Filter)"]
-        Skeleton["Crack Metrics Engine\n(Length, Width, Severity)"]
+    subgraph AWSCloud["3. 24/7 AWS Serverless AI Inference (ap-southeast-2)"]
+        LambdaURL["AWS Lambda Function URL\n(Permanent Public HTTPS Gateway)"]
+        Adapter["AWS Lambda Web Adapter\n(Zero-Change FastAPI Proxy, Port 7860)"]
+        FastAPI["FastAPI AI Engine\n(REST API: /health, /predict, /upload-signature)"]
+        YOLO["Ultralytics YOLOv8 Crack Detector\n(Deep Learning Object Localization)"]
+        MaskGen["Visual Overlay Engine\n(Bounding Box Telemetry + Cyan Masks)"]
     end
 
-    subgraph StorageLayer["Data & Storage Layer"]
-        SQLite[("Local Edge SQLite\ncracksense.db")]
-        SupabaseDB[("Supabase PostgreSQL\nInspections & Versions")]
-        Cloudinary[("Cloud Storage\nCloudinary / Supabase Storage")]
+    subgraph DevOps["4. Cloud CI/CD & Registry"]
+        ECR["Amazon Elastic Container Registry (ECR)\n(cracksense-api:latest)"]
+        CodeBuild["AWS CodeBuild Pipeline\n(Automated Docker Packaging)"]
     end
 
-    Electron --> Router
-    Mobile --> Router
-    AutoSpawn -.-> Backend
-    Router --> AuthMiddleware
-    Router --> Tiler
-    Tiler --> YOLO
-    YOLO --> NMS
-    NMS --> Morphology
-    Morphology --> Skeleton
-    Router --> SQLite
-    Router --> SupabaseDB
-    Router --> Cloudinary
+    subgraph Database["5. Cloud Persistence & Security"]
+        SupabaseAuth["Supabase Authentication\n(GoTrue JWT Session Management)"]
+        SupabaseDB[("Supabase PostgreSQL Database\n(Inspections & Detection Boxes with RLS)")]
+    end
+
+    subgraph OfflineEdge["6. Local Offline Fallback"]
+        LocalEngine["Local Python FastAPI Server\n(Port 8000 + Local PyTorch)"]
+        LocalDB[("Local SQLite Database\n(cracksense.db)")]
+    end
+
+    %% Client flows
+    Mobile -->|"1. Snap/Select"| PreProcess
+    Desktop -->|"1. Import/Drop"| PreProcess
+    PreProcess -->|"2. Request Signature"| LambdaURL
+    PreProcess -->|"3. Direct Stream"| Cloudinary
+
+    %% Cloud AI flows
+    Cloudinary -->|"4. Image URL"| LambdaURL
+    LambdaURL --> Adapter
+    Adapter --> FastAPI
+    FastAPI --> YOLO
+    YOLO --> MaskGen
+    MaskGen -->|"5. Detection Telemetry (Boxes & Confidence)"| Clients
+
+    %% Cloud Storage & Auth
+    Clients -->|"6. Sync Inspection Data"| SupabaseDB
+    Clients -->|"Authenticate"| SupabaseAuth
+
+    %% CI/CD
+    CodeBuild -->|"Build & Push"| ECR
+    ECR -->|"Deploy Container Image"| AWSCloud
+
+    %% Offline Edge Fallback
+    Desktop -.->|"Offline Mode"| LocalEngine
+    LocalEngine -.-> LocalDB
 ```
+
+### Architectural Highlights
+
+1. **Client Layer (Mobile & Desktop):**
+   - Built on React 18, TypeScript, and TailwindCSS using a custom glassmorphism design system.
+   - **Android:** Native Capacitor 8 wrapper compiling to Android SDK 34 (`CrackSense-AI-Mobile.apk`). Direct hardware camera invocation and photo gallery selection.
+   - **Windows:** Electron 29 desktop wrapper packaged with NSIS installer (`CrackSense-AI-Setup.exe`).
+2. **Direct Edge CDN Offloading:**
+   - Inspection photos are scaled client-side to a maximum dimension of 1600px with 85% JPEG Lanczos compression.
+   - Clients request signed HMAC-SHA1 upload signatures from `/upload-signature`, streaming directly to Cloudinary. This bypasses the API gateway for file transfers, keeping server payload sizes strictly under JSON limits.
+3. **24/7 Managed Serverless AI (AWS Lambda):**
+   - Packaged with **AWS Lambda Web Adapter** listening on `PORT=7860`.
+   - Direct HTTPS invocations through AWS Lambda Function URLs (`https://ai57lwrkaxpvcfaevaehnnxkfu0xmbxp.lambda-url.ap-southeast-2.on.aws`).
+   - Zero idle resource consumption; warm execution latency of under 5 milliseconds.
+4. **Cloud Persistence (Supabase PostgreSQL):**
+   - Two normalized tables: `inspections` (inspection timestamp, severity, Cloudinary URL) and `detection_boxes` (crack coordinates `x`, `y`, `width`, `height`, confidence score, label).
+   - Row-Level Security (RLS) protects data isolation across user sessions and authenticated roles.
+5. **Autonomous DevOps Pipeline:**
+   - Amazon ECR stores versioned container images.
+   - AWS CodeBuild automates container build and push cycles triggered directly by cloud commands.
 
 ---
 
