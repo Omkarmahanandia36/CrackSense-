@@ -8,6 +8,7 @@ import {
   X,
   ShieldAlert,
   Smartphone,
+  Monitor,
 } from 'lucide-react';
 import {
   updateService,
@@ -81,7 +82,7 @@ export const UpdateModal: React.FC = () => {
     }
   };
 
-  const isElectron = typeof window !== 'undefined' && Boolean((window as any).electronAPI?.updater);
+  const isAndroid = typeof window !== 'undefined' && updateService.getPlatform() === 'android';
   const isBlocking = Boolean(info?.isBlocking);
 
   return (
@@ -152,14 +153,24 @@ export const UpdateModal: React.FC = () => {
               </div>
             )}
 
-            {/* Mobile / Android hint */}
-            {!isElectron && (
+            {/* Platform notice */}
+            {isAndroid ? (
               <div className="p-3 rounded-xl border border-amber-500/20 bg-amber-500/10 flex items-start gap-2.5 text-xs text-amber-200">
                 <Smartphone className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
                 <div className="leading-snug">
                   <p className="font-medium">Android Installation Notice</p>
                   <p className="text-[10px] text-amber-300/80 mt-0.5">
-                    Tapping Update downloads the APK. If prompted, permit "Install unknown apps" in Settings for your browser.
+                    Tapping Download downloads the APK. If prompted, permit "Install unknown apps" in Settings for your browser.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="p-3 rounded-xl border border-cyan-500/20 bg-cyan-500/10 flex items-start gap-2.5 text-xs text-cyan-200">
+                <Monitor className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
+                <div className="leading-snug">
+                  <p className="font-medium">Windows Setup Executable (.exe)</p>
+                  <p className="text-[10px] text-cyan-300/80 mt-0.5">
+                    Clicking Download will download the CrackSense-AI-Setup.exe installer. You can also run the installer directly from your Downloads folder.
                   </p>
                 </div>
               </div>
@@ -193,12 +204,12 @@ export const UpdateModal: React.FC = () => {
                   type="button"
                   onClick={async () => {
                     await handleAction();
-                    if (!isElectron) setIsModalOpen(false);
+                    setIsModalOpen(false);
                   }}
                   disabled={state === 'downloading'}
                   className="px-4 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-lg flex items-center gap-1.5 active:scale-95 disabled:opacity-50"
                 >
-                  <span>{isElectron ? 'Download update' : 'Download APK'}</span>
+                  <span>{isAndroid ? 'Download APK' : 'Download Windows Setup (.exe)'}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               )}
@@ -236,18 +247,32 @@ export const UpdateModal: React.FC = () => {
               </div>
             )}
 
-            {/* Android Unknown Apps Instruction */}
-            <div className="p-3 rounded-2xl border border-amber-500/20 bg-amber-500/10 text-left text-xs text-amber-200 space-y-1">
-              <p className="font-semibold flex items-center gap-1.5 text-amber-300">
-                <Smartphone className="w-3.5 h-3.5" />
-                How to install:
-              </p>
-              <ol className="list-decimal list-inside text-[11px] text-amber-200/90 space-y-0.5">
-                <li>Tap <strong>Update Now</strong> below to download the APK.</li>
-                <li>When prompted, allow <em>"Install unknown apps"</em> for your browser.</li>
-                <li>Open the downloaded APK from Notifications to complete installation.</li>
-              </ol>
-            </div>
+            {/* Instruction by Platform */}
+            {isAndroid ? (
+              <div className="p-3 rounded-2xl border border-amber-500/20 bg-amber-500/10 text-left text-xs text-amber-200 space-y-1">
+                <p className="font-semibold flex items-center gap-1.5 text-amber-300">
+                  <Smartphone className="w-3.5 h-3.5" />
+                  How to install:
+                </p>
+                <ol className="list-decimal list-inside text-[11px] text-amber-200/90 space-y-0.5">
+                  <li>Tap <strong>Update Now</strong> below to download the APK.</li>
+                  <li>When prompted, allow <em>"Install unknown apps"</em> for your browser.</li>
+                  <li>Open the downloaded APK from Notifications to complete installation.</li>
+                </ol>
+              </div>
+            ) : (
+              <div className="p-3 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 text-left text-xs text-cyan-200 space-y-1">
+                <p className="font-semibold flex items-center gap-1.5 text-cyan-300">
+                  <Monitor className="w-3.5 h-3.5" />
+                  How to install:
+                </p>
+                <ol className="list-decimal list-inside text-[11px] text-cyan-200/90 space-y-0.5">
+                  <li>Click <strong>Update Now</strong> below to download the latest setup installer (.exe).</li>
+                  <li>Run the installer (or run <em>CrackSense-AI-Setup.exe</em> from your Downloads folder).</li>
+                  <li>Relaunch CrackSense AI.</li>
+                </ol>
+              </div>
+            )}
 
             <button
               type="button"

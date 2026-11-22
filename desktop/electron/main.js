@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, session } = require('electron');
+const { app, BrowserWindow, ipcMain, session, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { autoUpdater } = require('electron-updater');
@@ -111,6 +111,12 @@ ipcMain.handle('updater:download', async () => {
 ipcMain.handle('updater:install', () => {
   // Never install silently: quits and executes installer with UI
   autoUpdater.quitAndInstall(false, true);
+});
+
+ipcMain.handle('shell:openExternal', async (_event, url) => {
+  if (url && typeof url === 'string') {
+    return shell.openExternal(url);
+  }
 });
 
 function createWindow() {

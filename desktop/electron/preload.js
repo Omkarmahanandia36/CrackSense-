@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   platform: process.platform,
   electronVersion: process.versions.electron,
   appVersion: packageJson.version,
+  openExternal: (url) => ipcRenderer.invoke('shell:openExternal', url),
   updater: {
     checkForUpdates: () => ipcRenderer.invoke('updater:check'),
     downloadUpdate: () => ipcRenderer.invoke('updater:download'),
