@@ -137,6 +137,48 @@ export const ResultView: React.FC<ResultViewProps> = ({
     setIsDragging(false);
   };
 
+  const touchStartRef = useRef<{ x: number; y: number; dist?: number }>({ x: 0, y: 0 });
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      const t = e.touches[0];
+      touchStartRef.current = { x: t.clientX - pan.x, y: t.clientY - pan.y };
+      setIsDragging(true);
+    } else if (e.touches.length === 2) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      touchStartRef.current = {
+        x: (e.touches[0].clientX + e.touches[1].clientX) / 2 - pan.x,
+        y: (e.touches[0].clientY + e.touches[1].clientY) / 2 - pan.y,
+        dist,
+      };
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 1 && isDragging) {
+      const t = e.touches[0];
+      setPan({
+        x: t.clientX - touchStartRef.current.x,
+        y: t.clientY - touchStartRef.current.y,
+      });
+    } else if (e.touches.length === 2 && touchStartRef.current.dist) {
+      const newDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const factor = newDist / touchStartRef.current.dist;
+      setZoom((prev) => Math.min(4.0, Math.max(0.5, Number((prev * factor).toFixed(2)))));
+      touchStartRef.current.dist = newDist;
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+  };
+
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
     const zoomDelta = e.deltaY < 0 ? 0.15 : -0.15;
@@ -511,12 +553,53 @@ export const ResultView: React.FC<ResultViewProps> = ({
         </div>
       </GlassPanel>
 
+      {/* Mobile Quick Verdict & Download Bar (visible on mobile only) */}
+      <div
+        className="flex md:hidden items-center justify-between px-3.5 py-2.5 rounded-xl border flex-shrink-0"
+        style={{
+          background: 'var(--glass-raised-bg)',
+          borderColor: 'var(--glass-raised-border)',
+        }}
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <span
+            className="w-2.5 h-2.5 rounded-full flex-shrink-0 animate-pulse"
+            style={{ background: isCrackVerdict ? 'var(--crack)' : 'var(--success)' }}
+          />
+          <span
+            className="text-xs sm:text-sm font-semibold truncate"
+            style={{ color: isCrackVerdict ? 'var(--crack)' : 'var(--success)' }}
+          >
+            {verdictHeadline}
+          </span>
+          <span
+            className="text-[11px] font-mono px-1.5 py-0.5 rounded font-medium"
+            style={{ background: 'var(--glass-sunken-bg)', color: 'var(--text-2)' }}
+          >
+            {confidencePct}%
+          </span>
+        </div>
+
+        <button
+          onClick={handleDownloadAnnotatedImage}
+          disabled={isExporting}
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-colors shadow-sm"
+          style={{
+            background: 'var(--accent)',
+            color: '#FFFFFF',
+          }}
+        >
+          <Download className="w-3.5 h-3.5" />
+          <span>{isExporting ? 'Saving...' : 'Download'}</span>
+        </button>
+      </div>
+
       {/* Main Split Workbench: Responsive Stack (Mobile Column / Desktop Row) */}
       <div className="flex flex-col md:flex-row flex-1 min-h-0 gap-4 overflow-y-auto md:overflow-hidden pb-16 md:pb-0">
         {/* Left Column: Glass Image Viewer */}
         <GlassPanel
           variant="base"
-          className="flex-1 flex flex-col min-w-0 overflow-hidden relative h-[360px] sm:h-[420px] md:h-auto flex-shrink-0 md:flex-shrink"
+          className="flex-1 flex flex-col min-w-0 overflow-hidden relative h-[46vh] sm:h-[52vh] md:h-auto flex-shrink-0 md:flex-shrink"
         >
           {/* Viewer Toolbar */}
           <div
@@ -576,6 +659,9 @@ export const ResultView: React.FC<ResultViewProps> = ({
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
             onWheel={handleWheel}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
             style={{ background: 'var(--glass-sunken-bg)' }}
           >
             <div
@@ -593,7 +679,7 @@ export const ResultView: React.FC<ResultViewProps> = ({
                 src={displayImageUrl}
                 alt={result.filename}
                 onLoad={handleImageLoad}
-                className="block max-w-[75vw] max-h-[70vh] object-contain rounded-xl shadow-2xl"
+                className="block max-w-[96vw] md:max-w-[75vw] max-h-[42vh] md:max-h-[70vh] object-contain rounded-xl shadow-2xl"
                 style={{
                   border: '1px solid var(--glass-sunken-border)',
                 }}
