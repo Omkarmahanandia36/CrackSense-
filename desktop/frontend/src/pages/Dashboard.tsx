@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { UploadCloud, ArrowRight, FileImage, Camera as CameraIcon } from 'lucide-react';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
-import { HealthData, AnalyzeResult, resolveImageUrl } from '../services/api';
+import { HealthData, AnalyzeResult, resolveImageUrl, isNativeMobile } from '../services/api';
 import { GlassPanel, Button, EmptyState } from '../components/ui';
+import { CameraCaptureModal } from '../components/CameraCaptureModal';
 
 interface DashboardProps {
   onStartUpload: () => void;
@@ -49,6 +50,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   health,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
+  const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const totalScans = recentInspections.length;
@@ -89,32 +91,37 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   const handleCapturePhoto = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    try {
-      const image = await Camera.getPhoto({
-        quality: 90,
-        allowEditing: false,
-        resultType: CameraResultType.Uri,
-        source: CameraSource.Camera,
-      });
+    if (isNativeMobile()) {
+      try {
+        const image = await Camera.getPhoto({
+          quality: 90,
+          allowEditing: false,
+          resultType: CameraResultType.Uri,
+          source: CameraSource.Camera,
+        });
 
-      if (image.webPath) {
-        const response = await fetch(image.webPath);
-        const blob = await response.blob();
-        const file = new File(
-          [blob],
-          `inspection_crack_${Date.now()}.${image.format || 'jpg'}`,
-          { type: `image/${image.format || 'jpeg'}` }
-        );
-        if (onStartUploadWithFile) {
-          onStartUploadWithFile(file);
-        } else {
-          onStartUpload();
+        if (image.webPath) {
+          const response = await fetch(image.webPath);
+          const blob = await response.blob();
+          const file = new File(
+            [blob],
+            `inspection_crack_${Date.now()}.${image.format || 'jpg'}`,
+            { type: `image/${image.format || 'jpeg'}` }
+          );
+          if (onStartUploadWithFile) {
+            onStartUploadWithFile(file);
+          } else {
+            onStartUpload();
+          }
+        }
+      } catch (err: any) {
+        if (!err?.message?.includes('User cancelled')) {
+          console.warn('Camera notice:', err);
         }
       }
-    } catch (err: any) {
-      if (!err?.message?.includes('User cancelled')) {
-        console.warn('Camera notice:', err);
-      }
+    } else {
+      // Desktop (Electron / Web): Open in-app live webcam viewfinder
+      setIsCameraModalOpen(true);
     }
   };
 
@@ -470,6 +477,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </>
         )}
       </div>
+      <CameraCaptureModal
+        isOpen={isCameraModalOpen}
+        onClose={() => setIsCameraModalOpen(false)}
+        onCapture={(file) => {
+          if (onStartUploadWithFile) {
+            onStartUploadWithFile(file);
+          } else {
+            onStartUpload();
+          }
+        }}
+      />
     </div>
   );
 };

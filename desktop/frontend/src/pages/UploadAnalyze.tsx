@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { UploadCloud, AlertCircle, X, Check, FileImage, Camera as CameraIcon, CloudCheck, Loader2 } from 'lucide-react';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
-import { uploadAndAnalyzeImage, predictWithImageUrl, waitForBackendAwake, AnalyzeResult } from '../services/api';
+import { uploadAndAnalyzeImage, predictWithImageUrl, waitForBackendAwake, AnalyzeResult, isNativeMobile } from '../services/api';
+import { CameraCaptureModal } from '../components/CameraCaptureModal';
 import {
   validateImageFile,
   compressAndResizeImage,
@@ -29,6 +30,7 @@ export const UploadAnalyze: React.FC<UploadAnalyzeProps> = ({ initialFile, onAna
   const [statusDetail, setStatusDetail] = useState<string>('');
   const [cloudinaryData, setCloudinaryData] = useState<CloudinaryUploadResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const analysisTriggeredRef = useRef(false);
 
@@ -192,29 +194,34 @@ export const UploadAnalyze: React.FC<UploadAnalyzeProps> = ({ initialFile, onAna
 
   const handleCapturePhoto = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    try {
-      const image = await Camera.getPhoto({
-        quality: 90,
-        allowEditing: false,
-        resultType: CameraResultType.Uri,
-        source: CameraSource.Camera,
-      });
+    if (isNativeMobile()) {
+      try {
+        const image = await Camera.getPhoto({
+          quality: 90,
+          allowEditing: false,
+          resultType: CameraResultType.Uri,
+          source: CameraSource.Camera,
+        });
 
-      if (image.webPath) {
-        const response = await fetch(image.webPath);
-        const blob = await response.blob();
-        const file = new File(
-          [blob],
-          `inspection_crack_${Date.now()}.${image.format || 'jpg'}`,
-          { type: `image/${image.format || 'jpeg'}` }
-        );
-        processFile(file);
+        if (image.webPath) {
+          const response = await fetch(image.webPath);
+          const blob = await response.blob();
+          const file = new File(
+            [blob],
+            `inspection_crack_${Date.now()}.${image.format || 'jpg'}`,
+            { type: `image/${image.format || 'jpeg'}` }
+          );
+          processFile(file);
+        }
+      } catch (err: any) {
+        // User cancelled camera dialog or camera permission denied
+        if (!err?.message?.includes('User cancelled')) {
+          console.warn('Camera capture notice:', err);
+        }
       }
-    } catch (err: any) {
-      // User cancelled camera dialog or camera permission denied
-      if (!err?.message?.includes('User cancelled')) {
-        console.warn('Camera capture notice:', err);
-      }
+    } else {
+      // Desktop (Electron / Web): Open in-app live webcam viewfinder
+      setIsCameraModalOpen(true);
     }
   };
 
@@ -530,6 +537,11 @@ export const UploadAnalyze: React.FC<UploadAnalyzeProps> = ({ initialFile, onAna
           </div>
         </GlassPanel>
       )}
+      <CameraCaptureModal
+        isOpen={isCameraModalOpen}
+        onClose={() => setIsCameraModalOpen(false)}
+        onCapture={(file) => processFile(file)}
+      />
     </div>
   );
 };
