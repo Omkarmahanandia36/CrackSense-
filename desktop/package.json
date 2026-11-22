@@ -1,6 +1,6 @@
 {
   "name": "cracksense-desktop",
-  "version": "1.2.0",
+  "version": "1.2.2",
   "description": "CrackSense AI - Concrete Surface Inspection Desktop App",
   "main": "electron/main.js",
   "scripts": {
@@ -14,7 +14,8 @@
     "release:frontend": "cd frontend && npm run build",
     "release:win": "npm run release:frontend && electron-builder --win nsis --publish never",
     "release:android:sync": "npm run release:frontend && cd frontend && npx cap sync android",
-    "release:android:build": "npm run release:android:sync && cd frontend/android && gradlew.bat assembleRelease"
+    "release:android:build": "npm run release:android:sync && cd frontend/android && gradlew.bat assembleRelease",
+    "publish:update": "python ../scripts/publish_update.py"
   },
   "build": {
     "appId": "ai.cracksense.desktop",

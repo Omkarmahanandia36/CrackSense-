@@ -3,7 +3,6 @@ import { UploadCloud, ArrowRight, FileImage, Camera as CameraIcon } from 'lucide
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { HealthData, AnalyzeResult, resolveImageUrl } from '../services/api';
 import { GlassPanel, Button, EmptyState } from '../components/ui';
-import { UpdateStatus } from '../components/UpdateStatus';
 
 interface DashboardProps {
   onStartUpload: () => void;
@@ -144,7 +143,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
 
         <div className="flex items-center gap-2.5">
-          <UpdateStatus />
           <Button
             variant="primary"
             icon={UploadCloud}
@@ -161,7 +159,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={`
-          glass-base p-5 sm:p-8 text-center select-none transition-all duration-200 group border border-dashed
+          glass-base p-5 sm:p-8 text-center select-none transition-all duration-200 group border border-dashed scroll-reveal scroll-card-hover
           ${isDragging ? 'scale-[1.01] shadow-2xl' : 'hover:bg-[--hover-bg]'}
         `}
         style={{
@@ -231,7 +229,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       </div>
 
       {/* ── 3 Simple Stats (horizontal 3-col on mobile & desktop) ── */}
-      <GlassPanel variant="base" className="p-3.5 sm:p-6">
+      <GlassPanel variant="base" className="p-3.5 sm:p-6 scroll-reveal scroll-reveal-delay-1 scroll-card-hover">
         <div className="grid grid-cols-3 divide-x divide-white/[0.08] text-center sm:text-left">
           {/* Stat 1: Total Inspections */}
           <div className="px-2 sm:px-4 py-1 first:pl-0">
@@ -283,7 +281,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       </GlassPanel>
 
       {/* ── Recent Inspections List ── */}
-      <div className="space-y-3">
+      <div className="space-y-3 scroll-reveal scroll-reveal-delay-2">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold tracking-tight" style={{ color: 'var(--text-1)' }}>
             Recent inspections

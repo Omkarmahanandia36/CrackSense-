@@ -29,6 +29,8 @@ interface MobileNavProps {
   onOpenEditProfile?: () => void;
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
+  isScrolled?: boolean;
+  scrollProgress?: number;
 }
 
 export const MobileHeader: React.FC<MobileNavProps> = ({
@@ -40,6 +42,8 @@ export const MobileHeader: React.FC<MobileNavProps> = ({
   theme,
   onToggleTheme,
   onNavigate,
+  isScrolled = false,
+  scrollProgress = 0,
 }) => {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
@@ -48,7 +52,22 @@ export const MobileHeader: React.FC<MobileNavProps> = ({
 
   return (
     <>
-      <header className="md:hidden sticky top-0 z-40 w-full pt-safe px-4 py-2.5 bg-[#06141B]/85 backdrop-blur-xl border-b border-white/10 flex items-center justify-between">
+      <header
+        className={`md:hidden sticky top-0 z-40 w-full pt-safe px-4 py-2.5 transition-all duration-300 flex items-center justify-between ${
+          isScrolled
+            ? 'bg-[#06141B]/95 backdrop-blur-2xl border-b border-cyan-500/25 shadow-lg shadow-black/60'
+            : 'bg-[#06141B]/80 backdrop-blur-xl border-b border-white/10'
+        }`}
+      >
+        {/* Scroll Progress Micro-line */}
+        {scrollProgress > 0 && (
+          <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-transparent overflow-hidden pointer-events-none">
+            <div
+              className="h-full bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400 shadow-[0_0_8px_rgba(56,189,248,0.6)] transition-all duration-150 ease-out"
+              style={{ width: `${scrollProgress}%` }}
+            />
+          </div>
+        )}
         {/* Brand Logo & Name */}
         <div
           onClick={() => onNavigate('dashboard')}

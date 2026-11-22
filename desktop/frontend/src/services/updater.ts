@@ -170,10 +170,10 @@ class UpdateService {
 
   // ── Android Platform Integration ──
   private setupAndroidListeners() {
-    // Check on startup
+    // 1. Check immediately on startup
     this.checkAndroidUpdate().catch(() => {});
 
-    // Check when app resumes / returns to foreground
+    // 2. Check when app resumes / returns to foreground
     try {
       App.addListener('appStateChange', (state) => {
         if (state.isActive) {
@@ -181,11 +181,35 @@ class UpdateService {
         }
       });
     } catch {
-      // Fallback to window focus for browser preview
       if (typeof window !== 'undefined') {
         window.addEventListener('focus', () => {
           this.checkAndroidUpdate().catch(() => {});
         });
+      }
+    }
+
+    // 3. Periodic check every 3 minutes so active users get prompt automatically
+    if (typeof window !== 'undefined') {
+      window.setInterval(() => {
+        this.checkAndroidUpdate().catch(() => {});
+      }, 3 * 60 * 1000);
+    }
+
+    // 4. Instant Realtime push from Supabase when a new version is published
+    if (isSupabaseConfigured()) {
+      try {
+        supabase
+          .channel('cracksense_version_updates')
+          .on(
+            'postgres_changes',
+            { event: 'INSERT', schema: 'public', table: 'app_versions' },
+            () => {
+              this.checkAndroidUpdate(true).catch(() => {});
+            }
+          )
+          .subscribe();
+      } catch (e) {
+        console.warn('Realtime version subscription deferred:', e);
       }
     }
   }
