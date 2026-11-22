@@ -252,7 +252,7 @@ CrackSense/
 │   └── frontend/                   # Shared React 18 + Capacitor Application
 │       ├── android/                # Native Android Studio Capacitor project
 │       ├── src/
-│       │   ├── components/         # GlassPanel, UpdateStatus, ServerConfigModal, Navbar
+│       │   ├── components/         # GlassPanel, UpdateStatus, Navbar, MobileNav
 │       │   ├── pages/              # Dashboard, UploadAnalyze, History, ResultView
 │       │   ├── services/           # api.ts (dynamic IP / native detection), supabase.ts, updater.ts
 │       │   └── App.tsx             # Routing & update initialization

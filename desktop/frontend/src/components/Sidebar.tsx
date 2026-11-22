@@ -18,7 +18,6 @@ import {
 } from 'lucide-react';
 import { HealthData, UserProfile } from '../services/api';
 import { UpdateStatus } from './UpdateStatus';
-import { ServerConfigModal } from './ServerConfigModal';
 
 interface SidebarProps {
   currentPage: 'dashboard' | 'upload' | 'result' | 'history' | 'dev' | 'admin';
@@ -59,7 +58,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   theme,
   onToggleTheme,
 }) => {
-  const [isServerModalOpen, setIsServerModalOpen] = useState(false);
   const isHealthy = health?.status === 'healthy' || health?.status === 'ok';
   const isWakingUp = health?.status === 'waking_up' || health?.is_waking_up;
   const deviceName = health?.device || 'CPU';
@@ -242,11 +240,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div
             className={`flex items-center ${collapsed ? 'justify-center' : 'justify-between'}`}
           >
-            <div
-              onClick={() => setIsServerModalOpen(true)}
-              className="flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity"
-              title="Click to configure backend server connection"
-            >
+            <div className="flex items-center gap-1.5 select-none">
               <span
                 className={`w-2 h-2 rounded-full flex-shrink-0 ${
                   isHealthy ? 'animate-status-pulse' : 'animate-pulse'
@@ -255,26 +249,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
               />
               {!collapsed && (
                 <span className="text-[11px]" style={{ color: 'var(--text-2)' }}>
-                  {isHealthy ? 'Online' : isWakingUp ? 'Waking up…' : 'Connecting…'}
+                  {isHealthy ? 'AI Online' : isWakingUp ? 'Waking up…' : 'Connecting…'}
                 </span>
               )}
             </div>
 
             {!collapsed && (
-              <button
-                type="button"
-                onClick={() => setIsServerModalOpen(true)}
-                className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-mono uppercase font-semibold hover:border-cyan-500/40 cursor-pointer transition-colors"
+              <div
+                className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-mono uppercase font-semibold select-none"
                 style={{
                   background: 'var(--glass-sunken-bg)',
                   border: '1px solid var(--glass-sunken-border)',
                   color: 'var(--text-2)',
                 }}
-                title="Server connection settings"
               >
                 <Cpu className="w-3 h-3" style={{ color: 'var(--text-2)' }} strokeWidth={1.5} />
                 {deviceName}
-              </button>
+              </div>
             )}
           </div>
         </div>
@@ -374,12 +365,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         )}
       </div>
-
-      <ServerConfigModal
-        isOpen={isServerModalOpen}
-        onClose={() => setIsServerModalOpen(false)}
-        onConfigSaved={() => window.location.reload()}
-      />
     </aside>
   );
 };

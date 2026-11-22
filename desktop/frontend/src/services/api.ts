@@ -1,5 +1,5 @@
 /** API Client service for communication with FastAPI backend. */
-import { ENV, AWS_API_URL, HF_SPACE_URL, LOCAL_API_URL } from '../config/env';
+import { ENV, AWS_API_URL } from '../config/env';
 
 export interface HealthData {
   status: string;
@@ -86,37 +86,12 @@ export const isNativeMobile = (): boolean => {
 };
 
 export function getApiBase(): string {
-  // Security protocol & zero-config: Native mobile apps ALWAYS connect directly to the 24/7 AWS Cloud API
-  if (isNativeMobile()) {
-    return AWS_API_URL;
+  // Configured environment variable override (if specified during build or dev)
+  if (typeof window !== 'undefined' && import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, '');
   }
 
-  if (typeof window !== 'undefined') {
-    // Desktop local storage override for development testing
-    const stored = localStorage.getItem('cracksense_api_base');
-    if (stored && stored.trim() && !stored.includes('hf.space') && !stored.includes('trycloudflare.com')) {
-      return stored.trim().replace(/\/+$/, '');
-    }
-
-    // Configured environment variable
-    if (import.meta.env.VITE_API_BASE_URL) {
-      return import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, '');
-    }
-
-    // Electron desktop app or local PC browser
-    const isElectron =
-      window.navigator.userAgent.includes('Electron') ||
-      (window as any).electronAPI !== undefined;
-    const isLocalhost =
-      window.location.hostname === 'localhost' ||
-      window.location.hostname === '127.0.0.1' ||
-      window.location.protocol === 'file:';
-
-    if (isElectron || isLocalhost) {
-      return LOCAL_API_URL;
-    }
-  }
-
+  // 24/7 AWS Lambda Cloud API for all platforms (Mobile, Desktop, Web)
   return AWS_API_URL;
 }
 
