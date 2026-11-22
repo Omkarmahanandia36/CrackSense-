@@ -8,6 +8,8 @@ __pycache__/
 *.db
 *.db-shm
 *.db-wal
+*.exe
+*.apk
 
 # Node & Electron Builds
 node_modules/

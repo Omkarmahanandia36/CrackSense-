@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { ArrowUp } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { MobileHeader, MobileBottomBar } from './components/MobileNav';
 import { Dashboard } from './pages/Dashboard';
@@ -9,6 +10,7 @@ import { DevComponents } from './pages/DevComponents';
 import { AdminView } from './pages/AdminView';
 import { LoginModal } from './components/LoginModal';
 import { EditProfileModal } from './components/EditProfileModal';
+import { UpdateModal } from './components/UpdateModal';
 import {
   supabase,
   isSupabaseConfigured,
@@ -50,6 +52,31 @@ export default function App() {
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [initialFileForUpload, setInitialFileForUpload] = useState<File | null>(null);
+
+  // ── Scroll Effect Management ──
+  const mainScrollRef = useRef<HTMLElement | null>(null);
+  const [scrollTop, setScrollTop] = useState(0);
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  const handleScroll = useCallback(() => {
+    if (!mainScrollRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = mainScrollRef.current;
+    setScrollTop(scrollTop);
+    const maxScroll = scrollHeight - clientHeight;
+    const progress = maxScroll > 0 ? (scrollTop / maxScroll) * 100 : 0;
+    setScrollProgress(Math.min(100, Math.max(0, progress)));
+  }, []);
+
+  const scrollToTop = useCallback(() => {
+    mainScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  // Smoothly reset scroll on tab navigation
+  useEffect(() => {
+    mainScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    setScrollTop(0);
+    setScrollProgress(0);
+  }, [currentPage]);
 
   const handleSetUser = useCallback((newUser: UserProfile | null) => {
     setUser(newUser);
@@ -225,6 +252,8 @@ export default function App() {
           onOpenEditProfile={() => setIsEditProfileOpen(true)}
           theme={theme}
           onToggleTheme={toggleTheme}
+          isScrolled={scrollTop > 15}
+          scrollProgress={scrollProgress}
         />
 
         {/* Floating glass sidebar (tablets & desktop only) */}
@@ -243,11 +272,22 @@ export default function App() {
           onToggleTheme={toggleTheme}
         />
 
-        {/* Main content — scrolls independently */}
+        {/* Main content — scrolls independently with smooth momentum */}
         <main
-          className="flex-1 overflow-y-auto ml-0 md:ml-4 pb-20 md:pb-0"
+          ref={mainScrollRef}
+          onScroll={handleScroll}
+          className="flex-1 overflow-y-auto ml-0 md:ml-4 pb-20 md:pb-0 scroll-smooth overscroll-y-contain relative custom-scrollbar"
           style={{ borderRadius: 'var(--r-panel)' }}
         >
+          {/* Desktop Top Scroll Progress Bar */}
+          {scrollProgress > 0 && (
+            <div className="hidden md:block sticky top-0 left-0 right-0 z-30 h-[2px] bg-transparent overflow-hidden pointer-events-none">
+              <div
+                className="h-full bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400 shadow-[0_0_8px_rgba(56,189,248,0.7)] transition-all duration-150 ease-out"
+                style={{ width: `${scrollProgress}%` }}
+              />
+            </div>
+          )}
           <div className={currentPage === 'result' ? 'flex flex-col h-full' : 'p-3.5 sm:p-6 md:p-8 max-w-6xl w-full mx-auto'}>
             {currentPage === 'dashboard' && (
               <Dashboard
@@ -315,6 +355,19 @@ export default function App() {
         />
       </div>
 
+      {/* ── Floating Smooth Scroll-to-Top Action ── */}
+      {scrollTop > 200 && (
+        <button
+          type="button"
+          onClick={scrollToTop}
+          className="fixed bottom-20 md:bottom-6 right-5 z-40 p-2.5 rounded-full bg-slate-900/85 hover:bg-slate-800 text-cyan-300 border border-cyan-500/30 backdrop-blur-md shadow-xl shadow-cyan-950/40 hover:scale-105 active:scale-95 transition-all duration-200 animate-fade-rise cursor-pointer"
+          title="Scroll back to top"
+          aria-label="Scroll back to top"
+        >
+          <ArrowUp className="w-4 h-4" />
+        </button>
+      )}
+
       <LoginModal
         isOpen={isLoginOpen}
         onClose={() => setIsLoginOpen(false)}
@@ -327,6 +380,8 @@ export default function App() {
         user={user}
         onProfileUpdated={(updated) => handleSetUser(updated)}
       />
+
+      <UpdateModal />
     </div>
   );
 }

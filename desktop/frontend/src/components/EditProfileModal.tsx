@@ -159,7 +159,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
             </label>
             <input
               type="text"
-              placeholder="e.g. arsh1568"
+              placeholder="e.g. arsh_rana"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="w-full h-11 bg-white/5 border border-white/15 focus:border-cyan-400 rounded-xl px-4 text-xs font-mono text-white placeholder:text-white/30 outline-none transition-all"
