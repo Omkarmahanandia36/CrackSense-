@@ -1,7 +1,15 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { UploadCloud, AlertCircle, X, Check, FileImage, Camera as CameraIcon } from 'lucide-react';
+import { UploadCloud, AlertCircle, X, Check, FileImage, Camera as CameraIcon, CloudCheck, Loader2 } from 'lucide-react';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
-import { uploadAndAnalyzeImage, AnalyzeResult } from '../services/api';
+import { uploadAndAnalyzeImage, predictWithImageUrl, waitForBackendAwake, AnalyzeResult } from '../services/api';
+import {
+  validateImageFile,
+  compressAndResizeImage,
+  getUploadSignature,
+  uploadToCloudinary,
+  CloudinaryUploadResult,
+} from '../services/cloudinary';
+import { getValidSession, saveCompleteInspection } from '../services/supabase';
 import { GlassPanel, Button } from '../components/ui';
 
 interface UploadAnalyzeProps {
@@ -9,7 +17,7 @@ interface UploadAnalyzeProps {
   onAnalysisSuccess: (result: AnalyzeResult) => void;
 }
 
-type AnalysisStage = 'idle' | 'uploading' | 'detecting' | 'done';
+type AnalysisStage = 'idle' | 'compressing' | 'uploading' | 'waking' | 'detecting' | 'done';
 
 export const UploadAnalyze: React.FC<UploadAnalyzeProps> = ({ initialFile, onAnalysisSuccess }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(initialFile || null);
@@ -17,28 +25,131 @@ export const UploadAnalyze: React.FC<UploadAnalyzeProps> = ({ initialFile, onAna
   const [imageMeta, setImageMeta] = useState<{ width: number; height: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [stage, setStage] = useState<AnalysisStage>('idle');
+  const [uploadPercent, setUploadPercent] = useState<number>(0);
+  const [statusDetail, setStatusDetail] = useState<string>('');
+  const [cloudinaryData, setCloudinaryData] = useState<CloudinaryUploadResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const analysisTriggeredRef = useRef(false);
 
   const startAutoAnalysis = useCallback(async (file: File) => {
     setErrorMessage(null);
-    setStage('uploading');
-
-    // Smooth stage transitions
-    const detectTimer = setTimeout(() => {
-      setStage('detecting');
-    }, 450);
+    setUploadPercent(0);
+    setStage('compressing');
+    setStatusDetail('Resizing & compressing photo (max 1600px)...');
 
     try {
-      const result = await uploadAndAnalyzeImage(file, 0.35);
-      clearTimeout(detectTimer);
+      // 1. Client-side resize and compression (max 1600px, quality 0.85)
+      const { blob: compressedBlob, width: compW, height: compH } = await compressAndResizeImage(file, 1600, 0.85);
+      setImageMeta({ width: compW, height: compH });
+
+      // 2. Request signed upload credentials from backend
+      setStage('uploading');
+      setStatusDetail('Authorizing Cloudinary upload signature...');
+
+      const session = await getValidSession().catch(() => null);
+      const userId = session?.user?.id || 'guest';
+      let sigData;
+      try {
+        sigData = await getUploadSignature(userId);
+      } catch (sigErr: any) {
+        if (
+          sigErr?.message?.includes('503') ||
+          sigErr?.message?.includes('504') ||
+          sigErr?.message?.includes('waking') ||
+          sigErr?.message?.includes('Ensure backend is online')
+        ) {
+          setStage('waking');
+          setStatusDetail('Cloud AI server is waking up from standby... Checking status (~30s)...');
+          const isAwake = await waitForBackendAwake(60, (secs) => {
+            setStatusDetail(`Cloud AI server waking up from standby (${secs}s elapsed)... Please wait.`);
+          });
+          if (isAwake) {
+            setStage('uploading');
+            sigData = await getUploadSignature(userId);
+          } else {
+            throw sigErr;
+          }
+        } else {
+          throw sigErr;
+        }
+      }
+
+      // 3. Direct upload to Cloudinary with real-time percentage
+      setStatusDetail('Uploading directly to Cloudinary...');
+      const cld = await uploadToCloudinary(compressedBlob, sigData, file.name, (pct) => {
+        setUploadPercent(pct);
+        setStatusDetail(`Uploading to Cloudinary (${pct}%)...`);
+      });
+
+      setCloudinaryData(cld);
+      setStage('detecting');
+      setStatusDetail('Photo stored in Cloudinary! Running AI crack detection...');
+
+      // 4. Run AI model inference with the uploaded image URL
+      let result: AnalyzeResult;
+      try {
+        result = await predictWithImageUrl(cld.secure_url || '', 0.35);
+      } catch (predErr: any) {
+        if (predErr?.message?.includes('503') || predErr?.message?.includes('504')) {
+          setStage('waking');
+          setStatusDetail('Cloud AI engine spinning up... Resuming inference (~30s)...');
+          await waitForBackendAwake(60, (secs) => {
+            setStatusDetail(`Cloud AI engine spinning up (${secs}s)... Running detection.`);
+          });
+          setStage('detecting');
+          result = await predictWithImageUrl(cld.secure_url || '', 0.35);
+        } else {
+          console.warn('Predict by URL failed, falling back to direct multipart analysis:', predErr);
+          const compressedFile = new File([compressedBlob], file.name, { type: 'image/jpeg' });
+          result = await uploadAndAnalyzeImage(compressedFile, 0.35);
+        }
+      }
+
+      if (cld.secure_url) {
+        result.image_url = cld.secure_url;
+      }
+      (result as any).cloudinary_public_id = cld.public_id;
+
+      // 5. Persist inspection & crack boxes to Supabase under RLS
+      setStatusDetail('Saving inspection to database...');
+      try {
+        const normalizedBoxes = (result.boxes || []).map((b: any) => ({
+          x: b.x !== undefined ? b.x : (b.x1 ?? 0),
+          y: b.y !== undefined ? b.y : (b.y1 ?? 0),
+          width: b.width !== undefined ? b.width : Math.max(1, (b.x2 ?? 0) - (b.x1 ?? 0)),
+          height: b.height !== undefined ? b.height : Math.max(1, (b.y2 ?? 0) - (b.y1 ?? 0)),
+          label: b.label || 'crack',
+          confidence: b.confidence ?? result.confidence ?? 0.9,
+        }));
+
+        const saved = await saveCompleteInspection({
+          imageUrl: cld.secure_url || result.image_url || '',
+          cloudinaryPublicId: cld.public_id,
+          result: result.is_crack ? 'crack' : 'no crack',
+          confidence: result.confidence,
+          boxes: normalizedBoxes,
+          maskData: result.mask_png_base64,
+          imageWidth: result.image_width || compW,
+          imageHeight: result.image_height || compH,
+          filename: file.name,
+        });
+
+        if (saved?.inspectionId) {
+          result.id = saved.inspectionId;
+          (result as any).inspection_id = saved.inspectionId;
+          (result as any).saved_to_supabase = saved.savedToSupabase;
+        }
+      } catch (saveErr) {
+        console.warn('Could not save to Supabase:', saveErr);
+      }
+
       setStage('done');
+      setStatusDetail('Analysis complete!');
       setTimeout(() => {
         onAnalysisSuccess(result);
       }, 350);
     } catch (err: any) {
-      clearTimeout(detectTimer);
       setStage('idle');
       setErrorMessage(err.message || 'Inspection analysis failed. Check backend connection.');
     }
@@ -46,16 +157,9 @@ export const UploadAnalyze: React.FC<UploadAnalyzeProps> = ({ initialFile, onAna
 
   const processFile = useCallback((file: File) => {
     setErrorMessage(null);
-    const validExtensions = ['jpg', 'jpeg', 'png', 'bmp', 'webp'];
-    const ext = file.name.split('.').pop()?.toLowerCase();
-
-    if (!ext || !validExtensions.includes(ext)) {
-      setErrorMessage(`Unsupported format .${ext}. Please use JPG, PNG, BMP, or WebP.`);
-      return;
-    }
-
-    if (file.size > 15 * 1024 * 1024) {
-      setErrorMessage(`File exceeds 15 MB limit (${(file.size / (1024 * 1024)).toFixed(1)} MB).`);
+    const validation = validateImageFile(file);
+    if (!validation.valid) {
+      setErrorMessage(validation.error || 'Invalid file. Please select a JPG or PNG image.');
       return;
     }
 
@@ -69,7 +173,7 @@ export const UploadAnalyze: React.FC<UploadAnalyzeProps> = ({ initialFile, onAna
     };
     img.src = url;
 
-    // Immediately start automated analysis
+    // Immediately start automated analysis flow
     startAutoAnalysis(file);
   }, [startAutoAnalysis]);
 
@@ -142,10 +246,20 @@ export const UploadAnalyze: React.FC<UploadAnalyzeProps> = ({ initialFile, onAna
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const isAnalyzing = stage === 'uploading' || stage === 'detecting' || stage === 'done';
+  const isAnalyzing = stage !== 'idle';
 
   const progressPercent =
-    stage === 'uploading' ? 35 : stage === 'detecting' ? 78 : stage === 'done' ? 100 : 0;
+    stage === 'compressing'
+      ? 15
+      : stage === 'uploading'
+      ? 15 + Math.round(uploadPercent * 0.55)
+      : stage === 'waking'
+      ? 65
+      : stage === 'detecting'
+      ? 85
+      : stage === 'done'
+      ? 100
+      : 0;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 animate-fade-rise">
@@ -414,13 +528,16 @@ export const UploadAnalyze: React.FC<UploadAnalyzeProps> = ({ initialFile, onAna
             </Button>
 
             <span className="text-[11px] font-mono" style={{ color: 'var(--text-3)' }}>
-              {stage === 'uploading'
-                ? 'Transferring image payload...'
-                : stage === 'detecting'
-                ? 'Tiled neural localization...'
-                : stage === 'done'
-                ? 'Opening inspection result...'
-                : 'Ready'}
+              {statusDetail ||
+                (stage === 'compressing'
+                  ? 'Optimizing photo (max 1600px)...'
+                  : stage === 'uploading'
+                  ? `Uploading to Cloudinary (${uploadPercent}%)...`
+                  : stage === 'detecting'
+                  ? 'Tiled neural localization...'
+                  : stage === 'done'
+                  ? 'Opening inspection result...'
+                  : 'Ready')}
             </span>
           </div>
         </GlassPanel>

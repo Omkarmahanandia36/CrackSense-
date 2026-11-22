@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Server, Wifi, CheckCircle2, AlertCircle, RefreshCw, X, Laptop, Smartphone } from 'lucide-react';
+import { Server, Wifi, CheckCircle2, AlertCircle, RefreshCw, X, Laptop, Smartphone, Globe, ClipboardPaste } from 'lucide-react';
 import { getApiBase, isNativeMobile, getSystemHealth } from '../services/api';
 import { GlassPanel, Button, Input } from './ui';
 
@@ -98,8 +98,8 @@ export const ServerConfigModal: React.FC<ServerConfigModalProps> = ({
               <div className="flex items-center gap-1.5 text-xs text-slate-400">
                 {isMobile ? (
                   <>
-                    <Smartphone className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>Android Mobile Device (Requires Laptop Wi-Fi IP)</span>
+                    <Globe className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Cloud API (HTTPS) or Local Development</span>
                   </>
                 ) : (
                   <>
@@ -113,18 +113,18 @@ export const ServerConfigModal: React.FC<ServerConfigModalProps> = ({
 
           <p className="text-xs text-slate-300 mb-4 leading-relaxed">
             {isMobile
-              ? 'On mobile, connect to your laptop over Wi-Fi. Ensure both your phone and laptop are on the same Wi-Fi network and port 8000 is running.'
+              ? 'Connect over the internet via Cloud API (Cloudflare Tunnel, Render, etc.) on 4G/5G/Wi-Fi, or enter a local dev server IP.'
               : 'On desktop, CrackSense connects directly to your local AI engine on 127.0.0.1:8000.'}
           </p>
 
           {/* URL Input */}
           <div className="space-y-2 mb-4">
-            <label className="text-xs font-medium text-slate-300">FastAPI Backend URL</label>
+            <label className="text-xs font-medium text-slate-300">FastAPI Backend / Cloud API URL</label>
             <input
               type="text"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="e.g. http://10.57.2.244:8000"
+              placeholder="e.g. https://xxxx.trycloudflare.com or http://10.57.2.244:8000"
               className="w-full h-10 px-3 rounded-xl bg-black/40 border border-white/10 text-white font-mono text-xs focus:outline-none focus:border-cyan-500/50"
             />
           </div>
@@ -133,10 +133,36 @@ export const ServerConfigModal: React.FC<ServerConfigModalProps> = ({
           <div className="flex flex-wrap gap-2 mb-4">
             <button
               type="button"
-              onClick={() => setUrl('http://10.57.2.244:8000')}
-              className="px-2.5 py-1 rounded-lg text-[11px] font-mono border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20 transition-all cursor-pointer"
+              onClick={async () => {
+                try {
+                  const clip = await navigator.clipboard.readText();
+                  if (clip && (clip.startsWith('http://') || clip.startsWith('https://'))) {
+                    setUrl(clip.trim());
+                  }
+                } catch {
+                  // clipboard read blocked or unsupported
+                }
+              }}
+              className="px-2.5 py-1 rounded-lg text-[11px] font-mono border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 transition-all cursor-pointer flex items-center gap-1"
             >
-              Wi-Fi: 10.57.2.244:8000
+              <ClipboardPaste className="w-3 h-3" />
+              <span>Paste from Clipboard</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setUrl('https://ai57lwrkaxpvcfaevaehnnxkfu0xmbxp.lambda-url.ap-southeast-2.on.aws')}
+              className="px-2.5 py-1 rounded-lg text-[11px] font-mono border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 transition-all cursor-pointer flex items-center gap-1"
+            >
+              <Globe className="w-3 h-3 text-amber-400" />
+              <span>AWS Cloud 24/7</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setUrl('https://arsh15-cracksense-api.hf.space')}
+              className="px-2.5 py-1 rounded-lg text-[11px] font-mono border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20 transition-all cursor-pointer flex items-center gap-1"
+            >
+              <Globe className="w-3 h-3 text-cyan-400" />
+              <span>HF Space Cloud</span>
             </button>
             <button
               type="button"

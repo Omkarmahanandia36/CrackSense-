@@ -69,7 +69,14 @@ export const ResultView: React.FC<ResultViewProps> = ({
   // Detections & Boxes mapping
   const detections = result.detections || [];
   const boxes = (result.boxes && result.boxes.length > 0)
-    ? result.boxes
+    ? result.boxes.map((b: any) => ({
+        x1: b.x1 !== undefined ? b.x1 : (b.x ?? 0),
+        y1: b.y1 !== undefined ? b.y1 : (b.y ?? 0),
+        x2: b.x2 !== undefined ? b.x2 : ((b.x ?? 0) + (b.width ?? 0)),
+        y2: b.y2 !== undefined ? b.y2 : ((b.y ?? 0) + (b.height ?? 0)),
+        confidence: b.confidence ?? 0.9,
+        label: b.label || 'Crack Region',
+      }))
     : detections.map((d) => ({
         x1: d.bbox[0],
         y1: d.bbox[1],
