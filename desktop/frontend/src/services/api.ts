@@ -87,9 +87,15 @@ export const isNativeMobile = (): boolean => {
 
 export function getApiBase(): string {
   if (typeof window !== 'undefined') {
-    // 1. User manual override in localStorage
+    // 1. Check for legacy dead hosts in localStorage and auto-migrate
     const stored = localStorage.getItem('cracksense_api_base');
-    if (stored && stored.trim()) return stored.trim().replace(/\/+$/, '');
+    if (stored) {
+      if (stored.includes('hf.space') || stored.includes('trycloudflare.com')) {
+        localStorage.removeItem('cracksense_api_base');
+      } else if (stored.trim()) {
+        return stored.trim().replace(/\/+$/, '');
+      }
+    }
 
     // 2. Mobile devices MUST NOT connect to 127.0.0.1 (phone loopback)
     if (isNativeMobile()) {
