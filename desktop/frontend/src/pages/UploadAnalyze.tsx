@@ -67,11 +67,11 @@ export const UploadAnalyze: React.FC<UploadAnalyzeProps> = ({ initialFile, onAna
       // Direct multipart inference to AWS Lambda (completes in ~1.5 - 2.5s)
       let result: AnalyzeResult;
       try {
-        result = await predictWithFile(compressedBlob, file.name, 0.12);
+        result = await predictWithFile(compressedBlob, file.name, 0.06);
       } catch (err: any) {
         console.warn('Direct predict initial attempt notice, retrying:', err);
         await new Promise((r) => setTimeout(r, 1200));
-        result = await predictWithFile(compressedBlob, file.name, 0.12);
+        result = await predictWithFile(compressedBlob, file.name, 0.06);
       }
 
       // 3. Await or combine Cloudinary upload result
