@@ -1,5 +1,5 @@
 /** API Client service for communication with FastAPI backend. */
-import { ENV, HF_SPACE_URL, LOCAL_API_URL } from '../config/env';
+import { ENV, AWS_API_URL, HF_SPACE_URL, LOCAL_API_URL } from '../config/env';
 
 export interface HealthData {
   status: string;
@@ -86,28 +86,24 @@ export const isNativeMobile = (): boolean => {
 };
 
 export function getApiBase(): string {
+  // Security protocol & zero-config: Native mobile apps ALWAYS connect directly to the 24/7 AWS Cloud API
+  if (isNativeMobile()) {
+    return AWS_API_URL;
+  }
+
   if (typeof window !== 'undefined') {
-    // 1. Check for legacy dead hosts in localStorage and auto-migrate
+    // Desktop local storage override for development testing
     const stored = localStorage.getItem('cracksense_api_base');
-    if (stored) {
-      if (stored.includes('hf.space') || stored.includes('trycloudflare.com')) {
-        localStorage.removeItem('cracksense_api_base');
-      } else if (stored.trim()) {
-        return stored.trim().replace(/\/+$/, '');
-      }
+    if (stored && stored.trim() && !stored.includes('hf.space') && !stored.includes('trycloudflare.com')) {
+      return stored.trim().replace(/\/+$/, '');
     }
 
-    // 2. Mobile devices MUST NOT connect to 127.0.0.1 (phone loopback)
-    if (isNativeMobile()) {
-      return (import.meta.env.VITE_API_BASE_URL || ENV.API_BASE_URL).replace(/\/+$/, '');
-    }
-
-    // 3. Configured environment variable
+    // Configured environment variable
     if (import.meta.env.VITE_API_BASE_URL) {
       return import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, '');
     }
 
-    // 4. Electron desktop app or local PC browser
+    // Electron desktop app or local PC browser
     const isElectron =
       window.navigator.userAgent.includes('Electron') ||
       (window as any).electronAPI !== undefined;
@@ -121,7 +117,7 @@ export function getApiBase(): string {
     }
   }
 
-  return (import.meta.env.VITE_API_BASE_URL || ENV.API_BASE_URL || LOCAL_API_URL).replace(/\/+$/, '');
+  return AWS_API_URL;
 }
 
 export function resolveImageUrl(url?: string): string {

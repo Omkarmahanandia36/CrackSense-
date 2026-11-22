@@ -3,8 +3,11 @@ import groovy.json.JsonSlurper
 
 // Derive version from single source of truth in desktop/package.json
 def packageJsonFile = file("../../../package.json")
-def appVersion = "1.0.0"
-def appVersionCode = 10000
+if (!packageJsonFile.exists()) {
+    packageJsonFile = file("../../package.json")
+}
+def appVersion = "1.3.0"
+def appVersionCode = 10300
 
 if (packageJsonFile.exists()) {
     try {

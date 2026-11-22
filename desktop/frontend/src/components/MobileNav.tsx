@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 import { HealthData, UserProfile } from '../services/api';
 import { UpdateStatus } from './UpdateStatus';
-import { ServerConfigModal } from './ServerConfigModal';
 
 interface MobileNavProps {
   currentPage: 'dashboard' | 'upload' | 'result' | 'history' | 'dev' | 'admin';
@@ -46,7 +45,6 @@ export const MobileHeader: React.FC<MobileNavProps> = ({
   scrollProgress = 0,
 }) => {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [isServerModalOpen, setIsServerModalOpen] = useState(false);
   const isHealthy = health?.status === 'healthy' || health?.status === 'ok';
   const isWakingUp = health?.status === 'waking_up' || health?.is_waking_up;
   const deviceName = health?.device ? health.device.toUpperCase() : 'CPU';
@@ -86,25 +84,20 @@ export const MobileHeader: React.FC<MobileNavProps> = ({
             CrackSense
           </span>
 
-          {/* Backend health pill - clickable to configure server IP */}
+          {/* Backend health pill - non-interactive status indicator */}
           <div
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsServerModalOpen(true);
-            }}
-            className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono ml-1 cursor-pointer active:scale-95 transition-transform"
+            className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono ml-1 select-none pointer-events-none"
             style={{
               background: isHealthy ? 'var(--success-tint)' : 'rgba(255, 159, 10, 0.12)',
               color: isHealthy ? 'var(--success)' : 'var(--warning)',
               border: `1px solid ${isHealthy ? 'rgba(48, 209, 88, 0.25)' : 'rgba(255, 159, 10, 0.25)'}`,
             }}
-            title="Tap to configure server IP"
           >
             <span
               className={`w-1.5 h-1.5 rounded-full ${isHealthy ? 'animate-status-pulse' : ''}`}
               style={{ background: isHealthy ? 'var(--success)' : 'var(--warning)' }}
             />
-            <span>{isHealthy ? deviceName : isWakingUp ? 'Waking up…' : 'Connecting…'}</span>
+            <span>{isHealthy ? 'AI Online' : isWakingUp ? 'Waking up…' : 'Connecting…'}</span>
           </div>
         </div>
 
@@ -225,12 +218,6 @@ export const MobileHeader: React.FC<MobileNavProps> = ({
         )}
       </div>
     </header>
-
-    <ServerConfigModal
-      isOpen={isServerModalOpen}
-      onClose={() => setIsServerModalOpen(false)}
-      onConfigSaved={() => window.location.reload()}
-    />
   </>
   );
 };
