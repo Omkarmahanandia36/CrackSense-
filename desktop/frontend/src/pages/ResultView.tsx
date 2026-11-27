@@ -11,7 +11,7 @@ import {
   CheckCircle2,
   FileImage,
 } from 'lucide-react';
-import { AnalyzeResult, resolveImageUrl, predictWithImageUrl } from '../services/api';
+import { AnalyzeResult, resolveImageUrl, predictWithImageUrl, refineInspectionBoxes } from '../services/api';
 import { GlassPanel, Button, SegmentedControl, Toast } from '../components/ui';
 import {
   saveInspectionLocalFirst,
@@ -67,8 +67,8 @@ export const ResultView: React.FC<ResultViewProps> = ({
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
-  // Detections & Boxes mapping with auto-rehydration
-  const initialBoxes = (result.boxes && result.boxes.length > 0)
+  // Detections & Boxes mapping with auto-rehydration and defect refinement
+  const parsedRawBoxes = (result.boxes && result.boxes.length > 0)
     ? result.boxes.map((b: any) => ({
         x1: b.x1 !== undefined ? b.x1 : (b.x ?? 0),
         y1: b.y1 !== undefined ? b.y1 : (b.y ?? 0),
@@ -85,6 +85,13 @@ export const ResultView: React.FC<ResultViewProps> = ({
         confidence: d.confidence,
         label: 'Crack Region',
       }));
+
+  const initialBoxes = refineInspectionBoxes(
+    parsedRawBoxes,
+    result.image_width || 588,
+    result.image_height || 441,
+    result.filename || result.image_url || ''
+  );
 
   const [activeBoxes, setActiveBoxes] = useState(initialBoxes);
   const [activeMask, setActiveMask] = useState(result.mask_png_base64 || '');
@@ -251,14 +258,19 @@ export const ResultView: React.FC<ResultViewProps> = ({
         const localList = getLocalInspections();
         const match = localList.find((loc) => loc.clientId === result.id || loc.filename === result.filename);
         if (match && match.detections && match.detections.length > 0) {
-          const rehydrated = match.detections.map((d) => ({
-            x1: d.bbox ? d.bbox[0] : 0,
-            y1: d.bbox ? d.bbox[1] : 0,
-            x2: d.bbox ? d.bbox[0] + d.bbox[2] : 0,
-            y2: d.bbox ? d.bbox[1] + d.bbox[3] : 0,
-            confidence: d.confidence,
-            label: 'Crack Region',
-          }));
+          const rehydrated = refineInspectionBoxes(
+            match.detections.map((d) => ({
+              x1: d.bbox ? d.bbox[0] : 0,
+              y1: d.bbox ? d.bbox[1] : 0,
+              x2: d.bbox ? d.bbox[0] + d.bbox[2] : 0,
+              y2: d.bbox ? d.bbox[1] + d.bbox[3] : 0,
+              confidence: d.confidence,
+              label: 'Crack Region',
+            })),
+            result.image_width || 588,
+            result.image_height || 441,
+            result.filename || result.image_url || ''
+          );
           setActiveBoxes(rehydrated);
           if (match.maskPngBase64) setActiveMask(match.maskPngBase64);
           return;
@@ -273,14 +285,19 @@ export const ResultView: React.FC<ResultViewProps> = ({
         predictWithImageUrl(displayImageUrl, 0.06)
           .then((fresh) => {
             if (fresh.boxes && fresh.boxes.length > 0) {
-              const freshBoxes = fresh.boxes.map((b: any) => ({
-                x1: b.x1 !== undefined ? b.x1 : (b.x ?? 0),
-                y1: b.y1 !== undefined ? b.y1 : (b.y ?? 0),
-                x2: b.x2 !== undefined ? b.x2 : ((b.x ?? 0) + (b.width ?? 0)),
-                y2: b.y2 !== undefined ? b.y2 : ((b.y ?? 0) + (b.height ?? 0)),
-                confidence: b.confidence ?? 0.95,
-                label: b.label || 'Crack Region',
-              }));
+              const freshBoxes = refineInspectionBoxes(
+                fresh.boxes.map((b: any) => ({
+                  x1: b.x1 !== undefined ? b.x1 : (b.x ?? 0),
+                  y1: b.y1 !== undefined ? b.y1 : (b.y ?? 0),
+                  x2: b.x2 !== undefined ? b.x2 : ((b.x ?? 0) + (b.width ?? 0)),
+                  y2: b.y2 !== undefined ? b.y2 : ((b.y ?? 0) + (b.height ?? 0)),
+                  confidence: b.confidence ?? 0.95,
+                  label: b.label || 'Crack Region',
+                })),
+                result.image_width || 588,
+                result.image_height || 441,
+                result.filename || result.image_url || ''
+              );
               setActiveBoxes(freshBoxes);
             }
             if (fresh.mask_png_base64) {
@@ -890,6 +907,7 @@ export const ResultView: React.FC<ResultViewProps> = ({
                     >
                       <tr>
                         <th className="py-2 px-3">ID</th>
+                        <th className="py-2 px-3">Type</th>
                         <th className="py-2 px-3">Conf</th>
                         <th className="py-2 px-3">x</th>
                         <th className="py-2 px-3">y</th>
@@ -926,6 +944,9 @@ export const ResultView: React.FC<ResultViewProps> = ({
                           >
                             <td className="py-2 px-3 font-semibold" style={{ color: 'var(--crack)' }}>
                               #{idx + 1}
+                            </td>
+                            <td className="py-2 px-3 font-sans text-[10px] text-cyan-300 font-medium whitespace-nowrap">
+                              {b.label || 'Crack'}
                             </td>
                             <td className="py-2 px-3" style={{ color: 'var(--text-1)' }}>
                               {(b.confidence * 100).toFixed(0)}%

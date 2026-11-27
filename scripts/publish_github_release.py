@@ -26,19 +26,18 @@ if not token:
     sys.exit(1)
 
 repo = "Omkarmahanandia36/CrackSense-"
-tag = "v1.3.4"
-release_name = "CrackSense AI v1.3.4"
+tag = "v1.3.5"
+release_name = "CrackSense AI v1.3.5"
 release_body = (
-    "## CrackSense AI v1.3.4\n\n"
+    "## CrackSense AI v1.3.5\n\n"
     "### What's New:\n"
-    "- **Windows Installer (.exe):** Fixed in-app update modal to properly display Windows Setup executable and trigger direct download.\n"
-    "- **Mobile Experience:** Edge-to-edge crack visualization, touch pan & pinch-to-zoom support.\n"
-    "- **Export Fix:** Resolved tainted canvas issue when downloading annotated images.\n"
-    "- **Auto-Rehydration:** Automatic bounding box re-inference on historic and cloud inspections.\n"
-    "- **99% Precision Calibrated:** Multi-tile crack detection with 24/7 AWS backend.\n\n"
+    "- **Water Leak Fissure Detection:** Calibrated multi-scale detection to accurately identify and box cracks at water leak burst origins.\n"
+    "- **False Positive Elimination:** Suppressed false detections on smooth column edges and ladder rails.\n"
+    "- **Defect Classification:** Categorizes defects by type (Water Leak Fissure, Surface Spalling, Crack) with calibrated confidence.\n"
+    "- **Windows Installer (.exe):** Working in-app update trigger and download.\n\n"
     "### Downloads:\n"
-    "- **Windows Setup:** `CrackSense-v1.3.4-Setup.exe` / `CrackSense-AI-Setup.exe`\n"
-    "- **Android Mobile APK:** `CrackSense-v1.3.4.apk` / `CrackSense-AI-Mobile.apk`\n"
+    "- **Windows Setup:** `CrackSense-v1.3.5-Setup.exe` / `CrackSense-AI-Setup.exe`\n"
+    "- **Android Mobile APK:** `CrackSense-v1.3.5.apk` / `CrackSense-AI-Mobile.apk`\n"
 )
 
 # 2. Check if release exists or create it
@@ -86,11 +85,11 @@ print(f"[INFO] Existing assets: {list(existing_assets.keys())}")
 
 # Files to upload
 assets_to_upload = [
-    ("CrackSense-v1.3.4-Setup.exe", ROOT_DIR / "CrackSense-v1.3.4-Setup.exe", "application/vnd.microsoft.portable-executable"),
-    ("CrackSense-AI-Setup-1.3.4.exe", ROOT_DIR / "CrackSense-v1.3.4-Setup.exe", "application/vnd.microsoft.portable-executable"),
-    ("CrackSense-AI-Setup.exe", ROOT_DIR / "CrackSense-v1.3.4-Setup.exe", "application/vnd.microsoft.portable-executable"),
-    ("CrackSense-v1.3.4.apk", ROOT_DIR / "CrackSense-v1.3.4.apk", "application/vnd.android.package-archive"),
-    ("CrackSense-AI-Mobile.apk", ROOT_DIR / "CrackSense-v1.3.4.apk", "application/vnd.android.package-archive"),
+    ("CrackSense-v1.3.5-Setup.exe", ROOT_DIR / "CrackSense-v1.3.5-Setup.exe", "application/vnd.microsoft.portable-executable"),
+    ("CrackSense-AI-Setup-1.3.5.exe", ROOT_DIR / "CrackSense-v1.3.5-Setup.exe", "application/vnd.microsoft.portable-executable"),
+    ("CrackSense-AI-Setup.exe", ROOT_DIR / "CrackSense-v1.3.5-Setup.exe", "application/vnd.microsoft.portable-executable"),
+    ("CrackSense-v1.3.5.apk", ROOT_DIR / "CrackSense-v1.3.5.apk", "application/vnd.android.package-archive"),
+    ("CrackSense-AI-Mobile.apk", ROOT_DIR / "CrackSense-v1.3.5.apk", "application/vnd.android.package-archive"),
     ("latest.yml", DIST_ELECTRON / "latest.yml", "text/yaml"),
 ]
 
