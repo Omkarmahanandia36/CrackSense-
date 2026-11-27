@@ -29,6 +29,7 @@ runs/
 yolov8*.pt
 
 # Datasets (raw images should not be committed)
+*.zip
 dataset/raw/*
 !dataset/raw/.gitkeep
 !dataset/raw/Positive/.gitkeep

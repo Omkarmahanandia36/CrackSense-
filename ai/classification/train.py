@@ -125,8 +125,9 @@ def train_one_epoch(
     total = 0
 
     use_cuda = device.type == "cuda"
+    total_batches = len(dataloader)
 
-    for inputs, labels in dataloader:
+    for batch_idx, (inputs, labels) in enumerate(dataloader):
         inputs = inputs.to(device, non_blocking=True)
         labels = labels.to(device, non_blocking=True)
 
@@ -144,6 +145,11 @@ def train_one_epoch(
         _, preds = torch.max(outputs, 1)
         correct += (preds == labels).sum().item()
         total += labels.size(0)
+
+        if (batch_idx + 1) % 100 == 0 or (batch_idx + 1) == total_batches:
+            batch_loss = running_loss / total
+            batch_acc = (correct / total) * 100
+            print(f"      [Batch {batch_idx + 1:>3}/{total_batches}] Running Loss: {batch_loss:.4f} | Running Acc: {batch_acc:5.1f}%", flush=True)
 
     epoch_loss = running_loss / total if total > 0 else 0.0
     epoch_acc = correct / total if total > 0 else 0.0
@@ -300,10 +306,10 @@ def run_training_pipeline(
 
     print(f"Dataset Counts:     Train = {len(train_dataset)}, Val = {len(val_dataset)}, Test = {len(test_dataset)}")
 
-    # Use pin_memory=True for fast host-to-device transfers on CUDA, 0 workers for Windows stability
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, pin_memory=torch.cuda.is_available())
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, pin_memory=torch.cuda.is_available())
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, pin_memory=torch.cuda.is_available())
+    num_workers = 2 if torch.cuda.is_available() else 0
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=torch.cuda.is_available(), persistent_workers=(num_workers > 0))
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=torch.cuda.is_available(), persistent_workers=(num_workers > 0))
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=torch.cuda.is_available())
 
     # Build model, loss, optimizer
     model = build_resnet18(pretrained=pretrained).to(device)

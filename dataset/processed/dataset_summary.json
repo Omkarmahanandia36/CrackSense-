@@ -1,10 +1,10 @@
 {
-  "total_images": 80,
-  "positive_count": 40,
-  "negative_count": 40,
-  "train_count": 62,
-  "val_count": 12,
-  "test_count": 6,
+  "total_images": 40080,
+  "positive_count": 20040,
+  "negative_count": 20040,
+  "train_count": 28057,
+  "val_count": 6013,
+  "test_count": 6010,
   "hamming_threshold": 6,
   "zero_leakage_verified": true
 }
