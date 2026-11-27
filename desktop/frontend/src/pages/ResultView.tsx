@@ -540,8 +540,8 @@ export const ResultView: React.FC<ResultViewProps> = ({
       )}
 
       {/* Top Header / Breadcrumb Bar */}
-      <GlassPanel variant="base" className="h-auto py-2.5 sm:h-12 px-3.5 sm:px-5 flex items-center justify-between flex-shrink-0 gap-2">
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+      <GlassPanel variant="base" className="h-auto py-2 sm:h-11 px-3 sm:px-4 flex items-center justify-between flex-shrink-0 gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <Button
             variant="ghost"
             size="sm"
@@ -551,8 +551,8 @@ export const ResultView: React.FC<ResultViewProps> = ({
             <span className="hidden sm:inline">Dashboard</span>
             <span className="sm:hidden">Back</span>
           </Button>
-          <span style={{ color: 'var(--text-3)' }}>/</span>
-          <span className="text-xs font-mono font-medium truncate max-w-[140px] sm:max-w-sm" style={{ color: 'var(--text-1)' }}>
+          <span className="text-slate-500">/</span>
+          <span className="text-xs font-mono font-medium truncate max-w-[140px] sm:max-w-sm text-slate-200">
             {result.filename}
           </span>
         </div>
@@ -572,7 +572,7 @@ export const ResultView: React.FC<ResultViewProps> = ({
 
       {/* Mobile Quick Verdict & Download Bar (visible on mobile only) */}
       <div
-        className="flex md:hidden items-center justify-between px-3.5 py-2.5 rounded-xl border flex-shrink-0"
+        className="flex md:hidden items-center justify-between px-3 py-2 rounded-xl border flex-shrink-0"
         style={{
           background: 'var(--glass-raised-bg)',
           borderColor: 'var(--glass-raised-border)',
@@ -580,17 +580,17 @@ export const ResultView: React.FC<ResultViewProps> = ({
       >
         <div className="flex items-center gap-2 min-w-0">
           <span
-            className="w-2.5 h-2.5 rounded-full flex-shrink-0 animate-pulse"
+            className="w-2 h-2 rounded-full flex-shrink-0"
             style={{ background: isCrackVerdict ? 'var(--crack)' : 'var(--success)' }}
           />
           <span
-            className="text-xs sm:text-sm font-semibold truncate"
+            className="text-xs font-semibold truncate"
             style={{ color: isCrackVerdict ? 'var(--crack)' : 'var(--success)' }}
           >
             {verdictHeadline}
           </span>
           <span
-            className="text-[11px] font-mono px-1.5 py-0.5 rounded font-medium"
+            className="text-[10px] font-mono px-1.5 py-0.5 rounded font-medium"
             style={{ background: 'var(--glass-sunken-bg)', color: 'var(--text-2)' }}
           >
             {confidencePct}%
@@ -600,11 +600,7 @@ export const ResultView: React.FC<ResultViewProps> = ({
         <button
           onClick={handleDownloadAnnotatedImage}
           disabled={isExporting}
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-colors shadow-sm"
-          style={{
-            background: 'var(--accent)',
-            color: '#FFFFFF',
-          }}
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-colors shadow-sm bg-white text-slate-900 active:scale-95"
         >
           <Download className="w-3.5 h-3.5" />
           <span>{isExporting ? 'Saving...' : 'Download'}</span>
@@ -636,34 +632,34 @@ export const ResultView: React.FC<ResultViewProps> = ({
               ]}
             />
 
-            {/* Zoom / Pan Toolbar */}
-            <div className="flex items-center gap-1">
+            {/* Zoom / Pan Toolbar & Resolution */}
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <span className="hidden sm:inline-block font-mono text-[10px] text-slate-400 px-2 py-0.5 rounded bg-white/[0.04] border border-white/[0.06]">
+                {naturalDimensions.width} &times; {naturalDimensions.height} px
+              </span>
               <button
                 onClick={() => handleZoom(-0.25)}
-                className="p-1.5 rounded-lg transition-colors hover:bg-[--hover-bg] cursor-pointer"
-                style={{ color: 'var(--text-2)' }}
+                className="p-1 rounded-md text-slate-400 hover:text-slate-200 hover:bg-white/[0.06] transition-colors cursor-pointer"
                 title="Zoom out"
               >
-                <ZoomOut className="w-4 h-4" strokeWidth={1.5} />
+                <ZoomOut className="w-3.5 h-3.5" strokeWidth={1.6} />
               </button>
-              <span className="font-mono text-[11px] w-12 text-center select-none" style={{ color: 'var(--text-2)' }}>
+              <span className="font-mono text-[11px] w-10 text-center select-none text-slate-300">
                 {Math.round(zoom * 100)}%
               </span>
               <button
                 onClick={() => handleZoom(0.25)}
-                className="p-1.5 rounded-lg transition-colors hover:bg-[--hover-bg] cursor-pointer"
-                style={{ color: 'var(--text-2)' }}
+                className="p-1 rounded-md text-slate-400 hover:text-slate-200 hover:bg-white/[0.06] transition-colors cursor-pointer"
                 title="Zoom in"
               >
-                <ZoomIn className="w-4 h-4" strokeWidth={1.5} />
+                <ZoomIn className="w-3.5 h-3.5" strokeWidth={1.6} />
               </button>
               <button
                 onClick={handleResetView}
-                className="p-1.5 rounded-lg transition-colors hover:bg-[--hover-bg] ml-1 cursor-pointer"
-                style={{ color: 'var(--text-2)' }}
+                className="p-1 rounded-md text-slate-400 hover:text-slate-200 hover:bg-white/[0.06] transition-colors cursor-pointer"
                 title="Reset zoom and pan"
               >
-                <RotateCcw className="w-4 h-4" strokeWidth={1.5} />
+                <RotateCcw className="w-3.5 h-3.5" strokeWidth={1.6} />
               </button>
             </div>
           </div>
@@ -745,33 +741,30 @@ export const ResultView: React.FC<ResultViewProps> = ({
                           height={height}
                           fill={
                             isHovered || isSelected
-                              ? 'rgba(255, 69, 58, 0.20)'
+                              ? 'rgba(239, 68, 68, 0.18)'
                               : 'none'
                           }
-                          stroke={isHovered || isSelected ? '#FF9F0A' : '#FF453A'}
-                          strokeWidth={isHovered || isSelected ? 3 : 1.8}
-                          rx={4}
-                          className="transition-all duration-150"
-                          style={{
-                            filter: isHovered || isSelected ? 'drop-shadow(0 0 4px #FF9F0A)' : undefined,
-                          }}
+                          stroke={isHovered || isSelected ? '#F59E0B' : '#EF4444'}
+                          strokeWidth={isHovered || isSelected ? 2.5 : 1.5}
+                          rx={2}
+                          className="transition-all duration-100"
                         />
 
-                        {/* Box label chip: small "1", "2" (shows confidence on hover) */}
+                        {/* Box label chip */}
                         <rect
                           x={b.x1}
-                          y={Math.max(0, b.y1 - 18)}
-                          width={isHovered || isSelected ? 52 : 22}
-                          height={18}
-                          rx={4}
-                          fill={isHovered || isSelected ? '#FF9F0A' : '#FF453A'}
-                          className="transition-all duration-150"
+                          y={Math.max(0, b.y1 - 16)}
+                          width={isHovered || isSelected ? 48 : 20}
+                          height={16}
+                          rx={2}
+                          fill={isHovered || isSelected ? '#F59E0B' : '#EF4444'}
+                          className="transition-all duration-100"
                         />
                         <text
-                          x={b.x1 + 5}
-                          y={Math.max(13, b.y1 - 5)}
+                          x={b.x1 + 4}
+                          y={Math.max(12, b.y1 - 4)}
                           fill="#FFFFFF"
-                          fontSize="10"
+                          fontSize="9"
                           fontFamily="var(--font-mono)"
                           fontWeight="600"
                         >
@@ -786,34 +779,40 @@ export const ResultView: React.FC<ResultViewProps> = ({
               )}
             </div>
 
-            {/* Resolution indicator chip (bottom-right) */}
+            {/* Mobile-only micro resolution tag */}
             <div
-              className="absolute bottom-4 right-4 px-3 py-1 text-[11px] font-mono rounded-lg shadow-sm"
-              style={{
-                background: 'var(--glass-raised-bg)',
-                border: '1px solid var(--glass-raised-border)',
-                color: 'var(--text-2)',
-              }}
+              className="sm:hidden absolute bottom-3 right-3 px-2 py-0.5 text-[10px] font-mono rounded bg-black/60 border border-white/10 text-slate-400"
             >
               {naturalDimensions.width} &times; {naturalDimensions.height} px
             </div>
           </div>
         </GlassPanel>
 
-        {/* Right Column: Glass Inspector Panel (Full width on mobile, 380px on desktop) */}
+        {/* Right Column: Architectural Inspector Panel */}
         <GlassPanel
           variant="base"
-          className="w-full md:w-96 flex-shrink-0 flex flex-col justify-between overflow-y-visible md:overflow-y-auto p-4 sm:p-6 space-y-6"
+          className="w-full md:w-96 flex-shrink-0 flex flex-col justify-between overflow-y-visible md:overflow-y-auto p-4 sm:p-5 space-y-5"
         >
-          <div className="space-y-6">
-            {/* Section 1: Plain Verdict Headline & Thin Confidence Bar */}
-            <div className="space-y-3">
-              <span className="text-[11px] font-medium tracking-wider uppercase block" style={{ color: 'var(--text-3)' }}>
-                Verdict
-              </span>
+          <div className="space-y-5">
+            {/* Section 1: Inspection Verdict & Neural Rating */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">
+                  Inspection Verdict
+                </span>
+                <span
+                  className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold uppercase ${
+                    isCrackVerdict
+                      ? 'bg-red-500/10 text-red-400 border border-red-500/25'
+                      : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/25'
+                  }`}
+                >
+                  {isCrackVerdict ? 'Defect Detected' : 'Surface Sound'}
+                </span>
+              </div>
 
               <h2
-                className="text-xl font-semibold tracking-tight"
+                className="text-lg sm:text-xl font-semibold tracking-tight"
                 style={{
                   color: isCrackVerdict ? 'var(--crack)' : 'var(--success)',
                 }}
@@ -821,16 +820,16 @@ export const ResultView: React.FC<ResultViewProps> = ({
                 {verdictHeadline}
               </h2>
 
-              {/* Thin Confidence Bar */}
-              <div className="space-y-1.5 pt-1">
+              {/* Confidence progress bar */}
+              <div className="space-y-1.5 pt-0.5">
                 <div className="flex items-center justify-between text-xs">
-                  <span style={{ color: 'var(--text-3)' }}>Confidence</span>
-                  <span className="font-mono font-medium" style={{ color: 'var(--text-1)' }}>
+                  <span className="text-slate-400">Model Confidence</span>
+                  <span className="font-mono font-medium text-slate-200">
                     {confidencePct}%
                   </span>
                 </div>
                 <div
-                  className="w-full h-1 rounded-full overflow-hidden"
+                  className="w-full h-1.5 rounded-full overflow-hidden"
                   style={{ background: 'var(--glass-sunken-bg)' }}
                 >
                   <div
@@ -844,53 +843,50 @@ export const ResultView: React.FC<ResultViewProps> = ({
               </div>
             </div>
 
-            <div className="border-t" style={{ borderColor: 'var(--glass-sunken-border)' }} />
+            <div className="border-t border-white/[0.08]" />
 
-            {/* Section 2: Metadata */}
-            <div className="space-y-2 text-xs">
-              <span className="text-[11px] font-medium tracking-wider uppercase block" style={{ color: 'var(--text-3)' }}>
-                Scan details
-              </span>
-              <div className="grid grid-cols-3 gap-1 py-0.5">
-                <span style={{ color: 'var(--text-3)' }}>File</span>
-                <span className="col-span-2 truncate font-mono" style={{ color: 'var(--text-1)' }}>
-                  {result.filename}
-                </span>
-              </div>
-              <div className="grid grid-cols-3 gap-1 py-0.5">
-                <span style={{ color: 'var(--text-3)' }}>Dimensions</span>
-                <span className="col-span-2 font-mono" style={{ color: 'var(--text-2)' }}>
+            {/* Section 2: Architectural Details Grid */}
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.06]">
+                <span className="text-[10px] uppercase font-mono text-slate-400 block">Dimensions</span>
+                <span className="font-mono text-xs text-slate-200 font-medium">
                   {naturalDimensions.width} &times; {naturalDimensions.height} px
                 </span>
               </div>
-              <div className="grid grid-cols-3 gap-1 py-0.5">
-                <span style={{ color: 'var(--text-3)' }}>Timestamp</span>
-                <span className="col-span-2 font-mono" style={{ color: 'var(--text-2)' }}>
+              <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.06]">
+                <span className="text-[10px] uppercase font-mono text-slate-400 block">Fissure Regions</span>
+                <span className="font-mono text-xs text-slate-200 font-medium">
+                  {boxes.length} {boxes.length === 1 ? 'region' : 'regions'}
+                </span>
+              </div>
+              <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.06] col-span-2">
+                <span className="text-[10px] uppercase font-mono text-slate-400 block">Timestamp</span>
+                <span className="font-mono text-[11px] text-slate-300">
                   {new Date(result.created_at).toLocaleString()}
                 </span>
               </div>
             </div>
 
-            <div className="border-t" style={{ borderColor: 'var(--glass-sunken-border)' }} />
+            <div className="border-t border-white/[0.08]" />
 
             {/* Section 3: Detections Table with Bidirectional Linking */}
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-medium tracking-wider uppercase block" style={{ color: 'var(--text-3)' }}>
-                  Detections ({boxes.length})
+                <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">
+                  Localized Fissures ({boxes.length})
                 </span>
-                <span className="text-[10px] font-mono" style={{ color: 'var(--text-3)' }}>
+                <span className="text-[10px] font-mono text-slate-500">
                   x, y, w, h
                 </span>
               </div>
 
               {boxes.length === 0 ? (
-                <p className="text-xs py-2" style={{ color: 'var(--text-3)' }}>
+                <p className="text-xs py-2 text-slate-500">
                   {isDetectingMissing ? 'Localizing crack fissures with AI...' : 'No crack regions detected.'}
                 </p>
               ) : (
                 <div
-                  className="rounded-xl overflow-hidden max-h-48 overflow-y-auto"
+                  className="rounded-lg overflow-hidden max-h-44 overflow-y-auto custom-scrollbar"
                   style={{
                     background: 'var(--glass-sunken-bg)',
                     border: '1px solid var(--glass-sunken-border)',
@@ -906,13 +902,13 @@ export const ResultView: React.FC<ResultViewProps> = ({
                       }}
                     >
                       <tr>
-                        <th className="py-2 px-3">ID</th>
-                        <th className="py-2 px-3">Type</th>
-                        <th className="py-2 px-3">Conf</th>
-                        <th className="py-2 px-3">x</th>
-                        <th className="py-2 px-3">y</th>
-                        <th className="py-2 px-3">w</th>
-                        <th className="py-2 px-3">h</th>
+                        <th className="py-1.5 px-3">ID</th>
+                        <th className="py-1.5 px-3">Type</th>
+                        <th className="py-1.5 px-3">Conf</th>
+                        <th className="py-1.5 px-3">x</th>
+                        <th className="py-1.5 px-3">y</th>
+                        <th className="py-1.5 px-3">w</th>
+                        <th className="py-1.5 px-3">h</th>
                       </tr>
                     </thead>
                     <tbody
@@ -932,35 +928,35 @@ export const ResultView: React.FC<ResultViewProps> = ({
                             onClick={() => setSelectedBoxIdx(idx)}
                             onMouseEnter={() => setHoveredBoxIdx(idx)}
                             onMouseLeave={() => setHoveredBoxIdx(null)}
-                            className="transition-colors duration-150 cursor-pointer"
+                            className="transition-colors duration-100 cursor-pointer"
                             style={{
                               background:
                                 isSelected
-                                  ? 'rgba(255, 159, 10, 0.25)'
+                                  ? 'rgba(245, 158, 11, 0.15)'
                                   : isHovered
-                                  ? 'var(--accent-tint)'
+                                  ? 'rgba(255, 255, 255, 0.05)'
                                   : undefined,
                             }}
                           >
-                            <td className="py-2 px-3 font-semibold" style={{ color: 'var(--crack)' }}>
+                            <td className="py-1.5 px-3 font-semibold text-red-400">
                               #{idx + 1}
                             </td>
-                            <td className="py-2 px-3 font-sans text-[10px] text-cyan-300 font-medium whitespace-nowrap">
+                            <td className="py-1.5 px-3 text-slate-300 font-mono text-[10px] whitespace-nowrap">
                               {b.label || 'Crack'}
                             </td>
-                            <td className="py-2 px-3" style={{ color: 'var(--text-1)' }}>
+                            <td className="py-1.5 px-3 text-slate-200">
                               {(b.confidence * 100).toFixed(0)}%
                             </td>
-                            <td className="py-2 px-3" style={{ color: 'var(--text-3)' }}>
+                            <td className="py-1.5 px-3 text-slate-400">
                               {Math.round(b.x1)}
                             </td>
-                            <td className="py-2 px-3" style={{ color: 'var(--text-3)' }}>
+                            <td className="py-1.5 px-3 text-slate-400">
                               {Math.round(b.y1)}
                             </td>
-                            <td className="py-2 px-3" style={{ color: 'var(--text-3)' }}>
+                            <td className="py-1.5 px-3 text-slate-400">
                               {w}
                             </td>
-                            <td className="py-2 px-3" style={{ color: 'var(--text-3)' }}>
+                            <td className="py-1.5 px-3 text-slate-400">
                               {h}
                             </td>
                           </tr>

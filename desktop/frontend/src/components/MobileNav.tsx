@@ -9,8 +9,6 @@ import {
   Moon,
   LogIn,
   LogOut,
-  User,
-  Sparkles,
   UserCog,
   RefreshCw,
 } from 'lucide-react';
@@ -47,26 +45,26 @@ export const MobileHeader: React.FC<MobileNavProps> = ({
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const isHealthy = health?.status === 'healthy' || health?.status === 'ok';
   const isWakingUp = health?.status === 'waking_up' || health?.is_waking_up;
-  const deviceName = health?.device ? health.device.toUpperCase() : 'CPU';
 
   return (
     <>
       <header
-        className={`md:hidden sticky top-0 z-40 w-full pt-safe px-4 py-2.5 transition-all duration-300 flex items-center justify-between ${
+        className={`md:hidden sticky top-0 z-40 w-full pt-safe px-3.5 py-2 transition-all duration-200 flex items-center justify-between ${
           isScrolled
-            ? 'bg-[#06141B]/95 backdrop-blur-2xl border-b border-cyan-500/25 shadow-lg shadow-black/60'
-            : 'bg-[#06141B]/80 backdrop-blur-xl border-b border-white/10'
+            ? 'bg-[#080D12]/95 backdrop-blur-xl border-b border-white/[0.08] shadow-md shadow-black/40'
+            : 'bg-[#080D12]/85 backdrop-blur-md border-b border-white/[0.06]'
         }`}
       >
         {/* Scroll Progress Micro-line */}
         {scrollProgress > 0 && (
-          <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-transparent overflow-hidden pointer-events-none">
+          <div className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-transparent overflow-hidden pointer-events-none">
             <div
-              className="h-full bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400 shadow-[0_0_8px_rgba(56,189,248,0.6)] transition-all duration-150 ease-out"
+              className="h-full bg-slate-300 dark:bg-slate-400 opacity-60 transition-all duration-150 ease-out"
               style={{ width: `${scrollProgress}%` }}
             />
           </div>
         )}
+
         {/* Brand Logo & Name */}
         <div
           onClick={() => onNavigate('dashboard')}
@@ -75,150 +73,147 @@ export const MobileHeader: React.FC<MobileNavProps> = ({
           <img
             src="/logo.png"
             alt="CrackSense Logo"
-            className="w-6 h-6 rounded-md object-contain shadow-sm flex-shrink-0"
+            className="w-5 h-5 rounded object-contain shadow-sm flex-shrink-0"
           />
           <span
-            className="font-semibold text-base tracking-tight"
+            className="font-semibold text-sm tracking-tight"
             style={{ color: 'var(--text-1)' }}
           >
             CrackSense
           </span>
 
-          {/* Backend health pill - non-interactive status indicator */}
+          {/* Engine status indicator */}
           <div
             className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono ml-1 select-none pointer-events-none"
             style={{
-              background: isHealthy ? 'var(--success-tint)' : 'rgba(255, 159, 10, 0.12)',
-              color: isHealthy ? 'var(--success)' : 'var(--warning)',
-              border: `1px solid ${isHealthy ? 'rgba(48, 209, 88, 0.25)' : 'rgba(255, 159, 10, 0.25)'}`,
+              background: isHealthy ? 'var(--success-tint)' : 'rgba(245, 158, 11, 0.12)',
+              color: isHealthy ? 'var(--success)' : 'var(--crack-amber)',
+              border: `1px solid ${isHealthy ? 'rgba(16, 185, 129, 0.25)' : 'rgba(245, 158, 11, 0.25)'}`,
             }}
           >
             <span
               className={`w-1.5 h-1.5 rounded-full ${isHealthy ? 'animate-status-pulse' : ''}`}
-              style={{ background: isHealthy ? 'var(--success)' : 'var(--warning)' }}
+              style={{ background: isHealthy ? 'var(--success)' : 'var(--crack-amber)' }}
             />
-            <span>{isHealthy ? 'AI Online' : isWakingUp ? 'Waking up…' : 'Connecting…'}</span>
+            <span>{isHealthy ? 'Online' : isWakingUp ? 'Waking...' : 'Connecting...'}</span>
           </div>
         </div>
 
-      {/* Action Buttons: Update Indicator, Theme Toggle & User Auth */}
-      <div className="flex items-center gap-1.5">
-        <UpdateStatus />
+        {/* Action Buttons: Update Indicator, Theme Toggle & User Auth */}
+        <div className="flex items-center gap-1">
+          <UpdateStatus />
 
-        <button
-          onClick={onToggleTheme}
-          className="p-2 rounded-xl text-xs transition-colors hover:bg-white/10 active:scale-95"
-          style={{ color: 'var(--text-2)' }}
-          title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-        >
-          {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-        </button>
+          <button
+            onClick={onToggleTheme}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-white/[0.05] transition-colors"
+            title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          >
+            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </button>
 
-        {user ? (
-          <div className="relative">
-            <button
-              onClick={() => setShowProfileMenu((p) => !p)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-medium border border-white/10 transition-all active:scale-95"
-              style={{ background: 'var(--glass-sunken-bg)', color: 'var(--text-1)' }}
-            >
-              <div
-                className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold"
-                style={{ background: 'var(--accent)', color: '#fff' }}
+          {user ? (
+            <div className="relative">
+              <button
+                onClick={() => setShowProfileMenu((p) => !p)}
+                className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium border border-white/10 transition-colors hover:bg-white/[0.04]"
+                style={{ background: 'var(--glass-sunken-bg)', color: 'var(--text-1)' }}
               >
-                {(user.full_name || user.email)[0].toUpperCase()}
-              </div>
-              <span className="max-w-[70px] truncate text-[11px]">
-                {user.full_name?.split(' ')[0] || user.email.split('@')[0]}
-              </span>
-            </button>
-
-            {showProfileMenu && (
-              <>
                 <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setShowProfileMenu(false)}
-                />
-                <div
-                  className="absolute right-0 mt-2 w-48 py-1.5 px-1 rounded-2xl border border-white/15 shadow-2xl z-50 animate-fade-rise"
-                  style={{ background: '#0B1720', backdropFilter: 'blur(20px)' }}
+                  className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold"
+                  style={{ background: 'var(--accent)', color: 'var(--accent-text)' }}
                 >
-                  <div className="px-3 py-2 border-b border-white/10">
-                    <p className="text-xs font-medium text-white truncate">{user.full_name || 'Inspector'}</p>
-                    <p className="text-[10px] text-slate-400 font-mono truncate">{user.email}</p>
-                    {user.role === 'admin' && (
-                      <span className="inline-block mt-1 px-1.5 py-0.2 rounded text-[9px] font-semibold bg-amber-500/20 text-amber-300">
-                        ADMIN
-                      </span>
-                    )}
-                  </div>
+                  {(user.full_name || user.email)[0].toUpperCase()}
+                </div>
+                <span className="max-w-[64px] truncate text-[11px]">
+                  {user.full_name?.split(' ')[0] || user.email.split('@')[0]}
+                </span>
+              </button>
 
-                  {/* 1. Edit Profile */}
-                  <button
-                    onClick={() => {
-                      setShowProfileMenu(false);
-                      onOpenEditProfile?.();
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/10 rounded-xl transition-colors text-left cursor-pointer"
+              {showProfileMenu && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowProfileMenu(false)}
+                  />
+                  <div
+                    className="absolute right-0 mt-1.5 w-48 py-1.5 px-1 rounded-xl border border-white/10 shadow-2xl z-50 animate-fade-rise"
+                    style={{ background: '#0E1620', backdropFilter: 'blur(20px)' }}
                   >
-                    <UserCog className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>Edit Profile</span>
-                  </button>
+                    <div className="px-3 py-2 border-b border-white/[0.08]">
+                      <p className="text-xs font-medium text-white truncate">{user.full_name || 'Inspector'}</p>
+                      <p className="text-[10px] text-slate-400 font-mono truncate">{user.email}</p>
+                      {user.role === 'admin' && (
+                        <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-amber-500/20 text-amber-300">
+                          ADMIN
+                        </span>
+                      )}
+                    </div>
 
-                  {/* 2. Check for Updates */}
-                  <button
-                    onClick={() => {
-                      setShowProfileMenu(false);
-                      window.dispatchEvent(new CustomEvent('cracksense:check_updates'));
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/10 rounded-xl transition-colors text-left cursor-pointer"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>Check for Updates</span>
-                  </button>
-
-                  {user.role === 'admin' && (
                     <button
                       onClick={() => {
                         setShowProfileMenu(false);
-                        onNavigate('admin');
+                        onOpenEditProfile?.();
                       }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/10 rounded-xl transition-colors text-left"
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/[0.06] rounded-lg transition-colors text-left cursor-pointer"
                     >
-                      <Shield className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Admin Console</span>
+                      <UserCog className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Edit Profile</span>
                     </button>
-                  )}
 
-                  <button
-                    onClick={() => {
-                      setShowProfileMenu(false);
-                      onLogout();
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:bg-red-500/10 rounded-xl transition-colors text-left"
-                  >
-                    <LogOut className="w-3.5 h-3.5" />
-                    <span>Sign Out</span>
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        ) : (
-          <button
-            onClick={onOpenLogin}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-transform active:scale-95 shadow-sm"
-            style={{
-              background: 'var(--btn-primary-bg)',
-              color: 'var(--btn-primary-text)',
-            }}
-          >
-            <LogIn className="w-3.5 h-3.5" />
-            <span>Sign In</span>
-          </button>
-        )}
-      </div>
-    </header>
-  </>
+                    <button
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        window.dispatchEvent(new CustomEvent('cracksense:check_updates'));
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/[0.06] rounded-lg transition-colors text-left cursor-pointer"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Check for Updates</span>
+                    </button>
+
+                    {user.role === 'admin' && (
+                      <button
+                        onClick={() => {
+                          setShowProfileMenu(false);
+                          onNavigate('admin');
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/[0.06] rounded-lg transition-colors text-left"
+                      >
+                        <Shield className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Admin Console</span>
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        onLogout();
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:bg-red-500/10 rounded-lg transition-colors text-left cursor-pointer"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={onOpenLogin}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium cursor-pointer"
+              style={{
+                background: 'var(--accent)',
+                color: 'var(--accent-text)',
+              }}
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Sign In</span>
+            </button>
+          )}
+        </div>
+      </header>
+    </>
   );
 };
 
@@ -229,40 +224,37 @@ export const MobileBottomBar: React.FC<MobileNavProps> = ({
   user,
 }) => {
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#06141B]/90 backdrop-blur-2xl border-t border-white/10 pb-safe px-3 pt-1.5 flex items-center justify-around shadow-2xl">
-      {/* 1. Dashboard Tab */}
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#080D12]/92 backdrop-blur-xl border-t border-white/[0.08] pb-safe px-4 pt-1.5 flex items-center justify-around shadow-2xl">
+      {/* 1. Overview Tab */}
       <button
         onClick={() => onNavigate('dashboard')}
-        className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all ${
+        className={`flex flex-col items-center justify-center py-1 px-3 rounded-lg transition-colors cursor-pointer ${
           currentPage === 'dashboard'
-            ? 'text-cyan-400'
+            ? 'text-white font-medium'
             : 'text-slate-400 hover:text-slate-200'
         }`}
       >
-        <LayoutDashboard className="w-5 h-5" strokeWidth={currentPage === 'dashboard' ? 2.2 : 1.7} />
-        <span className="text-[10px] font-medium mt-0.5">Overview</span>
+        <LayoutDashboard className="w-4.5 h-4.5" strokeWidth={currentPage === 'dashboard' ? 2 : 1.6} />
+        <span className="text-[10px] mt-0.5">Overview</span>
       </button>
 
-      {/* 2. Primary Scan / Camera Center Pill */}
+      {/* 2. Primary Tactile Scan Pill */}
       <button
         onClick={() => onNavigate('upload')}
-        className="flex flex-col items-center justify-center -mt-5 group"
+        className="flex flex-col items-center justify-center -mt-4 cursor-pointer group"
       >
         <div
-          className="w-13 h-13 rounded-2xl flex items-center justify-center shadow-lg transition-transform active:scale-90"
-          style={{
-            background: currentPage === 'upload'
-              ? 'var(--accent)'
-              : 'linear-gradient(135deg, #0A84FF 0%, #0066CC 100%)',
-            boxShadow: '0 4px 16px rgba(10, 132, 255, 0.4)',
-            color: '#FFFFFF',
-          }}
+          className={`w-11 h-11 rounded-xl flex items-center justify-center shadow-lg transition-all active:scale-95 ${
+            currentPage === 'upload'
+              ? 'bg-white text-slate-900 ring-2 ring-white/40'
+              : 'bg-slate-100 text-slate-900 dark:bg-white dark:text-slate-900'
+          }`}
         >
-          <Camera className="w-6 h-6" strokeWidth={2.2} />
+          <Camera className="w-5 h-5" strokeWidth={2} />
         </div>
         <span
-          className="text-[10px] font-semibold mt-1"
-          style={{ color: currentPage === 'upload' ? 'var(--accent)' : 'var(--text-1)' }}
+          className="text-[10px] font-medium mt-1"
+          style={{ color: currentPage === 'upload' ? 'var(--text-1)' : 'var(--text-3)' }}
         >
           Scan
         </span>
@@ -271,42 +263,42 @@ export const MobileBottomBar: React.FC<MobileNavProps> = ({
       {/* 3. History Tab */}
       <button
         onClick={() => onNavigate('history')}
-        className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all ${
+        className={`flex flex-col items-center justify-center py-1 px-3 rounded-lg transition-colors cursor-pointer ${
           currentPage === 'history'
-            ? 'text-cyan-400'
+            ? 'text-white font-medium'
             : 'text-slate-400 hover:text-slate-200'
         }`}
       >
-        <HistoryIcon className="w-5 h-5" strokeWidth={currentPage === 'history' ? 2.2 : 1.7} />
-        <span className="text-[10px] font-medium mt-0.5">History</span>
+        <HistoryIcon className="w-4.5 h-4.5" strokeWidth={currentPage === 'history' ? 2 : 1.6} />
+        <span className="text-[10px] mt-0.5">History</span>
       </button>
 
-      {/* 4. Result Tab (only if inspection result exists) or Admin */}
+      {/* 4. Result Tab (only if result exists) or Admin */}
       {hasResult && (
         <button
           onClick={() => onNavigate('result')}
-          className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all ${
+          className={`flex flex-col items-center justify-center py-1 px-3 rounded-lg transition-colors cursor-pointer ${
             currentPage === 'result'
-              ? 'text-cyan-400'
+              ? 'text-white font-medium'
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >
-          <Eye className="w-5 h-5" strokeWidth={currentPage === 'result' ? 2.2 : 1.7} />
-          <span className="text-[10px] font-medium mt-0.5">Result</span>
+          <Eye className="w-4.5 h-4.5" strokeWidth={currentPage === 'result' ? 2 : 1.6} />
+          <span className="text-[10px] mt-0.5">Result</span>
         </button>
       )}
 
       {user?.role === 'admin' && !hasResult && (
         <button
           onClick={() => onNavigate('admin')}
-          className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all ${
+          className={`flex flex-col items-center justify-center py-1 px-3 rounded-lg transition-colors cursor-pointer ${
             currentPage === 'admin'
-              ? 'text-amber-400'
+              ? 'text-amber-300 font-medium'
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >
-          <Shield className="w-5 h-5" strokeWidth={currentPage === 'admin' ? 2.2 : 1.7} />
-          <span className="text-[10px] font-medium mt-0.5">Admin</span>
+          <Shield className="w-4.5 h-4.5" strokeWidth={currentPage === 'admin' ? 2 : 1.6} />
+          <span className="text-[10px] mt-0.5">Admin</span>
         </button>
       )}
     </nav>
