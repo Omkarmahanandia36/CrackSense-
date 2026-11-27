@@ -1,142 +1,136 @@
-/*  CrackSense AI — Precise Architectural Palette
-    Defined from user swatch:
-    #06141B (Midnight Slate)
-    #11212D (Dark Prussian)
-    #253745 (Shadow Slate)
-    #4A5C6A (Steel Slate)
-    #9BA8AB (Mist Grey)
-    #CCD0CF (Frost Silver)
+/*  CrackSense AI — Hallmark Industrial Inspection Design System
+    Precision Architectural Slate & Defect Localization Palette
 */
 
 :root {
   color-scheme: dark;
 
-  /* ── Swatch Colors ── */
-  --c-1: #06141B; /* Deepest Navy Slate */
-  --c-2: #11212D; /* Dark Navy Surface */
-  --c-3: #253745; /* Medium Navy / Elevated */
-  --c-4: #4A5C6A; /* Steel Blue / Border */
-  --c-5: #9BA8AB; /* Mist Grey / Secondary text */
-  --c-6: #CCD0CF; /* Frost Silver / Primary text & highlight */
+  /* ── Core Slate Ramps ── */
+  --c-1: #070B0E; /* Deep Void Canvas */
+  --c-2: #0E161F; /* Surface Base */
+  --c-3: #182330; /* Elevated Surface */
+  --c-4: #2D3E50; /* Structural Hairline */
+  --c-5: #94A3B8; /* Slate Neutral Secondary */
+  --c-6: #F8FAFC; /* Bright Slate Primary */
 
-  /* ── Background ── */
-  --bg-base:           #06141B;
-  --bg-gradient-start: #06141B;
-  --bg-gradient-mid:   #11212D;
-  --bg-gradient-warm:  #253745;
+  /* ── Background & Surfaces ── */
+  --bg-base:           #080D12;
+  --bg-gradient-start: #080D12;
+  --bg-gradient-mid:   #0E161F;
+  --bg-gradient-warm:  #141E2A;
 
-  /* Ambient drifting glow blobs */
-  --blob-coral:  rgba(204, 208, 207, 0.08);
-  --blob-navy:   rgba(37, 55, 69, 0.35);
-  --blob-cream:  rgba(74, 92, 106, 0.20);
+  /* ── Architectural Glass Surfaces ── */
+  /* Base (cards, panels, workbench) */
+  --glass-bg:           rgba(14, 22, 31, 0.88);
+  --glass-border:       rgba(255, 255, 255, 0.08);
+  --glass-highlight:    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --glass-shadow:       0 8px 32px -4px rgba(0, 0, 0, 0.5);
+  --glass-blur:         blur(16px);
 
-  /* ── Glass Surfaces ── */
-  /* Base (cards, panels, sidebar) */
-  --glass-bg:           rgba(17, 33, 45, 0.78);
-  --glass-border:       rgba(74, 92, 106, 0.38);
-  --glass-highlight:    inset 0 1px 0 rgba(204, 208, 207, 0.16);
-  --glass-shadow:       0 12px 36px rgba(6, 20, 27, 0.55);
-  --glass-blur:         blur(20px) saturate(130%);
+  /* Raised (modals, tooltips, popovers, floating headers) */
+  --glass-raised-bg:    rgba(22, 33, 46, 0.94);
+  --glass-raised-border:rgba(255, 255, 255, 0.12);
+  --glass-raised-hl:    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  --glass-raised-shadow:0 16px 40px -8px rgba(0, 0, 0, 0.65);
+  --glass-raised-blur:  blur(24px);
 
-  /* Raised (modals, dropdowns, toasts) */
-  --glass-raised-bg:    rgba(37, 55, 69, 0.90);
-  --glass-raised-border:rgba(155, 168, 171, 0.40);
-  --glass-raised-hl:    inset 0 1px 0 rgba(204, 208, 207, 0.28);
-  --glass-raised-shadow: 0 20px 48px rgba(6, 20, 27, 0.70);
-  --glass-raised-blur:  blur(28px) saturate(150%);
-
-  /* Sunken (inputs, table rows, inner viewports) */
-  --glass-sunken-bg:    rgba(6, 20, 27, 0.65);
-  --glass-sunken-border:rgba(74, 92, 106, 0.30);
-  --glass-sunken-hl:    inset 0 1.5px 3px rgba(0, 0, 0, 0.50);
+  /* Sunken (viewports, inputs, data grid cells) */
+  --glass-sunken-bg:    rgba(7, 11, 15, 0.72);
+  --glass-sunken-border:rgba(255, 255, 255, 0.06);
+  --glass-sunken-hl:    inset 0 1px 2px rgba(0, 0, 0, 0.6);
 
   /* Interactive states */
-  --hover-bg:   rgba(204, 208, 207, 0.08);
-  --active-bg:  rgba(204, 208, 207, 0.14);
+  --hover-bg:   rgba(255, 255, 255, 0.05);
+  --active-bg:  rgba(255, 255, 255, 0.09);
 
-  /* ── Typography (Swatch 5 & 6) ── */
-  --text-1:     #CCD0CF;                      /* Frost Silver primary */
-  --text-2:     #9BA8AB;                      /* Mist Grey secondary */
-  --text-3:     #4A5C6A;                      /* Steel Slate tertiary */
-  --text-inv:   #06141B;                      /* Deep Midnight for inverted text */
+  /* ── Typography (Strict Hierarchy) ── */
+  --text-1:     #F8FAFC;                      /* Crisp White Primary */
+  --text-2:     #94A3B8;                      /* Architectural Slate Secondary */
+  --text-3:     #64748B;                      /* Muted Blueprint Tertiary */
+  --text-inv:   #080D12;                      /* Inverse Text for light buttons */
 
-  --font-ui:   "SF Pro Display", "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-ui:   "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: "JetBrains Mono", SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-  /* ── Accent ── */
-  /* Primary Action uses Frost Silver with Deep Slate text for high-end luxury */
-  --accent:       #CCD0CF;
-  --accent-hover: #E4E8E7;
-  --accent-text:  #06141B;
-  --accent-tint:  rgba(204, 208, 207, 0.14);
-  --accent-glow:  rgba(204, 208, 207, 0.25);
+  /* ── Accents & Actions ── */
+  --accent:       #F1F5F9;                    /* Tactile high-contrast primary button */
+  --accent-hover: #FFFFFF;
+  --accent-text:  #080D12;
+  --accent-tint:  rgba(241, 245, 249, 0.08);
+  --accent-glow:  rgba(241, 245, 249, 0.15);
 
-  /* Defect & Status Highlights */
-  --crack:       #FF6F61;                      /* Warm Coral for defect visibility */
-  --crack-amber: #E5A440;                      /* Amber warning */
-  --crack-tint:  rgba(255, 111, 97, 0.18);
-  --amber-tint:  rgba(229, 164, 64, 0.18);
-  --success:     #52B788;                      /* Clear surface */
-  --success-tint:rgba(82, 183, 136, 0.18);
+  /* Defect & Structural Health System */
+  --crack:       #EF4444;                      /* Calibrated Defect Coral Red */
+  --crack-amber: #F59E0B;                      /* Structural Warning Amber */
+  --crack-tint:  rgba(239, 68, 68, 0.12);
+  --amber-tint:  rgba(245, 158, 11, 0.12);
+  --success:     #10B981;                      /* Sound Surface Emerald */
+  --success-tint:rgba(16, 185, 129, 0.12);
 
-  /* ── Radii ── */
-  --r-panel:   20px;
-  --r-control: 14px;
+  /* ── Radii (Refined 8px-12px architectural grid, no balloon shapes) ── */
+  --r-panel:   12px;
+  --r-control: 8px;
   --r-pill:    9999px;
 
-  /* ── Spacing ── */
+  /* ── Spacing (Strict 4px/8px rhythm) ── */
   --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px;
   --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
   --sp-7: 48px;
 
-  /* ── Focus Ring ── */
-  --focus-ring: 0 0 0 2px #CCD0CF, 0 0 0 4px rgba(74, 92, 106, 0.45);
+  /* ── Precision Focus Ring ── */
+  --focus-ring: 0 0 0 2px #080D12, 0 0 0 4px rgba(241, 245, 249, 0.4);
 }
 
-/* ── Light Mode (Inverted Swatch Scale) ── */
+/* ── Light Mode (Clean Architectural Blueprint) ── */
 [data-theme="light"] {
   color-scheme: light;
 
-  --bg-base:           #CCD0CF;
-  --bg-gradient-start: #E4E8E7;
-  --bg-gradient-mid:   #CCD0CF;
-  --bg-gradient-warm:  #9BA8AB;
+  --c-1: #F8FAFC;
+  --c-2: #FFFFFF;
+  --c-3: #F1F5F9;
+  --c-4: #CBD5E1;
+  --c-5: #64748B;
+  --c-6: #0F172A;
 
-  --blob-coral:  rgba(74, 92, 106, 0.12);
-  --blob-navy:   rgba(6, 20, 27, 0.08);
-  --blob-cream:  rgba(255, 255, 255, 0.60);
+  --bg-base:           #F8FAFC;
+  --bg-gradient-start: #FFFFFF;
+  --bg-gradient-mid:   #F8FAFC;
+  --bg-gradient-warm:  #E2E8F0;
 
-  --glass-bg:           rgba(255, 255, 255, 0.75);
-  --glass-border:       rgba(74, 92, 106, 0.25);
-  --glass-highlight:    inset 0 1px 0 rgba(255, 255, 255, 0.95);
-  --glass-shadow:       0 12px 32px rgba(6, 20, 27, 0.08);
+  --glass-bg:           rgba(255, 255, 255, 0.92);
+  --glass-border:       rgba(0, 0, 0, 0.08);
+  --glass-highlight:    inset 0 1px 0 rgba(255, 255, 255, 1);
+  --glass-shadow:       0 8px 30px -4px rgba(0, 0, 0, 0.06);
 
-  --glass-raised-bg:    rgba(255, 255, 255, 0.90);
-  --glass-raised-border:rgba(74, 92, 106, 0.35);
+  --glass-raised-bg:    rgba(255, 255, 255, 0.98);
+  --glass-raised-border:rgba(0, 0, 0, 0.12);
   --glass-raised-hl:    inset 0 1px 0 #FFFFFF;
-  --glass-raised-shadow: 0 16px 40px rgba(6, 20, 27, 0.12);
+  --glass-raised-shadow:0 14px 36px -6px rgba(0, 0, 0, 0.10);
 
-  --glass-sunken-bg:    rgba(6, 20, 27, 0.05);
-  --glass-sunken-border:rgba(74, 92, 106, 0.15);
-  --glass-sunken-hl:    inset 0 1.5px 2px rgba(6, 20, 27, 0.06);
+  --glass-sunken-bg:    rgba(15, 23, 42, 0.03);
+  --glass-sunken-border:rgba(0, 0, 0, 0.06);
+  --glass-sunken-hl:    inset 0 1px 2px rgba(0, 0, 0, 0.05);
 
-  --hover-bg:  rgba(6, 20, 27, 0.05);
-  --active-bg: rgba(6, 20, 27, 0.10);
+  --hover-bg:   rgba(0, 0, 0, 0.04);
+  --active-bg:  rgba(0, 0, 0, 0.07);
 
-  --text-1:  #06141B;
-  --text-2:  #253745;
-  --text-3:  #4A5C6A;
-  --text-inv:#CCD0CF;
+  --text-1:     #0F172A;
+  --text-2:     #475569;
+  --text-3:     #94A3B8;
+  --text-inv:   #FFFFFF;
 
-  --accent:       #06141B;
-  --accent-hover: #11212D;
-  --accent-text:  #CCD0CF;
-  --accent-tint:  rgba(6, 20, 27, 0.12);
-  --accent-glow:  rgba(6, 20, 27, 0.20);
+  --accent:       #0F172A;
+  --accent-hover: #1E293B;
+  --accent-text:  #FFFFFF;
+  --accent-tint:  rgba(15, 23, 42, 0.06);
+  --accent-glow:  rgba(15, 23, 42, 0.12);
 
-  --crack:       #D9534F;
-  --crack-amber: #C67D28;
-  --crack-tint:  rgba(217, 83, 79, 0.14);
-  --success:     #388E3C;
-  --success-tint:rgba(56, 142, 60, 0.14);
+  --crack:       #DC2626;
+  --crack-amber: #D97706;
+  --crack-tint:  rgba(220, 38, 38, 0.08);
+  --amber-tint:  rgba(217, 119, 6, 0.08);
+  --success:     #059669;
+  --success-tint:rgba(5, 150, 105, 0.08);
+
+  --focus-ring: 0 0 0 2px #FFFFFF, 0 0 0 4px rgba(15, 23, 42, 0.3);
 }

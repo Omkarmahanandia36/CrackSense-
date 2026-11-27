@@ -19,44 +19,65 @@ export const ConfidenceBar: React.FC<ConfidenceBarProps> = ({
   const clearPercent = probabilities ? Math.round(probabilities.negative_clear * 100) : 100 - percent;
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
+    <div
+      className="rounded-xl p-3.5 space-y-2.5"
+      style={{
+        background: 'var(--glass-sunken-bg)',
+        border: '1px solid var(--glass-sunken-border)',
+      }}
+    >
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold uppercase text-slate-400 tracking-wider">
-          AI Model Confidence
+        <span className="text-[11px] font-medium uppercase tracking-wider text-slate-400">
+          Neural Confidence
         </span>
         <span
-          className={`text-sm font-bold font-mono px-2 py-0.5 rounded ${
-            isCrack
-              ? 'bg-red-950 text-red-400 border border-red-800/60'
-              : 'bg-emerald-950 text-emerald-400 border border-emerald-800/60'
-          }`}
+          className="text-xs font-semibold font-mono px-2 py-0.5 rounded"
+          style={{
+            background: isCrack ? 'var(--crack-tint)' : 'var(--success-tint)',
+            color: isCrack ? 'var(--crack)' : 'var(--success)',
+            border: `1px solid ${isCrack ? 'rgba(239, 68, 68, 0.25)' : 'rgba(16, 185, 129, 0.25)'}`,
+          }}
         >
-          {percent}% Confidence
+          {percent}%
         </span>
       </div>
 
       {/* Main Bar */}
-      <div className="w-full bg-slate-950 h-3.5 rounded-full overflow-hidden p-0.5 border border-slate-800">
+      <div
+        className="w-full h-1.5 rounded-full overflow-hidden"
+        style={{ background: 'rgba(255, 255, 255, 0.08)' }}
+      >
         <div
-          className={`h-full rounded-full transition-all duration-700 ${
-            isCrack
-              ? 'bg-gradient-to-r from-orange-500 to-red-500'
-              : 'bg-gradient-to-r from-teal-500 to-emerald-500'
-          }`}
-          style={{ width: `${percent}%` }}
+          className="h-full rounded-full transition-all duration-500 ease-out"
+          style={{
+            width: `${percent}%`,
+            background: isCrack ? 'var(--crack)' : 'var(--success)',
+          }}
         />
       </div>
 
       {/* Probability Split Breakdown */}
       {probabilities && (
-        <div className="grid grid-cols-2 gap-2 pt-1 text-xs font-mono">
-          <div className="bg-slate-950/70 p-2 rounded-lg border border-slate-800/80 flex justify-between items-center">
-            <span className="text-red-400">Crack Prob:</span>
-            <span className="text-slate-200 font-bold">{crackPercent}%</span>
+        <div className="grid grid-cols-2 gap-2 pt-1 text-[11px] font-mono">
+          <div
+            className="p-2 rounded-lg flex justify-between items-center"
+            style={{
+              background: 'rgba(239, 68, 68, 0.06)',
+              border: '1px solid rgba(239, 68, 68, 0.15)',
+            }}
+          >
+            <span className="text-red-400">Defect:</span>
+            <span className="font-semibold text-slate-200">{crackPercent}%</span>
           </div>
-          <div className="bg-slate-950/70 p-2 rounded-lg border border-slate-800/80 flex justify-between items-center">
-            <span className="text-emerald-400">Clear Prob:</span>
-            <span className="text-slate-200 font-bold">{clearPercent}%</span>
+          <div
+            className="p-2 rounded-lg flex justify-between items-center"
+            style={{
+              background: 'rgba(16, 185, 129, 0.06)',
+              border: '1px solid rgba(16, 185, 129, 0.15)',
+            }}
+          >
+            <span className="text-emerald-400">Sound:</span>
+            <span className="font-semibold text-slate-200">{clearPercent}%</span>
           </div>
         </div>
       )}

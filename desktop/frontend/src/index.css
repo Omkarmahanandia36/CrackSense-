@@ -20,7 +20,7 @@
     overflow: hidden;
   }
 
-  /* Keyboard focus rings */
+  /* Precision focus rings */
   button:focus-visible,
   a:focus-visible,
   input:focus-visible,
@@ -31,8 +31,8 @@
   }
 
   ::selection {
-    background: var(--c-4);
-    color: var(--c-6);
+    background: rgba(241, 245, 249, 0.15);
+    color: var(--text-1);
   }
 }
 
@@ -47,7 +47,7 @@
   padding-bottom: calc(max(env(safe-area-inset-bottom, 0px), 8px) + 64px);
 }
 
-/* ── Smooth, Momentum & Modern Scroll Styling ── */
+/* ── Momentum & Smooth Scrolling ── */
 html, body {
   scroll-behavior: smooth;
   overscroll-behavior-y: contain;
@@ -59,37 +59,46 @@ main {
   overscroll-behavior-y: contain;
 }
 
-/* ── Glowing Futuristic Glass Scrollbar ── */
+/* ── Quiet Architectural Scrollbar (Unslop) ── */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(155, 168, 171, 0.22);
+  background: rgba(148, 163, 184, 0.20);
   border-radius: 9999px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  transition: background 0.2s ease, box-shadow 0.2s ease;
+  transition: background 0.15s ease;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #38bdf8, #2dd4bf);
-  box-shadow: 0 0 10px rgba(56, 189, 248, 0.45);
+  background: rgba(148, 163, 184, 0.40);
 }
 
-/* ── Scroll Reveal & Card Lift Animations ── */
-.scroll-reveal {
-  animation: scrollReveal 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
 }
-.scroll-reveal-delay-1 { animation-delay: 80ms; }
-.scroll-reveal-delay-2 { animation-delay: 160ms; }
-.scroll-reveal-delay-3 { animation-delay: 240ms; }
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* ── Subtle Reveal Animation ── */
+.scroll-reveal {
+  animation: scrollReveal 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.scroll-reveal-delay-1 { animation-delay: 60ms; }
+.scroll-reveal-delay-2 { animation-delay: 120ms; }
+.scroll-reveal-delay-3 { animation-delay: 180ms; }
 
 @keyframes scrollReveal {
   from {
     opacity: 0;
-    transform: translateY(14px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -98,15 +107,14 @@ main {
 }
 
 .scroll-card-hover {
-  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
 }
 .scroll-card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 24px -4px rgba(0, 0, 0, 0.4), 0 0 14px -2px rgba(56, 189, 248, 0.18);
-  border-color: rgba(56, 189, 248, 0.35);
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.16);
 }
 
-/* ── Glass utility classes ── */
+/* ── Architectural Glass utility classes ── */
 .glass-base {
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
@@ -134,78 +142,35 @@ main {
 
 /* Solid fallback when backdrop-filter is unsupported */
 @supports not (backdrop-filter: blur(1px)) {
-  .glass-base  { background: #11212D; }
-  .glass-raised { background: #253745; }
+  .glass-base  { background: #0E161F; }
+  .glass-raised { background: #16212E; }
 }
 
-/* ── Ambient Background matching user's swatch palette ── */
+/* ── Quiet Architectural Backdrop (Zero AI blob slop) ── */
 .ambient-bg {
   position: fixed;
   inset: 0;
   z-index: 0;
   overflow: hidden;
-  background: radial-gradient(
-    circle at 85% 15%,
-    rgba(74, 92, 106, 0.40) 0%,
-    rgba(37, 55, 69, 0.50) 35%,
-    #11212D 65%,
-    #06141B 100%
-  );
+  pointer-events: none;
+  background: radial-gradient(ellipse 80% 50% at 50% -10%, #111A24 0%, #080D12 100%);
 }
 
-.ambient-blob {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(120px);
-  will-change: transform;
-}
-.blob-1 {
-  width: 500px; height: 500px;
-  background: rgba(155, 168, 171, 0.10);
-  top: -10%; right: 10%;
-  animation: blobDrift1 30s infinite alternate ease-in-out;
-}
-.blob-2 {
-  width: 450px; height: 450px;
-  background: rgba(37, 55, 69, 0.40);
-  bottom: -10%; left: 5%;
-  animation: blobDrift2 35s infinite alternate ease-in-out;
-}
-.blob-3 {
-  width: 360px; height: 360px;
-  background: rgba(74, 92, 106, 0.25);
-  top: 35%; left: 30%;
-  animation: blobDrift3 40s infinite alternate ease-in-out;
-}
-
-@keyframes blobDrift1 {
-  from { transform: translate(0, 0) scale(1); }
-  to   { transform: translate(-40px, 40px) scale(1.08); }
-}
-@keyframes blobDrift2 {
-  from { transform: translate(0, 0) scale(1); }
-  to   { transform: translate(50px, -30px) scale(1.06); }
-}
-@keyframes blobDrift3 {
-  from { transform: translate(0, 0) scale(1); }
-  to   { transform: translate(-30px, -40px) scale(1.10); }
-}
-
-/* Noise overlay — SVG inline feTurbulence, 2.5% opacity */
+/* Subtle micro-texture overlay */
 .ambient-noise {
   position: absolute;
   inset: 0;
-  opacity: 0.025;
+  opacity: 0.015;
   pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   background-repeat: repeat;
 }
 
-/* ── Fade-and-rise animation ── */
+/* ── Crisp Fade & Rise ── */
 @keyframes fadeRise {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
@@ -214,16 +179,16 @@ main {
 }
 
 .animate-fade-rise {
-  animation: fadeRise 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: fadeRise 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-/* ── Status pulse ── */
+/* ── Subtle Status pulse ── */
 @keyframes statusPulse {
   0%, 100% { transform: scale(1); opacity: 1; }
-  50%      { transform: scale(1.35); opacity: 0.55; }
+  50%      { transform: scale(1.2); opacity: 0.6; }
 }
 .animate-status-pulse {
-  animation: statusPulse 2.4s infinite ease-in-out;
+  animation: statusPulse 2.8s infinite ease-in-out;
 }
 
 /* ── Skeleton shimmer ── */
@@ -234,9 +199,9 @@ main {
 .skeleton {
   background: linear-gradient(
     90deg,
-    rgba(74, 92, 106, 0.15) 25%,
-    rgba(155, 168, 171, 0.25) 50%,
-    rgba(74, 92, 106, 0.15) 75%
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.04) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.8s infinite ease-in-out;
@@ -250,5 +215,4 @@ main {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-  .ambient-blob { animation: none !important; }
 }

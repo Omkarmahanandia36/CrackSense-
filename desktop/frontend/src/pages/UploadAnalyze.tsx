@@ -309,21 +309,17 @@ export const UploadAnalyze: React.FC<UploadAnalyzeProps> = ({ initialFile, onAna
           </p>
 
           {/* Mobile & Tablet Quick Actions */}
-          <div className="mt-5 flex flex-col sm:flex-row items-center justify-center gap-3 max-w-sm mx-auto">
+          <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-2 max-w-sm mx-auto">
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 handleCapturePhoto();
               }}
-              className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95"
-              style={{
-                background: 'linear-gradient(135deg, #0A84FF 0%, #0066CC 100%)',
-                color: '#FFFFFF',
-              }}
+              className="w-full sm:w-auto px-3.5 py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-2 transition-all cursor-pointer bg-white text-slate-900 hover:bg-slate-100 active:scale-95 shadow-sm"
             >
-              <CameraIcon className="w-4 h-4" strokeWidth={2} />
-              <span>Snap with Camera</span>
+              <CameraIcon className="w-3.5 h-3.5" strokeWidth={1.8} />
+              <span>Capture Photo</span>
             </button>
 
             <button
@@ -332,14 +328,10 @@ export const UploadAnalyze: React.FC<UploadAnalyzeProps> = ({ initialFile, onAna
                 e.stopPropagation();
                 fileInputRef.current?.click();
               }}
-              className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-medium flex items-center justify-center gap-2 transition-all cursor-pointer border border-white/10 hover:bg-white/10 active:scale-95"
-              style={{
-                background: 'var(--glass-sunken-bg)',
-                color: 'var(--text-1)',
-              }}
+              className="w-full sm:w-auto px-3.5 py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-2 transition-all cursor-pointer glass-base text-slate-200 hover:text-white hover:bg-white/[0.06] active:scale-95"
             >
-              <UploadCloud className="w-4 h-4 text-cyan-400" strokeWidth={1.8} />
-              <span>Choose from Photos</span>
+              <UploadCloud className="w-3.5 h-3.5 text-slate-400" strokeWidth={1.6} />
+              <span>Choose File</span>
             </button>
           </div>
         </div>

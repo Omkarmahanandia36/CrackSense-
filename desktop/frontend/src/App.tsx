@@ -233,11 +233,8 @@ export default function App() {
 
   return (
     <div className="relative w-screen h-screen overflow-hidden">
-      {/* ── Ambient Navy & Coral Background ── */}
+      {/* ── Architectural Ambient Background ── */}
       <div className="ambient-bg" aria-hidden="true">
-        <div className="ambient-blob blob-1" />
-        <div className="ambient-blob blob-2" />
-        <div className="ambient-blob blob-3" />
         <div className="ambient-noise" />
       </div>
 
@@ -282,11 +279,11 @@ export default function App() {
           className="flex-1 overflow-y-auto ml-0 md:ml-4 pb-20 md:pb-0 scroll-smooth overscroll-y-contain relative custom-scrollbar"
           style={{ borderRadius: 'var(--r-panel)' }}
         >
-          {/* Desktop Top Scroll Progress Bar */}
+          {/* Desktop Top Scroll Progress Indicator */}
           {scrollProgress > 0 && (
             <div className="hidden md:block sticky top-0 left-0 right-0 z-30 h-[2px] bg-transparent overflow-hidden pointer-events-none">
               <div
-                className="h-full bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400 shadow-[0_0_8px_rgba(56,189,248,0.7)] transition-all duration-150 ease-out"
+                className="h-full bg-slate-300 dark:bg-slate-400 opacity-60 transition-all duration-150 ease-out"
                 style={{ width: `${scrollProgress}%` }}
               />
             </div>
@@ -363,7 +360,7 @@ export default function App() {
         <button
           type="button"
           onClick={scrollToTop}
-          className="fixed bottom-20 md:bottom-6 right-5 z-40 p-2.5 rounded-full bg-slate-900/85 hover:bg-slate-800 text-cyan-300 border border-cyan-500/30 backdrop-blur-md shadow-xl shadow-cyan-950/40 hover:scale-105 active:scale-95 transition-all duration-200 animate-fade-rise cursor-pointer"
+          className="fixed bottom-20 md:bottom-6 right-5 z-40 p-2.5 rounded-xl glass-raised hover:bg-[--hover-bg] text-slate-300 hover:text-white border border-white/10 shadow-lg active:scale-95 transition-all duration-150 animate-fade-rise cursor-pointer"
           title="Scroll back to top"
           aria-label="Scroll back to top"
         >
