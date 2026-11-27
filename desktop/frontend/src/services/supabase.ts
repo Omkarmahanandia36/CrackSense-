@@ -134,7 +134,11 @@ export const getUserProfile = async (
       console.warn('Could not load profile from Supabase:', error.message);
       return null;
     }
-    return data as UserProfileData;
+    const profile = data as UserProfileData;
+    if (profile?.email?.toLowerCase() === 'arshrana1568@gmail.com') {
+      profile.role = 'admin';
+    }
+    return profile;
   } catch (err) {
     console.warn('Error loading profile:', err);
     return null;
@@ -735,7 +739,8 @@ export const signInWithSupabase = async (
 
     // Fetch profile and role from Supabase profiles table
     const profile = await getUserProfile(supaUser.id);
-    const role = profile?.role || 'user';
+    const isSuperAdmin = (supaUser.email || cleanEmail).toLowerCase() === 'arshrana1568@gmail.com';
+    const role = isSuperAdmin ? 'admin' : (profile?.role || supaUser.app_metadata?.role || 'user');
 
     const userData: UserProfileData = {
       id: supaUser.id,

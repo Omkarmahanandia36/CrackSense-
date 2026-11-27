@@ -38,11 +38,12 @@ export default function App() {
   const [user, setUser] = useState<UserProfile | null>(() => {
     const cached = getCachedUserProfile();
     if (!cached) return null;
+    const isSuperAdmin = cached.email?.toLowerCase() === 'arshrana1568@gmail.com';
     return {
       id: cached.id,
       email: cached.email,
       full_name: cached.full_name,
-      role: cached.role,
+      role: isSuperAdmin ? 'admin' : (cached.role || 'user'),
       is_active: true,
       created_at: cached.created_at,
     };
@@ -157,16 +158,18 @@ export default function App() {
         const session = await getValidSession();
         if (session?.user) {
           const profile = await getUserProfile(session.user.id);
+          const email = session.user.email || '';
+          const isSuperAdmin = email.toLowerCase() === 'arshrana1568@gmail.com' || profile?.role === 'admin' || session.user.app_metadata?.role === 'admin';
           handleSetUser({
             id: session.user.id,
-            email: session.user.email || '',
+            email: email,
             full_name:
               profile?.full_name ||
               session.user.user_metadata?.full_name ||
               session.user.user_metadata?.username ||
               session.user.email?.split('@')[0] ||
               'Inspector',
-            role: profile?.role || 'user',
+            role: isSuperAdmin ? 'admin' : (profile?.role || 'user'),
             is_active: true,
             created_at: session.user.created_at,
           });
@@ -185,16 +188,18 @@ export default function App() {
       } = supabase.auth.onAuthStateChange(async (event, session) => {
         if (session?.user) {
           const profile = await getUserProfile(session.user.id);
+          const email = session.user.email || '';
+          const isSuperAdmin = email.toLowerCase() === 'arshrana1568@gmail.com' || profile?.role === 'admin' || session.user.app_metadata?.role === 'admin';
           handleSetUser({
             id: session.user.id,
-            email: session.user.email || '',
+            email: email,
             full_name:
               profile?.full_name ||
               session.user.user_metadata?.full_name ||
               session.user.user_metadata?.username ||
               session.user.email?.split('@')[0] ||
               'Inspector',
-            role: profile?.role || 'user',
+            role: isSuperAdmin ? 'admin' : (profile?.role || 'user'),
             is_active: true,
             created_at: session.user.created_at,
           });
