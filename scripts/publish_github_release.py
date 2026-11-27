@@ -83,14 +83,10 @@ upload_base = upload_url_tmpl.split("{")[0]
 existing_assets = {a["name"]: a["id"] for a in release.get("assets", [])}
 print(f"[INFO] Existing assets: {list(existing_assets.keys())}")
 
-# Files to upload
+# Files to upload (strictly the 2 production binaries: Windows .exe and Android .apk)
 assets_to_upload = [
-    ("CrackSense-v1.3.5-Setup.exe", ROOT_DIR / "CrackSense-v1.3.5-Setup.exe", "application/vnd.microsoft.portable-executable"),
-    ("CrackSense-AI-Setup-1.3.5.exe", ROOT_DIR / "CrackSense-v1.3.5-Setup.exe", "application/vnd.microsoft.portable-executable"),
-    ("CrackSense-AI-Setup.exe", ROOT_DIR / "CrackSense-v1.3.5-Setup.exe", "application/vnd.microsoft.portable-executable"),
-    ("CrackSense-v1.3.5.apk", ROOT_DIR / "CrackSense-v1.3.5.apk", "application/vnd.android.package-archive"),
-    ("CrackSense-AI-Mobile.apk", ROOT_DIR / "CrackSense-v1.3.5.apk", "application/vnd.android.package-archive"),
-    ("latest.yml", DIST_ELECTRON / "latest.yml", "text/yaml"),
+    (f"CrackSense-v{tag.lstrip('v')}-Setup.exe", ROOT_DIR / f"CrackSense-v{tag.lstrip('v')}-Setup.exe", "application/vnd.microsoft.portable-executable"),
+    (f"CrackSense-v{tag.lstrip('v')}.apk", ROOT_DIR / f"CrackSense-v{tag.lstrip('v')}.apk", "application/vnd.android.package-archive"),
 ]
 
 for asset_name, file_path, content_type in assets_to_upload:
