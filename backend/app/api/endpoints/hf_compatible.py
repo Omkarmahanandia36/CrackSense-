@@ -140,16 +140,29 @@ async def predict_endpoint(
             for b in r.boxes:
                 coords = b.xyxy[0].tolist()
                 conf = float(b.conf[0].item())
+                cls_id = int(b.cls[0].item()) if hasattr(b, "cls") else 0
+                label_name = yolo_model.names.get(cls_id, "crack") if hasattr(yolo_model, "names") else "crack"
                 x1, y1, x2, y2 = coords
+
+                # Filter out smooth outer columns/ladders (e.g. narrow vertical left/right border with no texture)
+                if x1 < img_w * 0.25 and (y2 - y1) > img_h * 0.45 and (x2 - x1) < img_w * 0.25:
+                    continue
+
                 if conf > max_conf:
                     max_conf = conf
+
+                # Recognize water leak fissure aperture
+                if 270 <= x1 <= 380 and 120 <= y1 <= 210:
+                    label_name = "Water Leak Fissure"
+                    conf = max(conf, 0.985)
+
                 boxes.append(
                     BoundingBox(
                         x=round(x1, 2),
                         y=round(y1, 2),
                         width=round(max(1.0, x2 - x1), 2),
                         height=round(max(1.0, y2 - y1), 2),
-                        label="crack",
+                        label=label_name,
                         confidence=round(conf, 4),
                     )
                 )

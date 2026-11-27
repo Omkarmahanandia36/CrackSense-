@@ -44,7 +44,7 @@ class UpdateService {
   private progress: DownloadProgress | null = null;
   private errorMessage: string | null = null;
   private listeners = new Set<UpdateListener>();
-  private installedVersion: string = import.meta.env.APP_VERSION || '1.3.4';
+  private installedVersion: string = import.meta.env.APP_VERSION || '1.3.5';
   private isElectron: boolean = false;
   private isAndroid: boolean = false;
   private initialized: boolean = false;
