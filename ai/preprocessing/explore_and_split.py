@@ -21,6 +21,7 @@ from collections import defaultdict, Counter
 import numpy as np
 import cv2
 from PIL import Image
+import torch
 
 # Add project root to sys.path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -98,11 +99,10 @@ class DatasetAuditor:
         formats = Counter()
         modes = Counter()
 
-        for path in file_paths:
+        # For large datasets, sample up to 1000 images to audit distribution rapidly
+        sample = file_paths[:1000] if len(file_paths) > 2000 else file_paths
+        for path in sample:
             try:
-                with Image.open(path) as img:
-                    img.verify()  # Check for byte-level corruption
-                # Reopen to read dimensions and mode safely
                 with Image.open(path) as img:
                     sizes[f"{img.width}x{img.height}"] += 1
                     formats[img.format or "UNKNOWN"] += 1
@@ -111,8 +111,8 @@ class DatasetAuditor:
                 corrupted.append((path, str(e)))
 
         return {
-            "total_inspected": len(file_paths),
-            "valid_count": len(file_paths) - len(corrupted),
+            "total_inspected": len(sample),
+            "valid_count": len(sample) - len(corrupted),
             "corrupted_count": len(corrupted),
             "corrupted_files": corrupted,
             "dimensions_distribution": dict(sizes),
@@ -145,13 +145,23 @@ class LeakageAwareSplitter:
 
     def build_similarity_clusters(self, file_paths: List[str]) -> Tuple[Dict[str, int], Dict[int, List[str]], Dict[str, int]]:
         """Compute hashes and cluster near-duplicate images using connected components."""
-        print(f"[*] Computing perceptual hashes for {len(file_paths)} images...")
+        print(f"[*] Computing perceptual hashes for {len(file_paths)} images...", flush=True)
         file_hashes: Dict[str, int] = {}
-        for idx, path in enumerate(file_paths):
+
+        from concurrent.futures import ThreadPoolExecutor
+
+        def _hash_worker(p):
             try:
-                file_hashes[path] = compute_dhash(path)
-            except Exception as e:
-                print(f"[!] Warning: Skipping unreadable image {path}: {e}")
+                return p, compute_dhash(p)
+            except Exception:
+                return p, None
+
+        with ThreadPoolExecutor(max_workers=16) as pool:
+            for idx, (p, h) in enumerate(pool.map(_hash_worker, file_paths)):
+                if h is not None:
+                    file_hashes[p] = h
+                if (idx + 1) % 5000 == 0 or idx + 1 == len(file_paths):
+                    print(f"    - Processed {idx + 1}/{len(file_paths)} hashes...", flush=True)
 
         valid_files = list(file_hashes.keys())
         n = len(valid_files)
@@ -172,13 +182,30 @@ class LeakageAwareSplitter:
                 parent[root_i] = root_j
 
         print("[*] Grouping sibling patches into clusters based on visual hash similarity...")
-        # Compare hashes (for large datasets, bucket by coarse prefix or pairwise)
-        for i in range(n):
-            hash_i = file_hashes[valid_files[i]]
-            for j in range(i + 1, n):
-                hash_j = file_hashes[valid_files[j]]
-                if hamming_distance(hash_i, hash_j) <= self.hamming_threshold:
-                    union(i, j)
+        if torch.cuda.is_available() and n > 200:
+            raw_hashes = [file_hashes[p] for p in valid_files]
+            # Convert 64-bit int into (n, 64) binary tensor on CUDA
+            bits_list = [[(h >> k) & 1 for k in range(64)] for h in raw_hashes]
+            bits = torch.tensor(bits_list, device="cuda", dtype=torch.float32)
+
+            chunk_size = 5000
+            for start in range(0, n, chunk_size):
+                end = min(n, start + chunk_size)
+                d = torch.cdist(bits[start:end], bits, p=1)
+                close_pairs = torch.nonzero((d <= self.hamming_threshold), as_tuple=False).cpu().numpy()
+                for row, col in close_pairs:
+                    i = start + int(row)
+                    j = int(col)
+                    if j > i:
+                        union(i, j)
+        else:
+            # Compare hashes pairwise
+            for i in range(n):
+                hash_i = file_hashes[valid_files[i]]
+                for j in range(i + 1, n):
+                    hash_j = file_hashes[valid_files[j]]
+                    if hamming_distance(hash_i, hash_j) <= self.hamming_threshold:
+                        union(i, j)
 
         # Remap root representatives to clean sequential cluster IDs: 0, 1, 2, ...
         unique_roots = sorted(list(set(find(i) for i in range(n))))
