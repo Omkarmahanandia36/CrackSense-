@@ -309,7 +309,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Version & Update check */}
         {!collapsed && (
           <div className="pt-0.5 flex items-center justify-between text-[10px] font-mono text-slate-500 px-1 select-none">
-            <span>v{import.meta.env.APP_VERSION || '1.3.6'}</span>
+            <span>v{import.meta.env.APP_VERSION || '1.3.7'}</span>
             <button
               type="button"
               onClick={() => window.dispatchEvent(new CustomEvent('cracksense:check_updates'))}

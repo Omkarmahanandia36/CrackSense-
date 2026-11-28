@@ -14,9 +14,10 @@ import {
   Laptop,
   Globe,
 } from 'lucide-react';
-import { supabase, isSupabaseConfigured } from '../services/supabase';
+import { supabase, isSupabaseConfigured, getValidSession } from '../services/supabase';
 import { UserProfile } from '../services/api';
 import { GlassPanel, Button, Skeleton } from '../components/ui';
+import { LogIn } from 'lucide-react';
 
 interface AdminViewProps {
   currentUser: UserProfile | null;
@@ -66,6 +67,15 @@ export const AdminView: React.FC<AdminViewProps> = ({ currentUser, onBack }) => 
     setError(null);
 
     try {
+      // 0. Verify valid active session
+      const session = await getValidSession();
+      if (!session?.user) {
+        setError('Administrator authentication session required. Please sign in with your admin credentials to access multi-tenant audit records.');
+        setUsers([]);
+        setLoading(false);
+        return;
+      }
+
       // 1. Try calling the security definer RPC function 'get_admin_users'
       const { data: rpcData, error: rpcError } = await supabase.rpc(
         'get_admin_users',
@@ -75,10 +85,14 @@ export const AdminView: React.FC<AdminViewProps> = ({ currentUser, onBack }) => 
         }
       );
 
-      if (!rpcError && rpcData) {
+      if (!rpcError && rpcData && Array.isArray(rpcData) && rpcData.length > 0) {
         setUsers(rpcData as AdminUserRow[]);
         setLoading(false);
         return;
+      }
+
+      if (rpcError) {
+        console.warn('RPC get_admin_users failed, attempting direct table select:', rpcError.message);
       }
 
       // 2. Fallback: Query profiles table directly with RLS
@@ -95,7 +109,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ currentUser, onBack }) => 
         );
       }
 
-      if (!profilesData) {
+      if (!profilesData || profilesData.length === 0) {
         setUsers([]);
         setLoading(false);
         return;
@@ -239,12 +253,22 @@ export const AdminView: React.FC<AdminViewProps> = ({ currentUser, onBack }) => 
 
       {/* Database Error Banner */}
       {error && (
-        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 text-rose-400 flex-shrink-0 mt-0.5" />
-          <div className="text-sm">
-            <div className="font-semibold text-rose-300">Database Access Error</div>
-            <div className="text-rose-200/80">{error}</div>
+        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-rose-400 flex-shrink-0 mt-0.5" />
+            <div className="text-sm">
+              <div className="font-semibold text-rose-300">Database Access Error</div>
+              <div className="text-rose-200/80">{error}</div>
+            </div>
           </div>
+          <Button
+            variant="primary"
+            size="sm"
+            icon={LogIn}
+            onClick={() => window.dispatchEvent(new CustomEvent('cracksense:open_login'))}
+          >
+            Sign In as Admin
+          </Button>
         </div>
       )}
 

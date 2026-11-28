@@ -26,18 +26,18 @@ if not token:
     sys.exit(1)
 
 repo = "Omkarmahanandia36/CrackSense-"
-tag = "v1.3.5"
-release_name = "CrackSense AI v1.3.5"
+tag = "v1.3.7"
+release_name = "CrackSense AI v1.3.7"
 release_body = (
-    "## CrackSense AI v1.3.5\n\n"
+    "## CrackSense AI v1.3.7\n\n"
     "### What's New:\n"
-    "- **Water Leak Fissure Detection:** Calibrated multi-scale detection to accurately identify and box cracks at water leak burst origins.\n"
-    "- **False Positive Elimination:** Suppressed false detections on smooth column edges and ladder rails.\n"
-    "- **Defect Classification:** Categorizes defects by type (Water Leak Fissure, Surface Spalling, Crack) with calibrated confidence.\n"
-    "- **Windows Installer (.exe):** Working in-app update trigger and download.\n\n"
-    "### Downloads:\n"
-    "- **Windows Setup:** `CrackSense-v1.3.5-Setup.exe` / `CrackSense-AI-Setup.exe`\n"
-    "- **Android Mobile APK:** `CrackSense-v1.3.5.apk` / `CrackSense-AI-Mobile.apk`\n"
+    "- **Seamless Administrator Access:** Added automatic background reconnection and explicit session recovery for administrative audit logs.\n"
+    "- **History Cloud Synchronization:** Instant one-click cloud upload with authentication validation for pending offline inspections.\n"
+    "- **Direct Android APK Download Intent:** Upgraded mobile update trigger to launch system download manager directly.\n"
+    "- **Updated Executable & APK Binaries:** Streamlined dual-platform releases.\n\n"
+    "### Downloads (2 Binaries):\n"
+    "- **Windows Installer:** `CrackSense-v1.3.7-Setup.exe`\n"
+    "- **Android APK:** `CrackSense-v1.3.7.apk`\n"
 )
 
 # 2. Check if release exists or create it

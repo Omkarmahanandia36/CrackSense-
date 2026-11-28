@@ -44,7 +44,7 @@ class UpdateService {
   private progress: DownloadProgress | null = null;
   private errorMessage: string | null = null;
   private listeners = new Set<UpdateListener>();
-  private installedVersion: string = import.meta.env.APP_VERSION || '1.3.5';
+  private installedVersion: string = import.meta.env.APP_VERSION || '1.3.7';
   private isElectron: boolean = false;
   private isAndroid: boolean = false;
   private initialized: boolean = false;
@@ -262,9 +262,13 @@ class UpdateService {
 
     if (this.isAndroid) {
       try {
-        await Browser.open({ url });
-      } catch {
         window.open(url, '_system');
+      } catch {
+        try {
+          await Browser.open({ url });
+        } catch {
+          window.location.href = url;
+        }
       }
       return;
     }

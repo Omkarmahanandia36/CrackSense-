@@ -13,6 +13,7 @@ import {
   getLocalInspections,
   syncPendingInspections,
   getSignedImageUrl,
+  getValidSession,
   supabase,
 } from '../services/supabase';
 import { deleteCloudinaryInspectionAssets } from '../services/cloudinary';
@@ -159,7 +160,19 @@ export const History: React.FC<HistoryProps> = ({
   const handleSyncPending = async () => {
     setSyncing(true);
     try {
+      const session = await getValidSession();
+      if (!session?.user) {
+        window.dispatchEvent(new CustomEvent('cracksense:open_login'));
+        alert('Authentication required: Please sign in to sync local inspections to cloud storage.');
+        setSyncing(false);
+        return;
+      }
       const result = await syncPendingInspections();
+      if (result.synced > 0) {
+        alert(`Successfully synced ${result.synced} inspection${result.synced > 1 ? 's' : ''} to cloud!`);
+      } else if (result.failed > 0) {
+        alert(`Cloud sync incomplete: ${result.failed} item(s) could not be synchronized.`);
+      }
       await loadData();
     } catch (err: any) {
       alert(`Sync error: ${err.message}`);

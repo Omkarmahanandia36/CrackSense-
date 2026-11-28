@@ -48,18 +48,22 @@ export const UpdateModal: React.FC = () => {
     // Custom events from Profile / Settings / Header badge
     const handleOpenModal = () => setIsModalOpen(true);
     const handleCheckUpdates = async () => {
-      setNotice(null);
-      await updateService.checkForUpdates();
-      setTimeout(() => {
+      setNotice('Checking for updates...');
+      try {
+        await updateService.checkForUpdates();
         const curState = updateService.getState();
         const curInfo = updateService.getUpdateInfo();
         if (curState === 'available' && curInfo?.version) {
+          setNotice(null);
           setIsModalOpen(true);
         } else {
           setNotice(`CrackSense AI v${updateService.getInstalledVersion()} is up to date!`);
           setTimeout(() => setNotice(null), 3500);
         }
-      }, 1200);
+      } catch (err: any) {
+        setNotice(`Unable to check for updates: ${err?.message || 'Network error'}`);
+        setTimeout(() => setNotice(null), 3500);
+      }
     };
 
     window.addEventListener('cracksense:open_update_modal', handleOpenModal);

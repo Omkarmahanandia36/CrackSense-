@@ -458,7 +458,7 @@ export const syncInspection = async (
     item.syncStatus = 'pending';
     item.syncError = 'Authentication required to sync';
     saveLocalInspection(item);
-    return item;
+    throw new Error('Authentication required to sync inspection to cloud');
   }
 
   item.syncStatus = 'syncing';
